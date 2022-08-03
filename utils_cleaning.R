@@ -586,7 +586,7 @@ create.deletion.log.duplicates <- function(data, ids){
 
 translate.responses <- function(data, questions.db, language_codes = 'uk', is.loop = F){
   if(is.loop){
-    data[["loop_index"]] <- data[[colnames(data)[1]]]
+    data[["loop_index"]] <- data[[`_index`]]
   } else {
     data[["loop_index"]] <- NA
   }
