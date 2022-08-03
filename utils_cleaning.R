@@ -590,33 +590,34 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
   } else {
     data[["loop_index"]] <- NA
   }
-  relevant_colnames <- c("uuid","loop_index", "enumerator_num","name", "ref.name","full.label","ref.type",
+  relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
                          "choices.label", "response.uk")
-  
-  responses <- data[, c("uuid", "loop_index",all_of(questions.db$name))] %>% 
-    pivot_longer(cols= all_of(questions.db$name), names_to="question.name", values_to="response.uk") %>% 
-    filter(!is.na(response.uk)) %>% 
-    select(uuid,loop_index, question.name, response.uk)
-  if(nrow(responses) > 0){
-    for (code in language_codes) {
-      col_name <- paste0('response.en.from.',code)
-      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
-      responses[[col_name]] <- gsub("&#39;", "'", translateR::translate(content.vec = responses$response.uk,
-                                                                        google.api.key = source("resources/google.api.key_regional.R")$value,
-                                                                        source.lang = code, target.lang = "en"))
+  if(nrow(questions.db)>0){
+    responses <- data[, c("uuid", "loop_index",all_of(questions.db$name))] %>% 
+      pivot_longer(cols= all_of(questions.db$name), names_to="question.name", values_to="response.uk") %>% 
+      filter(!is.na(response.uk)) %>% 
+      select(uuid,loop_index, question.name, response.uk)
+    if(nrow(responses) > 0){
+      for (code in language_codes) {
+        col_name <- paste0('response.en.from.',code)
+        relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
+        responses[[col_name]] <- gsub("&#39;", "'", translateR::translate(content.vec = responses$response.uk,
+                                                                          google.api.key = source("resources/google.api.key_regional.R")$value,
+                                                                          source.lang = code, target.lang = "en"))
+      }
+    }else{
+      warning("Nothing to be translated")
     }
-  }else{
-    warning("Nothing to be translated")
+    responses.j <- responses %>% 
+      left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
+      left_join(select(data, uuid), by="uuid") %>% 
+      select(all_of(relevant_colnames)) %>% 
+      mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
+             "EXISTING other (copy the exact wording from the options in column G)"=NA,
+             "INVALID other (insert yes or leave blank)"=NA) %>% 
+      arrange(name)
+    return(responses.j)
   }
-  responses.j <- responses %>% 
-    left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-    left_join(select(data, uuid, enumerator_num), by="uuid") %>% 
-    select(all_of(relevant_colnames)) %>% 
-    mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
-           "EXISTING other (copy the exact wording from the options in column G)"=NA,
-           "INVALID other (insert yes or leave blank)"=NA) %>% 
-    arrange(name)
-  return(responses.j)
 }
 
 
