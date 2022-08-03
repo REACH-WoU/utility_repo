@@ -585,13 +585,18 @@ create.deletion.log.duplicates <- function(data, ids){
 }
 
 translate.responses <- function(data, questions.db, language_codes = 'uk'){
-  relevant_colnames <- c("uuid","country","name", "ref.name","full.label","ref.type",
+  if(is.loop){
+    data[["loop_index"]] <- data[[colnames(data)[1]]]
+  } else {
+    data[["loop_index"]] <- NA
+  }
+  relevant_colnames <- c("uuid","loop_index", "enumerator_num","name", "ref.name","full.label","ref.type",
                          "choices.label", "response.uk")
   
-  responses <- data[, c("uuid", all_of(questions.db$name))] %>% 
+  responses <- data[, c("uuid", "loop_index",all_of(questions.db$name))] %>% 
     pivot_longer(cols= all_of(questions.db$name), names_to="question.name", values_to="response.uk") %>% 
     filter(!is.na(response.uk)) %>% 
-    select(uuid, question.name, response.uk)
+    select(uuid,loop_index, question.name, response.uk)
   if(nrow(responses) > 0){
     for (code in language_codes) {
       col_name <- paste0('response.en.from.',code)
@@ -605,7 +610,7 @@ translate.responses <- function(data, questions.db, language_codes = 'uk'){
   }
   responses.j <- responses %>% 
     left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-    left_join(select(data, uuid, country), by="uuid") %>% 
+    left_join(select(data, uuid, enumerator_num), by="uuid") %>% 
     select(all_of(relevant_colnames)) %>% 
     mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
            "EXISTING other (copy the exact wording from the options in column G)"=NA,
