@@ -18,8 +18,11 @@ convertColTypes <- function(data, tool.survey){
   return(data)
 }
 
-# for each survey, it finds the closest matching survey with the minimum number of different columns
-find_similar_surveys <- function(data.main, tool.survey, uuid="_uuid"){
+find_similar_surveys <- function(data.main, tool.survey, uuid="_uuid", staff_name_col="Staff_Name"){
+#' for each survey, it finds the closest matching survey with the minimum number of different columns
+#' 
+#' @param uuid Name of the column in which uuids are stored.
+#' @param staff_name_col Name of the column in which enumerator's name (or identifier etc.) is stored
   
   data <- data.main
   
@@ -38,8 +41,8 @@ find_similar_surveys <- function(data.main, tool.survey, uuid="_uuid"){
                        "note", "calculate", "text")
   cols_to_keep <- data.frame(column=colnames(data)) %>% 
     left_join(select(tool.survey, name, type), by=c("column"="name")) %>% 
-    filter(!(type %in% types_to_remove) & 
-             !str_starts(column, "_") & !str_detect(column, "/") & !str_ends(column, "_other"))
+    filter(column==staff_name_col | (!(type %in% types_to_remove) & 
+             !str_starts(column, "_") & !str_detect(column, "/") & !str_ends(column, "_other")))
   data <- data[, all_of(cols_to_keep$column)]
   
   # 4) remove columns with all NA; convert remaining NA to "NA"; convert all columns to factor
