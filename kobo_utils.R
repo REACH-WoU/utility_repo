@@ -2,24 +2,32 @@
 # UTILITY FUNCTIONS RELATED TO KOBO TOOLS
 ###############################################################################
 
-get_type <- function(variable){
+get.type <- function(variable){
   #' find the type of variable
-  #' @param variable This is the value in the `name` column from the tool.
+  #' @param variable This is the name of the header from raw data.
   if (str_detect(variable, "/")) return("select_multiple")
   else return(tool.survey$q.type[tool.survey$name==variable])
 }
 
-get_label <- function(variable){
+get.label <- function(variable){
   #' find the label of a variable
-  #' @param variable This is the value in the `name` column from the tool.
+  #' @param variable This is the name of the header from raw data.
+  if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
   return(tool.survey[tool.survey$name == variable, ][[label_colname]])
 }
 
-get_list_name <- function(variable){
+get.choice.list.from.name <- function(variable){
   #' find the choices list name
-  #' @param variable This is the value in the `name` column from the tool.
+  #' @param variable This is the name of the header from raw data.
   if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
   return(tool.survey$list_name[tool.survey$name==variable])
+}
+
+get.choice.list.from.type <- function(q_type){
+  #' finds the choice list for a question basing on its type
+  q_type.1 <- str_split(q_type, " ")[[1]]
+  if (length(q_type.1)==1) return(NA)
+  else return(q_type.1[2])
 }
 
 get.ref.question <- function(q_relevancy){
@@ -29,15 +37,7 @@ get.ref.question <- function(q_relevancy){
 }
 
 # ------------------------------------------------------------------------------------------
-get.choice.list.name <- function(q_type){
-  #' finds the choice list for a question basing on its type
-  q_type.1 <- str_split(q_type, " ")[[1]]
-  if (length(q_type.1)==1) return(NA)
-  else return(q_type.1[2])
-}
-
-# ------------------------------------------------------------------------------------------
-get.q.type <- function(x) return(str_split(x, " ")[[1]][1])
+split.q.type <- function(x) return(str_split(x, " ")[[1]][1])
 
 # ------------------------------------------------------------------------------------------
 get.other.variables <- function(other_cnames = c()){
@@ -85,8 +85,8 @@ get.select.db <- function(){
   select.questions <- tool.survey %>% 
     rename(q.label=label_colname) %>% 
     select(type, name, q.label) %>% 
-    mutate(q.type=as.character(lapply(type, get.q.type)),
-           list_name=as.character(lapply(type, get.choice.list.name))) %>% 
+    mutate(q.type=as.character(lapply(type, split.q.type)),
+           list_name=as.character(lapply(type, get.choice.list.from.type))) %>% 
     filter(list_name!="NA" & list_name!="group" & list_name!="repeat") %>% 
     left_join(list.choices, by="list_name") %>% 
     filter(!is.na(choices))
