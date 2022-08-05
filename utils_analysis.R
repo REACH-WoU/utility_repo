@@ -433,8 +433,7 @@ remove_choice <- function(concat_value, choice){
 
 ### CHECK This one here
 convertColumnType <- function(df, col){
-  cols_exclude <- c("a5_settlement_of_origin","a4_2_resp_age")
-  if ((col %in% tool.survey$name) & !(col %in% cols_exclude)){
+  if ((col %in% tool.survey$name)){
     q <- tool.survey[tool.survey$name==col,]
     if (str_starts(q$type, "select_one")){
       choices <- tool.choices %>% filter(list_name==q$list_name) %>%
