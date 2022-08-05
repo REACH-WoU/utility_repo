@@ -220,6 +220,33 @@ save.outlier.responses <- function(df, or.submission=""){
   }
 }
 
+save.outlier.responses_msna <- function(df, or.submission=""){
+    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
+                                   valign="top", wrapText=T)
+    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    style.col.color.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    wb <- createWorkbook()
+    addWorksheet(wb, "Sheet1")
+    writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
+    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=7)
+    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
+    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=5)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
+    addStyle(wb, "Sheet1", style = style.col.color.first, rows = 1, cols=6:7)
+    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
+    filename <- paste0("output/checking/outliers/outliers_requests.xlsx")
+    saveWorkbook(wb, filename, overwrite=TRUE)
+}
 # ------------------------------------------------------------------------------------------
 add.to.cleaning.log.other.remove <- function(data, x){
   issue <- "Invalid other response"
