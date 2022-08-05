@@ -291,10 +291,6 @@ add_to_groups <- function(id1, id2){
   }
 }
 
-get.label <- function(variable){
-  return(var.labels[var.labels$name==variable, "label.full"])
-}
-
 choice.name2label <- function(list.name, name){
   return(as.character(tool.choices[tool.choices$list_name==list.name & 
                                      tool.choices$name==name, label_colname]))
@@ -409,6 +405,12 @@ get_type <- function(variable){
   #' @param variable This is the value in the `name` column from the tool.
   if (str_detect(variable, "/")) return("select_multiple")
   else return(tool.survey$q.type[tool.survey$name==variable])
+}
+
+get_label <- function(variable){
+  #' find the label of a variable
+  #' @param variable This is the value in the `name` column from the tool.
+  return(tool.survey[tool.survey$name == variable, ][[label_colname]])
 }
 
 get_list_name <- function(variable){
