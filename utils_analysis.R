@@ -432,7 +432,7 @@ remove_choice <- function(concat_value, choice){
 # "a2_border_crossing",
 
 ### CHECK This one here
-convertColumnType <- function(df, col){
+convert.col.type <- function(df, col){
   if ((col %in% tool.survey$name)){
     q <- tool.survey[tool.survey$name==col,]
     if (str_starts(q$type, "select_one")){
