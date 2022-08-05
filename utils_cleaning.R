@@ -56,11 +56,11 @@ get.select.db <- function(){
   # list of choices for each list_name (from TOOL_CHOICES)
   list.choices <- tool.choices %>% filter(!is.na(list_name)) %>% group_by(list_name) %>% 
     mutate(choices=paste(name, collapse=";\r\n"),
-           choices.label=paste(`label_colname`, collapse=";\r\n")) %>% 
+           choices.label=paste(!!sym(label_colname), collapse=";\r\n")) %>% 
     summarise(choices=choices[1], choices.label=choices.label[1])
   # list of choices for each question
   select.questions <- tool.survey %>% 
-    rename(q.label=`label_colname`) %>% 
+    rename(q.label=label_colname) %>% 
     select(type, name, q.label) %>% 
     mutate(q.type=as.character(lapply(type, get.q.type)),
            list_name=as.character(lapply(type, get.choice.list.name))) %>% 
@@ -586,8 +586,12 @@ create.deletion.log.duplicates <- function(data, ids){
 
 translate.responses <- function(data, questions.db, language_codes = 'uk', is.loop = F){
   if(is.loop){
-    data[["loop_index"]] <- data[[`_index`]]
-  } else {
+    if("loop1_index" %in% colnames(data)){
+      data[["loop_index"]] <- data[["loop1_index"]]
+    } else {
+      data[["loop_index"]] <- data[["loop2_index"]]
+    } 
+  } else {    
     data[["loop_index"]] <- NA
   }
   relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
@@ -608,17 +612,30 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
     }else{
       warning("Nothing to be translated")
     }
-    responses.j <- responses %>% 
-      left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-      left_join(select(data, uuid), by="uuid") %>% 
-      select(all_of(relevant_colnames)) %>% 
-      mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
-             "EXISTING other (copy the exact wording from the options in column G)"=NA,
-             "INVALID other (insert yes or leave blank)"=NA) %>% 
-      arrange(name)
-    return(responses.j)
-  }
+    if(is.loop){
+      responses.j <- responses %>% 
+        left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
+        left_join(select(data, loop_index), by="loop_index") %>% 
+        select(all_of(relevant_colnames)) %>% 
+        mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
+               "EXISTING other (copy the exact wording from the options in column G)"=NA,
+               "INVALID other (insert yes or leave blank)"=NA) %>% 
+        arrange(name)
+      return(responses.j)
+    } else {
+      responses.j <- responses %>% 
+        left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
+        left_join(select(data, uuid), by="uuid") %>% 
+        select(all_of(relevant_colnames)) %>% 
+        mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
+               "EXISTING other (copy the exact wording from the options in column G)"=NA,
+               "INVALID other (insert yes or leave blank)"=NA) %>% 
+        arrange(name)
+      return(responses.j)
+    }
+  } 
 }
+
 
 
 #------------------------------------------------------------------------------------------------------------
