@@ -2,6 +2,26 @@
 # UTILITY FUNCTIONS RELATED TO KOBO TOOLS
 ###############################################################################
 
+get_type <- function(variable){
+  #' find the type of variable
+  #' @param variable This is the value in the `name` column from the tool.
+  if (str_detect(variable, "/")) return("select_multiple")
+  else return(tool.survey$q.type[tool.survey$name==variable])
+}
+
+get_label <- function(variable){
+  #' find the label of a variable
+  #' @param variable This is the value in the `name` column from the tool.
+  return(tool.survey[tool.survey$name == variable, ][[label_colname]])
+}
+
+get_list_name <- function(variable){
+  #' find the choices list name
+  #' @param variable This is the value in the `name` column from the tool.
+  if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
+  return(tool.survey$list_name[tool.survey$name==variable])
+}
+
 get.ref.question <- function(q_relevancy){
   #' smart function that finds ref.question basing on relevancy text
   q_relevancy.1 <- str_split(q_relevancy, "\\{")[[1]][2]
