@@ -1,61 +1,7 @@
+("./src/utils/kobo_utils.R")
+
 ################################################################################################
 # OTHER RESPONSES
-
-get.ref.question <- function(x){
-  x.1 <- str_split(x, "\\{")[[1]][2]
-  return(str_split(x.1, "\\}")[[1]][1])
-}
-get.choice.list.name <- function(x){
-  x.1 <- str_split(x, " ")[[1]]
-  if (length(x.1)==1) return(NA)
-  else return(x.1[2])
-}
-get.q.type <- function(x) return(str_split(x, " ")[[1]][1])
-
-get.select.db <- function(){
-  # list of choices for each list_name (from TOOL_CHOICES)
-  list.choices <- tool.choices %>% filter(!is.na(list_name)) %>% group_by(list_name) %>% 
-    mutate(choices=paste(name, collapse=";\r\n"),
-           choices.label=paste(`label_colname`, collapse=";\r\n")) %>% 
-    summarise(choices=choices[1], choices.label=choices.label[1])
-  # list of choices for each question
-  select.questions <- tool.survey %>% 
-    rename(q.label=`label_colname`) %>% 
-    select(type, name, q.label) %>% 
-    mutate(q.type=as.character(lapply(type, get.q.type)),
-           list_name=as.character(lapply(type, get.choice.list.name))) %>% 
-    filter(list_name!="NA" & list_name!="group" & list_name!="repeat") %>% 
-    left_join(list.choices, by="list_name") %>% 
-    filter(!is.na(choices))
-  return(select.questions)
-}
-
-get.other.db <- function(){
-  select.questions <- get.select.db()
-  
-  # for each "other" question, get ref.question and list of choices
-  df1 <- tool.survey %>% filter(str_ends(name, "_other")) %>% 
-    rename(label="label_colname") %>% 
-    select("name", "label", "relevant") %>% 
-    mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>% 
-    left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
-              by=c("ref.name"="name")) %>% 
-    rename(ref.label=q.label, ref.type=q.type) %>% 
-    select(name, ref.name, ref.type, choices, choices.label) %>% 
-    left_join(select(var_labels, "name", "full.label"), by="name") %>% 
-    select(name, ref.name, full.label, ref.type, choices, choices.label)
-  
-  q6_4_8_other_choices <- c("Married and left the house",
-                            "Left the house to seek employment",
-                            "Left the house to study",
-                            "Left the house to live in a safer location (e.g. with relative)",
-                            "Left for disability related reasons",
-                            "Missing (left and no news)")
-  df1[df1$name=="q6_4_8_other", "choices"] <- NA
-  df1[df1$name=="q6_4_8_other", "choices.label"] <- paste(q6_4_8_other_choices, collapse=";\r\n")
-  
-  return(df1)
-}
 
 save.other.responses <- function(df, or.submission=""){
   style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 

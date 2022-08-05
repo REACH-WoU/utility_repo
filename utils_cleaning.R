@@ -1,112 +1,5 @@
-###############################################################################
+source("./src/utils/kobo_utils.R")
 
-###############################################################################
-
-get.ref.question <- function(x){
-  x.1 <- str_split(x, "\\{")[[1]][2]
-  return(str_split(x.1, "\\}")[[1]][1])
-}
-
-
-################################################################################
-#To update with all the other variables that are needed
-
-get.other.variables <- function(){
-  ov <- tool.survey %>% 
-    filter(type=="text" & 
-             (str_detect(tolower(relevant), "other'") |
-                name %in% c("Organisation_Name",
-                            "Staff_Name",
-                            "K008_Other",
-                            "L002_referral_name",
-                            "L004_referral_contact",
-                            "L005_comments"))) %>%
-    select("type", "name", label_colname, "relevant") %>% 
-    mutate(ref.question=as.character(lapply(relevant, get.ref.question)))
-  return(ov)
-}
-
-# ------------------------------------------------------------------------------------------
-get.var.labels <- function() {
-  var.labels <- tool.survey %>% 
-    select(type, name, `label_colname`) %>% 
-    rename(label=`label_colname`) %>% 
-    left_join(get.other.variables() %>% select(name, ref.question), by="name")
-  
-  var.labels <- var.labels %>% 
-    left_join(var.labels %>% select(name, label), by=c("ref.question"="name")) %>% 
-    mutate(label.x=ifelse(is.na(label.x), name, label.x),
-           label.full=ifelse(is.na(label.y), label.x, paste0(label.y, " / ", label.x))) %>%
-    select(-c(label.x, label.y))
-  return(var.labels)
-}
-
-# ------------------------------------------------------------------------------------------
-get.choice.list.name <- function(x){
-  x.1 <- str_split(x, " ")[[1]]
-  if (length(x.1)==1) return(NA)
-  else return(x.1[2])
-}
-
-# ------------------------------------------------------------------------------------------
-get.q.type <- function(x) return(str_split(x, " ")[[1]][1])
-
-# ------------------------------------------------------------------------------------------
-get.select.db <- function(){
-  # list of choices for each list_name (from TOOL_CHOICES)
-  list.choices <- tool.choices %>% filter(!is.na(list_name)) %>% group_by(list_name) %>% 
-    mutate(choices=paste(name, collapse=";\r\n"),
-           choices.label=paste(!!sym(label_colname), collapse=";\r\n")) %>% 
-    summarise(choices=choices[1], choices.label=choices.label[1])
-  # list of choices for each question
-  select.questions <- tool.survey %>% 
-    rename(q.label=label_colname) %>% 
-    select(type, name, q.label) %>% 
-    mutate(q.type=as.character(lapply(type, get.q.type)),
-           list_name=as.character(lapply(type, get.choice.list.name))) %>% 
-    filter(list_name!="NA" & list_name!="group" & list_name!="repeat") %>% 
-    left_join(list.choices, by="list_name") %>% 
-    filter(!is.na(choices))
-  return(select.questions)
-}
-
-# ------------------------------------------------------------------------------------------
-get.other.db <- function(){
-  select.questions <- get.select.db()
-  
-  # for each "other" question, get ref.question and list of choices
-  df1 <- tool.survey %>% filter(str_ends(name, "_other"), type=="text") %>% 
-    rename(label=label_colname) %>% 
-    select("name", "label", "relevant") %>% 
-    mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>% 
-    left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
-              by=c("ref.name"="name")) %>% 
-    rename(ref.label=q.label, ref.type=q.type) %>% 
-    mutate(full.label=paste0(ref.label, " - ", label)) %>%  
-    select(name, ref.name, full.label, ref.type, choices, choices.label)
-  
-  return(df1)
-}
-
-# ------------------------------------------------------------------------------------------
-get.trans.db <- function(){
-  select.questions <- get.select.db()
-  
-  ## TO UPDATE THE LIST OF QUESTIONS TO BE TRANSLATED
-  tool.survey_1 <- tool.survey %>% 
-    filter(name %in% c("m3_comments_enumerators"))
-  
-  df1 <- tool.survey_1 %>%
-    rename(label=label_colname) %>% 
-    select("name", "label", "relevant") %>% 
-    mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>% 
-    left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
-              by=c("ref.name"="name")) %>% 
-    rename(ref.label=q.label, ref.type=q.type) %>% 
-    mutate(full.label=paste0(ref.label, " - ", label)) %>%  
-    select(name, ref.name, full.label, ref.type, choices, choices.label)
-  return(df1)
-}
 
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
@@ -362,7 +255,7 @@ write_excel_pwd <- function(df, file, password){
 }
 
 # ------------------------------------------------------------------------------------------
-name2label_question <- function(tool.survey, tool.choices, col){
+name2label_question <- function(col){
   if (str_detect(col, "/")) {
     q.name <- str_split(col, "/")[[1]][1]
     c.name <- paste0(tail(str_split(col, "/")[[1]], -1), collapse="/")
