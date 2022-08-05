@@ -405,11 +405,15 @@ save.follow.up.requests <- function(){
 }
 
 get_type <- function(variable){
+  #' find the type of variable
+  #' @param variable This is the value in the `name` column from the tool.
   if (str_detect(variable, "/")) return("select_multiple")
   else return(tool.survey$q.type[tool.survey$name==variable])
 }
 
 get_list_name <- function(variable){
+  #' find the choices list name
+  #' @param variable This is the value in the `name` column from the tool.
   if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
   return(tool.survey$list_name[tool.survey$name==variable])
 }
@@ -445,8 +449,11 @@ convert.col.type <- function(df, col){
     else if (q$type=="integer" | q$type=="decimal") return(as.numeric(df[[col]]))
     else if (q$type=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
     else return(df[[col]])
-  } else if (str_detect(col, "/"))
+  } else if (str_detect(col, "/")){
+    # branch: column name present in data but not in tool.survey
+    # meaning it's most likely one of select_multiple options and should contain a "/"
     return(factor(as.numeric(df[[col]]), levels=c(0, 1)))
+  }
   else return(df[[col]])
 }
 
