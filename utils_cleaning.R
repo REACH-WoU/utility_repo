@@ -56,11 +56,11 @@ get.select.db <- function(){
   # list of choices for each list_name (from TOOL_CHOICES)
   list.choices <- tool.choices %>% filter(!is.na(list_name)) %>% group_by(list_name) %>% 
     mutate(choices=paste(name, collapse=";\r\n"),
-           choices.label=paste(`label_colname`, collapse=";\r\n")) %>% 
+           choices.label=paste(!!sym(label_colname), collapse=";\r\n")) %>% 
     summarise(choices=choices[1], choices.label=choices.label[1])
   # list of choices for each question
   select.questions <- tool.survey %>% 
-    rename(q.label=`label_colname`) %>% 
+    rename(q.label=label_colname) %>% 
     select(type, name, q.label) %>% 
     mutate(q.type=as.character(lapply(type, get.q.type)),
            list_name=as.character(lapply(type, get.choice.list.name))) %>% 
