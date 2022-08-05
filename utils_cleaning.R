@@ -143,7 +143,6 @@ save.responses <- function(df, wb_name, or.submission=""){
   modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
   filename <- paste0("output/checking/requests/", wb_name, ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
-  rm(df1)
 }
 
 # ------------------------------------------------------------------------------------------
