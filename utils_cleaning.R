@@ -591,7 +591,7 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
     } else {
       data[["loop_index"]] <- data[["loop2_index"]]
     } 
-  } else {
+  } else {    
     data[["loop_index"]] <- NA
   }
   relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
