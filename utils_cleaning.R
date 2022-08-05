@@ -94,8 +94,7 @@ get.trans.db <- function(){
   
   ## TO UPDATE THE LIST OF QUESTIONS TO BE TRANSLATED
   tool.survey_1 <- tool.survey %>% 
-    filter(name %in% c("K008_Other",
-                       "L005_comments"))
+    filter(name %in% c("m3_comments_enumerators"))
   
   df1 <- tool.survey_1 %>%
     rename(label=label_colname) %>% 
