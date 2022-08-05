@@ -588,7 +588,7 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
   if(is.loop){
     if("loop1_index" %in% colnames(data)){
       data[["loop_index"]] <- data[["loop1_index"]]  
-    } else{
+    } else {
       data[["loop_index"]] <- data[["loop2_index"]]
     } 
   } else {    
