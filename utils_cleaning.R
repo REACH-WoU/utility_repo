@@ -15,9 +15,7 @@ get.other.variables <- function(){
   ov <- tool.survey %>% 
     filter(type=="text" & 
              (str_detect(tolower(relevant), "other'") |
-                name %in% c("Organisation_Name",
-                            "Staff_Name",
-                            "K008_Other",
+                name %in% c("K008_Other",
                             "L002_referral_name",
                             "L004_referral_contact",
                             "L005_comments"))) %>%
@@ -481,9 +479,9 @@ add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue=""){
              new.value=NA,
              explanation =NA)
     new.entries[["check.id"]] <- check.id 
-    new.entries <- new.entries %>% select(today, uuid, country, Reporting_organization, Staff_Name, check.id, 
+    new.entries <- new.entries %>% select(today, uuid, country, enumerator_num, check.id, 
                                           variable,issue, old.value, new.value, explanation) %>%
-      dplyr::rename(enumerator.code="Staff_Name", survey.date=today)
+      dplyr::rename(enumerator.code="enumerator_num", survey.date=today)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries),country, uuid)
   }
 }
@@ -511,7 +509,7 @@ save.follow.up.requests <- function(cleaning.log, data){
   cl <- cleaning.log %>% 
     left_join(select(data, uuid, `_submission_time`), by="uuid") %>% 
     rename(submission_time="_submission_time") %>% 
-    select(uuid, submission_time, country, Reporting_organization, enumerator.code, check.id, 
+    select(uuid, submission_time, country, enumerator.code, check.id, 
            variable, issue, old.value, new.value) %>% 
     mutate(explanation=NA)
   cl <- cl %>% arrange(match(check.id, str_sort(unique(cl$check.id), numeric=T)))
@@ -523,8 +521,8 @@ save.follow.up.requests <- function(cleaning.log, data){
     addWorksheet(wb, "Follow-up")
     writeData(wb = wb, x = cl1, sheet = "Follow-up", startRow = 1)
     
+    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=9)
     addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=10)
-    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=11)
     
     setColWidths(wb, "Follow-up", cols=1:ncol(cl1), widths="auto")
     setColWidths(wb, "Follow-up", cols=7, widths=50)
@@ -551,8 +549,8 @@ save.follow.up.requests <- function(cleaning.log, data){
         } else random.color=""
       }
     }
+    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=9)
     addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=10)
-    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=11)
     filename <- paste0("output/checking/requests/",i,"_follow_up_requests.xlsx")
     saveWorkbook(wb, filename, overwrite = TRUE)
     rm(cl1)
