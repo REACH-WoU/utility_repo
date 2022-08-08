@@ -425,11 +425,28 @@ save.follow.up.requests <- function(cleaning.log, data){
   }
 }
 
+# DELETION LOG FUNCTIONS
+# ------------------------------------------------------------------------------------------
+
+create.deletion.log <- function(ids, reason){
+  #' Creates a deletion log for the provided ids and reason.
+  #' 
+  #' @param ids This is a vector of uuids, obtained for example from follow-ups with FPs.
+  #' @param reason This is a string describing the reason for removing a survey from data.
+  #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if `ids` is empty.
+  if(length(ids) > 0)
+    return(data.frame("uuid" = ids, "reason" = reason))
+  else return(data.frame())
+
+}
+
 create.deletion.log.minors <- function(data){
-  # Delete all submissions run with minor age <18
-  # creates a deletion log based on surveys with minors AND DELETES THESE ROWS FROM DATA
+  #' find all submissions run with minor age <18 and no legal guardian consent
+  #' creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
+  #' 
+  #' @param data Raw data (`raw.main`)
+  #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if no surveys with minors found.
   
-  deletion.log.new <- data.frame()
   ids <- data[data$a4_2_resp_age < 18,]
   ids <- ids %>% 
     filter(!is.na(uuid)) %>% 
@@ -439,41 +456,20 @@ create.deletion.log.minors <- function(data){
     filter(delete=="yes")
   
   ids <- ids$uuid
-  # add to deletion log and remove from data
-  if (length(ids) > 0) {
-    # add to deletion log
-    deletion.log.new <- rbind(deletion.log.new, data.frame(uuid=ids, reason= "Survey done with a minor"))
-    # remove from data
-    data <- data[!(data$uuid %in% ids), ]
-  }
-  return(deletion.log.new)
+  return(create.deletion.log(ids=ids, reason="Survey done with a minor"))
 }
 
 create.deletion.log.too.fast <- function (data, ids){
-  # id's is a vector of uuids obtained from FP responses
-  deletion.log.too.fast <- data.frame()
-  # add to deletion log and remove from data
-  if (length(ids) > 0) {
-    # add to deletion log
-    deletion.log.too.fast <- rbind(deletion.log.too.fast, data.frame(uuid=ids, reason= "Survey duration < 3 minutes"))
-    # remove from data
-    data <- data[!(data$uuid %in% ids), ]
-  }
-  return(deletion.log.too.fast)
+  #' obsolete
+  return(create.deletion.log(ids=ids, reason="Survey duration < 3 minutes"))
 }
 
 create.deletion.log.duplicates <- function(data, ids){
-  # id's is a vector of uuids obtained from FP responses
-  deletion.log.duplicates <- data.frame()
-  # add to deletion log and remove from data
-  if (length(ids) > 0) {
-    # add to deletion log
-    deletion.log.duplicates <- rbind(deletion.log.duplicates, data.frame(uuid=ids, reason= "Surveys with only 10 or less diff columns"))
-    # remove from data
-    data <- data[!(data$uuid %in% ids), ]
-  }
-  return(deletion.log.duplicates)
+  #' obsolete - TO BE USED ONLY FOR SOFT DUPLICATES (NOT REGULAR UUID DUPLICATES)
+  return(create.deletion.log(ids=ids, reason= "Surveys with only 10 or less diff columns"))
 }
+
+# ------------------------------------------------------------------------------------------
 
 translate.responses <- function(data, questions.db, language_codes = 'uk', is.loop = F){
   if(is.loop){
@@ -485,13 +481,18 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
   } else {    
     data[["loop_index"]] <- NA
   }
+
+  # counts characters which will be translated
+  char_counter <- 0
+
   relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
                          "choices.label", "response.uk")
   if(nrow(questions.db)>0){
-    responses <- data[, c("uuid", "loop_index",all_of(questions.db$name))] %>% 
+    responses <- data[, c("uuid", "loop_inde x",all_of(questions.db$name))] %>% 
       pivot_longer(cols= all_of(questions.db$name), names_to="question.name", values_to="response.uk") %>% 
       filter(!is.na(response.uk)) %>% 
       select(uuid,loop_index, question.name, response.uk)
+    char_counter <- char_counter + sum(str_length(responses$response.uk))
     if(nrow(responses) > 0){
       for (code in language_codes) {
         col_name <- paste0('response.en.from.',code)
@@ -506,24 +507,25 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
     if(is.loop){
       responses.j <- responses %>% 
         left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-        left_join(select(data, loop_index), by="loop_index") %>% 
-        select(all_of(relevant_colnames)) %>% 
-        mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
-               "EXISTING other (copy the exact wording from the options in column G)"=NA,
-               "INVALID other (insert yes or leave blank)"=NA) %>% 
-        arrange(name)
-      return(responses.j)
+        left_join(select(data, loop_index), by="loop_index")
     } else {
       responses.j <- responses %>% 
         left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-        left_join(select(data, uuid), by="uuid") %>% 
-        select(all_of(relevant_colnames)) %>% 
+        left_join(select(data, uuid), by="uuid")
+    }
+    responses.j <- responses.j %>% 
+        select(all_of(relevant_colnames)) %>%   # NOTE: this line will throw an error if there isn't anything to be translated
         mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
                "EXISTING other (copy the exact wording from the options in column G)"=NA,
                "INVALID other (insert yes or leave blank)"=NA) %>% 
         arrange(name)
-      return(responses.j)
-    }
+    # dump info about char_counter
+    write.csv(data.frame(
+                        "translated_characters_num" = char_counter, 
+                        "responses_num" = nrow(responses.j), 
+                        "date"=Sys.Date()),
+              file = "char_counter.csv", append = TRUE)
+    return(responses.j)
   } 
 }
 
