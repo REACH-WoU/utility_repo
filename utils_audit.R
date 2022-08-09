@@ -12,7 +12,7 @@ load.audit.files <- function(dir.audits, uuids=NULL, is.pilot=F){
     # get uuid from filename
     sp <- strsplit(filename, "\\/")[[1]]
     uuid <- sp[length(sp)-1]
-    if(uuid %in% uuids){
+    if(is.null(uuids) | uuid %in% uuids){
       # load file
       audit <- read_csv(filename,show_col_types = FALSE, locale = locale(encoding = "UTF-8")) %>% 
         mutate(uuid=uuid, .before=1)
