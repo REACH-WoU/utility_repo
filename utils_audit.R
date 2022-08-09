@@ -7,11 +7,12 @@ load.audit.files <- function(dir.audits, uuids=NULL, is.pilot=F){
   audit.filenames <- list.files(dir.audits, pattern="audit.csv", recursive=TRUE, full.names=TRUE)
   cat("Loading audit logs from",dir.audits,"...\n")
   counter <- 0
+  res <- data.frame()
   for (filename in audit.filenames){
     # get uuid from filename
     sp <- strsplit(filename, "\\/")[[1]]
     uuid <- sp[length(sp)-1]
-    if(uuid %in% uuids){
+    if(is.null(uuids) | uuid %in% uuids){
       # load file
       audit <- read_csv(filename,show_col_types = FALSE, locale = locale(encoding = "UTF-8")) %>% 
         mutate(uuid=uuid, .before=1)
@@ -19,8 +20,7 @@ load.audit.files <- function(dir.audits, uuids=NULL, is.pilot=F){
       #   rename("old.value" = `old-value`,
       #          "new.value" = `new-value`)
       counter <- counter + 1
-      if (filename==audit.filenames[1]) res <- audit
-      else res <- rbind(res, audit)
+      res <- rbind(res, audit)
       cat("...")
     }
   }
