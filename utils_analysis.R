@@ -138,10 +138,20 @@ remove_choice <- function(concat_value, choice){
 ################################################################################################
 # ANALYSIS
 
-# "a2_border_crossing",
-
-### CHECK This one here
 convert.col.type <- function(df, col){
+  #' converts the type of a specified column of kobo data.
+  #' 
+  #' The provided dataframe is assumed to contain kobo data. The type of `col` is taken from `tool.survey`, so `col` must be present in the `name` column of `tool.survey`.
+  #' For 'integer'-type questions, the result is a numeric vector.
+  #' For 'date' questions results are converted from numeric to date and then returned as character.
+  #' For 'select_one' questions, the result is a factor, with levels equal to a list of choice labels from `tool.choices`.
+  #' For 'select_multiple' questions, the result is a factor with `levels=c(0, 1)`
+  #' 'text' question are left as they are.
+  #'
+  #' @param df Dataframe (containing kobo data) from which to extract a column.
+  #' @param col Name of the column from `df` which should be converted
+  #' @returns a vector containing the converted values of `col`.
+  
   if ((col %in% tool.survey$name)){
     q <- tool.survey[tool.survey$name==col,]
     if (str_starts(q$type, "select_one")){
