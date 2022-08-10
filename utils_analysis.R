@@ -145,8 +145,12 @@ convert.col.type <- function(df, col){
   if ((col %in% tool.survey$name)){
     q <- tool.survey[tool.survey$name==col,]
     if (str_starts(q$type, "select_one")){
-      choices <- filter(tool.choices, list_name==get.choice.list.from.name(col))[[label_colname]]
-      return(factor(df[[col]], levels = choices))
+      choices <- tool.choices %>% filter(list_name==q$list_name) %>%
+                                  select(name, `label_colname`) %>%
+                                  rename(label = `label_colname`)
+      d <- data.frame(col = as.character(df[[col]])) %>% 
+                      left_join(choices, by=c("col"="name"))
+      return(factor(d$label, levels = choices$label))
     }
     else if (q$type=="integer" | q$type=="decimal") return(as.numeric(df[[col]]))
     else if (q$type=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
@@ -158,6 +162,7 @@ convert.col.type <- function(df, col){
   }
   else return(df[[col]])
 }
+
 
 ################################################################################################
 # CONVERT NAMES TO LABELS
