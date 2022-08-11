@@ -141,12 +141,21 @@ remove_choice <- function(concat_value, choice){
 convert.col.type <- function(df, col){
   #' converts the type of a specified column of kobo data.
   #' 
-  #' The provided dataframe is assumed to contain kobo data. The type of `col` is taken from `tool.survey`, so `col` must be present in the `name` column of `tool.survey`.
-  #' For 'integer'-type questions, the result is a numeric vector.
+  #' @description  The provided dataframe is assumed to contain kobo data. 
+  #' The type of `col` is taken from `tool.survey`, so `col` must be present in the `name` column of `tool.survey`.
+  #' 
+  #' If `col` starts with the string "select_one", this function finds a list of choices for the specified question name.
+  #' In this case the output is a factor vector. Levels for this factor are taken from the `label_colname` column in `tool.choices`.
+  #' 
+  #' @details For 'integer'-type questions, the result is a numeric vector.
+  #' 
   #' For 'date' questions results are converted from numeric to date and then returned as character.
+  #' 
   #' For 'select_one' questions, the result is a factor, with levels equal to a list of choice labels from `tool.choices`.
+  #' 
   #' For 'select_multiple' questions, the result is a factor with `levels=c(0, 1)`
-  #' 'text' question are left as they are.
+  #' 
+  #' 'text' questions are left as they are.
   #'
   #' @param df Dataframe (containing kobo data) from which to extract a column.
   #' @param col Name of the column from `df` which should be converted
