@@ -169,7 +169,7 @@ convert.col.type <- function(df, col){
                                   rename(label = `label_colname`)
       d <- data.frame(col = as.character(df[[col]])) %>% 
                       left_join(choices, by=c("col"="name"))
-      return(factor(d$label, levels = choices$label))
+      return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
     }
     else if (q$type=="integer" | q$type=="decimal") return(as.numeric(df[[col]]))
     else if (q$type=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
@@ -177,7 +177,7 @@ convert.col.type <- function(df, col){
   } else if (str_detect(col, "/")){
     # branch: column name present in data but not in tool.survey
     # meaning it's most likely one of select_multiple options and should contain a "/"
-    return(factor(as.numeric(df[[col]]), levels=c(0, 1)))
+    return(factor(as.numeric(df[[col]]), levels=c(0, 1, NA), exclude = NULL))
   }
   else return(df[[col]])
 }
