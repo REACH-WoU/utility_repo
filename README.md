@@ -1,17 +1,17 @@
 # utility_repo
 Repo that contain all utility scripts (check_kobo, utils_cleaning, utils_analysis, utils_audit) etc.
 
-## usage instructions
+## Installation
 
 The way to use these utils scripts is to initialize them as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) in your project repo (preferably inside _src_).
 
-### how to switch
+### follow these steps to install:
 
 Open your shell and move to your _src_ directory:
 
 - ```cd src```
 
-Add the __utility_repo__ submodule to folder `utils`:
+Clone the __utility_repo__ submodule into a folder named `utils`:
 
 - ```git submodule add https://github.com/REACH-WoU-Regional/utility_repo.git utils```
 
@@ -32,7 +32,13 @@ As you can see by default the __utility_repo__ submodule is on branch `main`. Pl
 - ``` cd utils```
 - ```git checkout -b dev_DB``` (or provide a different name for your dev branch)
 
-Now you can add changes to __utility_repo__, for example you can move here your existing utils scripts (if they're not already included in this repo). Change your directory out of `utils` back to your base repository folder (`cd ..`) and run `git submodule status again`. The output should change to:
+Now you can add changes to __utility_repo__, for example you can move here your existing utils scripts (if they're not already included in this repo). 
+
+Now change your directory out of `utils` back to your base repository folder:
+
+- ```cd ..```
+ 
+and run `git submodule status again`. The output should change to:
 
 ```
 +56cd7caf704941c60a9f7589c64aad5310fb1855 utils (heads/dev_DB)
@@ -46,10 +52,20 @@ Changes not staged for commit:
         modified:   utils (new commits)
 ```
 
-Git noticed that you switched to a new branch on the submodule and regards this as a new commit. This is because git is tracking changes inside submodules separately from the base repository - every time you want to make changes to __utility_repo__ you should change directory to `src/utility_repo` and make new commits there, then move back to the base repo and commit changes there.
+Git noticed that you switched to a new branch on the submodule and regards this as a new commit. This is because git is tracking changes inside submodules separately from the base repository.
+
+### how to switch
 
 You will need to update the paths to your util scripts in your _init.R_ (or anywhere else where you're sourcing them):
 
 For example: ```source("./src/utils_cleaning.R")``` -> change to ```source("./src/utils/utils_cleaning.R")```
 
 Of course, if your previous _utils.R_ contained some functions that are not included in __utility_repo__, you should move them there.
+
+## Usage
+
+ After working on your branch of __utility_repo__, remember to make commits inside the submodule. Every time you want to make a commit in your base project repo, BEFORE that you should go into your `src/utils` and make new commits there, then move back to the base repo and commit there, adding the changes that were mede in `utils`.
+ 
+ If you need to pull remote changes from __utility_repo__, the command is:
+ 
+ - `git submodule update` if you're in your base project repo
