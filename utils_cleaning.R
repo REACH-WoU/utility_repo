@@ -628,9 +628,10 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
       for (code in language_codes) {
         col_name <- paste0('response.en.from.',code)
         relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
-        responses[[col_name]] <- gsub("&#39;", "'", translateR::translate(content.vec = responses$response.uk,
-                                                                          google.api.key = source("resources/google.api.key_regional.R")$value,
-                                                                          source.lang = code, target.lang = "en"))
+        responses[[col_name]] <- NA
+          # gsub("&#39;", "'", translateR::translate(content.vec = responses$response.uk,
+                                                                          # google.api.key = source("resources/google.api.key_regional.R")$value,
+                                                                          # source.lang = code, target.lang = "en"))
       }
     }else{
       warning("Nothing to be translated")
