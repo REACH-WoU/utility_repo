@@ -197,7 +197,7 @@ load.edited <- function(dir.edited, file.type){
   if (length(filenames) == 0){
     warning(paste("Files with",file.type,"responses not found!"))
   } else {
-    cat(paste("Loading",length(filenames),file.type,"logs:"),filenames,"\n")
+    cat(paste("Loading",length(filenames),file.type,"logs:\n"),paste(filenames, collapse = "\n "),"\n")
     res <- data.frame()
     for (filename in filenames){
       # load file
@@ -210,8 +210,8 @@ load.edited <- function(dir.edited, file.type){
   }
 }
 
-load.logic.request <- function(dir.logic.edited){
-  logic.filenames <- list.files(dir.logic.edited, pattern="follow_up_requests.xlsx",
+load.logic.request <- function(dir.requests){
+  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests.xlsx",
                                 recursive=TRUE, full.names=TRUE)
   print(paste("Loading",length(logic.filenames),"logic requests logs"))
   for (filename in logic.filenames){
@@ -515,6 +515,15 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
     write.csv(info_df, file = "translate_info.csv", append = TRUE, row.names = FALSE)
     return(responses.j)
   }
+}
+
+#------------------------------------------------------------------------------------------------------------
+what.country <- function(id){
+  #' Looks up raw.main to find to which country an id belongs to.
+  #' 
+  #' @param id uuid to look up in `raw.main`
+  #' @returns a string found in the `country` column of `raw.main`.
+  return(raw.main %>% filter(uuid == id) %>% pull(country))
 }
 
 
