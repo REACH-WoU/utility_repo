@@ -249,29 +249,35 @@ save.outlier.responses_msna <- function(df, or.submission=""){
 add.to.cleaning.log.other.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
+  df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$name, issue=issue, 
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # remove relative entries
   if (x$ref.type[1]=="select_one"){
     old.value <- "other"
-    df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue, old.value=old.value, new.value=NA)
+    df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$ref.name, issue=issue, old.value=old.value, new.value=NA)
     cleaning.log.other <<- rbind(cleaning.log.other, df)
   }
   if (x$ref.type[1]=="select_multiple"){
-    old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
+    if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
+      old.value <- as.character(data[data$loop1_index==x$loop_index[1], x$ref.name])
+    } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
+      old.value <- as.character(data[data$loop2_index==x$loop_index[1], x$ref.name])
+    } else {
+      old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
+    }
     l <- str_split(old.value, " ")[[1]]
     new.value <- paste(l[l!="other"], collapse=" ")
     new.value <- ifelse(new.value=="", NA, new.value)
-    df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue, old.value=old.value, new.value=new.value)
+    df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$ref.name, issue=issue, old.value=old.value, new.value=new.value)
     cleaning.log.other <<- rbind(cleaning.log.other, df)
     if (is.na(new.value)){
       # set all choices columns to NA
       cols <- colnames(data)[str_starts(colnames(data), paste0(x$ref.name, "/"))]
-      df <- data.frame(uuid=x$uuid, variable=cols, issue=issue, old.value="0 or 1", new.value=NA)
+      df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=cols, issue=issue, old.value="0 or 1", new.value=NA)
       cleaning.log.other <<- rbind(cleaning.log.other, df)
     } else{
-      df <- data.frame(uuid=x$uuid, variable=paste0(x$ref.name, "/other"), issue=issue,
+      df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=paste0(x$ref.name, "/other"), issue=issue,
                        old.value="1", new.value="0")
       cleaning.log.other <<- rbind(cleaning.log.other, df)
     }
@@ -283,7 +289,7 @@ add.to.cleaning.log.other.remove <- function(data, x){
 add.to.cleaning.log.trans.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
+  df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$name, issue=issue, 
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
 }
@@ -297,7 +303,7 @@ add.to.cleaning.log.other.recode <- function(data, x){
 add.to.cleaning.log.other.recode.one <- function(x){
   issue <- "Recoding other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
+  df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
   
   cleaning.log.other <<- rbind(cleaning.log.other, df)
@@ -318,8 +324,8 @@ add.to.cleaning.log.other.recode.one <- function(x){
   new.code <- filter(tool.choices, list_name==list.name & !!sym(label_colname)==choice)
   if (nrow(new.code)!=1) stop(paste0("Choice is not in the list. UUID: ", x$uuid,"; recode.into: ", choice))
   else{
-    df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
-                     old.value="Other_please_specify", new.value=new.code$name)
+    df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$ref.name, issue=issue,
+                     old.value="other", new.value=new.code$name)
     cleaning.log.other <<- rbind(cleaning.log.other, df)
   }
 }
@@ -328,7 +334,7 @@ add.to.cleaning.log.other.recode.one <- function(x){
 add.to.cleaning.log.other.recode.multiple <- function(data, x){
   issue <- "Recoding other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
+  df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
@@ -339,13 +345,20 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
   }
   choices <- choices[choices!=""]
   # set variable/other to "0"
-  df <- data.frame(uuid=x$uuid,  variable=paste0(x$ref.name, "/Other_please_specify"), issue=issue,
+  df <- data.frame(uuid=x$uuid, loop_index=x$loop_index,  variable=paste0(x$ref.name, "/other"), issue=issue,
                    old.value="1", new.value="0")
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices already selected
-  old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name[1]])
+  
+  if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
+    old.value <- as.character(data[data$loop1_index==x$loop_index[1], x$ref.name])
+  } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
+    old.value <- as.character(data[data$loop2_index==x$loop_index[1], x$ref.name])
+  } else {
+    old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
+  }
   l <- str_split(old.value, " ")[[1]]
-  l.cumulative <- l[l!="Other_please_specify"]
+  l.cumulative <- l[l!="other"]
   # add to the cleaning log each choice in the other response
   for (choice in choices){
     # set corresponding variable to "1" if not already "1"
@@ -354,10 +367,16 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
     if (nrow(new.code)!=1) stop(paste0("Choice is not in the list. UUID: ", x$uuid,"; recode.into: ", choice))
     variable.name <- paste0(x$ref.name, "/", new.code$name)
     if (variable.name %in% colnames(data)){
-      old.boolean <- data[[variable.name]][data$uuid==x$uuid[1]]
+      if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
+        old.boolean <- data[[variable.name]][data$loop1_index==x$loop_index[1]]
+      } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")){
+        old.boolean <- data[[variable.name]][data$loop2_index==x$loop_index[1]]
+      } else {
+        old.boolean <- data[[variable.name]][data$uuid==x$uuid[1]]
+      }
     } else stop("Column not found")
-    if (old.boolean=="0"){
-      df <- data.frame(uuid=x$uuid, variable=variable.name, issue=issue,
+    if (!is.na(old.boolean) & old.boolean=="0"){
+      df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=variable.name, issue=issue,
                        old.value=old.boolean, new.value="1")
       cleaning.log.other <<- rbind(cleaning.log.other, df)
     }
@@ -365,7 +384,7 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
   }
   # update cumulative variable
   new.value <- paste(sort(l.cumulative), collapse=" ")
-  df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
+  df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$ref.name, issue=issue,
                    old.value=old.value, new.value=new.value)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
 }
