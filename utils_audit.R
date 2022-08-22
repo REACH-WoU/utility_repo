@@ -15,8 +15,8 @@ load.audit.files <- function(dir.audits, uuids=NULL, is.pilot=F){
     if(is.null(uuids) | uuid %in% uuids){
       # load file
       audit <- read_csv(filename,show_col_types = FALSE, locale = locale(encoding = "UTF-8")) %>% 
-        mutate(uuid=uuid, .before=1)
-      # %>% 
+        mutate(uuid=uuid, .before=1) 
+      # %>%
       #   rename("old.value" = `old-value`,
       #          "new.value" = `new-value`)
       counter <- counter + 1
