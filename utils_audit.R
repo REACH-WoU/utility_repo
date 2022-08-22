@@ -24,15 +24,19 @@ load.audit.files <- function(dir.audits, uuids=NULL, is.pilot=F){
       cat("...")
     }
   }
-  res <- res  %>% 
-    mutate(duration=(end-start)/1000,
-           group=sapply(str_split(node, '\\/'), function(x){
-             id.group <- ifelse("G_survey" %in% x, 4, 3)
-             return(x[id.group])}),
-           question=sapply(str_split(node, '\\/'), function(x){return(x[length(x)])})) %>% 
-    mutate(event=str_replace_all(event, " ", "."))
-  cat("\n...Done\n")
-  cat(paste("Loaded", counter, "audit logs.\n"))
+  if(nrow(res) > 0){
+    res <- res  %>% 
+      mutate(duration=(end-start)/1000,
+             group=sapply(str_split(node, '\\/'), function(x){
+               id.group <- ifelse("G_survey" %in% x, 4, 3)
+               return(x[id.group])}),
+             question=sapply(str_split(node, '\\/'), function(x){return(x[length(x)])})) %>% 
+      mutate(event=str_replace_all(event, " ", "."))
+    cat("\n...Done\n")
+    cat(paste("Loaded", counter, "audit logs.\n"))
+  }else{
+    warning("No relevant audit logs found!")
+  }
   return(res)
 }
 
