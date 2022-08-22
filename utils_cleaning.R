@@ -301,8 +301,9 @@ add.to.cleaning.log.trans.remove <- function(data, x){
 }
 
 add.to.cleaning.log.other.recode <- function(data, x){
-  if (x$ref.type[1]=="select_one") add.to.cleaning.log.other.recode.one(x)
-  if (x$ref.type[1]=="select_multiple") add.to.cleaning.log.other.recode.multiple(data, x)
+  if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
+  if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
+  if (res == "err") stop("Errors encountered while recoding other. Check the warnings!")
 }
 
 add.to.cleaning.log.other.recode.one <- function(x){
@@ -327,7 +328,10 @@ add.to.cleaning.log.other.recode.one <- function(x){
   choice <- choices[1]
   list.name <- filter(tool.survey, name==x$ref.name[1])$list_name
   new.code <- filter(tool.choices, list_name==list.name & !!sym(label_colname)==choice)
-  if (nrow(new.code)!=1) stop(paste0("Choice is not in the list. UUID: ", x$uuid,"; recode.into: ", choice))
+  if (nrow(new.code)!=1) {
+    warning(paste0("Choice is not in the list. UUID: ", x$uuid,"; recode.into: ", choice))
+    return("err")
+  }
   else{
     df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
                      old.value="Other_please_specify", new.value=new.code$name)
@@ -361,7 +365,10 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
     # set corresponding variable to "1" if not already "1"
     list.name <- filter(tool.survey, name==x$ref.name[1])$list_name
     new.code <- filter(tool.choices, list_name==list.name & !!sym(label_colname)==choice)
-    if (nrow(new.code)!=1) stop(paste0("Choice is not in the list. UUID: ", x$uuid,"; recode.into: ", choice))
+    if (nrow(new.code)!=1){
+      warning(paste0("Choice is not in the list. UUID: ", x$uuid,"; recode.into: ", choice))
+      return("err")
+    }
     variable.name <- paste0(x$ref.name, "/", new.code$name)
     if (variable.name %in% colnames(data)){
       old.boolean <- data[[variable.name]][data$uuid==x$uuid[1]]
