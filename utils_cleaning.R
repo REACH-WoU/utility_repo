@@ -428,7 +428,10 @@ create.deletion.log.duplicates <- function(data, ids){
 
 # ------------------------------------------------------------------------------------------
 
-translate.responses <- function(data, questions.db, language_codes = 'uk', is.loop = F){
+find.responses <- function(data, questions.db, values_to="response.uk", is.loop = F){
+  #' looks up `data` using `questions.db` to find all responses
+  #' 
+  #' response vector is stored in column specified by `values_to`
   if(is.loop){
     if("loop1_index" %in% colnames(data)){
       data[["loop_index"]] <- data[["loop1_index"]]
@@ -438,84 +441,97 @@ translate.responses <- function(data, questions.db, language_codes = 'uk', is.lo
   } else {    
     data[["loop_index"]] <- NA
   }
+  responses <- data[, c("uuid", "loop_index", all_of(questions.db$name))] %>% 
+      pivot_longer(cols = all_of(questions.db$name), names_to="question.name", values_to=values_to) %>% 
+      filter(!is.na(!!sym(values_to))) %>% 
+      select(uuid,loop_index, question.name, !!sym(values_to))
+  
+  return(responses)
+}
+
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F){
 
   info_df <- data.frame()
   start_time <- Sys.time()
   relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
-                         "choices.label", "response.uk")
+                         "choices.label", values_from)
   
-  if(nrow(questions.db)>0){
-    responses <- data[, c("uuid", "loop_index", all_of(questions.db$name))] %>% 
-      pivot_longer(cols = all_of(questions.db$name), names_to="question.name", values_to="response.uk") %>% 
-      filter(!is.na(response.uk)) %>% 
-      select(uuid,loop_index, question.name, response.uk)
-    
-    # counts characters which will be translated
-    char_counter <- sum(str_length(responses$response.uk))
-    
-    if(nrow(responses) > 0){
-      for (code in language_codes) {
-        cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
-        col_name <- paste0('response.en.from.',code)
-        relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
-        # cleaning up html leftovers:
-        responses$response.uk <- gsub("&#39;", "'", responses$response.uk)
-        responses[[col_name]] <- NULL
-        # actual translation:
-        result_vec <- NULL
-        result_vec <- translateR::translate(content.vec = responses$response.uk,
-                            google.api.key = source("resources/google.api.key_regional.R")$value,
-                            source.lang = code, target.lang = "en")
-        if(is.null(result_vec)){
-          warning("Error while translating response.uk content: result_vec is NULL\n") 
-          info_df <- rbind(info_df, data.frame(
-            "input_responses_num" = nrow(responses),
-            "translated_characters_num" = char_counter, 
-            "language_from" = code,
-            "result_num" = length(result_vec),
-            "status" = "error",
-            "time_elapsed" = as.numeric(Sys.time() - start_time),
-            "date"=Sys.Date()))
+  # counts characters which will be translated
+  char_counter <- sum(str_length(responses[[values_from]]))
+  
+  if(nrow(responses) > 0){
+    for (code in language_codes) {
+      cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
+      col_name <- paste0('response.en.from.',code)
+      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
+      # cleaning up html leftovers:
+      responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
+      responses[[col_name]] <- NULL
+      # actual translation:
+      result_vec <- NULL
+      result_vec <- translateR::translate(content.vec = responses[[values_from]],
+                          google.api.key = source("resources/google.api.key_regional.R")$value,
+                          source.lang = code, target.lang = "en")
+      # checking the results
+       info_df <- rbind(info_df, data.frame(
+          "input_responses_num" = nrow(responses),
+          "translated_characters_num" = char_counter, 
+          "language_from" = code, 
+          "result_num" = length(result_vec),
+          "time_elapsed" = as.numeric(Sys.time() - start_time),
+          "date"=Sys.Date()))
+      if(is.null(result_vec)){
+        warning("Error while translating responses: result_vec is NULL\n") 
+        info_df$status <- "error"
+      }else{
+        responses[[col_name]] <- gsub("&#39;", "'", result_vec)
+        if(length(result_vec) == nrow(responses)){
+          cat("\ntranslate.responses: finished - SUCCESS!\n")
+          info_df$status <- "success"
         }else{
-          responses[[col_name]] <- gsub("&#39;", "'", result_vec)
-          info_df <- rbind(info_df, data.frame(
-            "input_responses_num" = nrow(responses),
-            "translated_characters_num" = char_counter, 
-            "result_num" = length(result_vec),
-            "language_from" = code, 
-            "status" = "success",
-            "time_elapsed_s" = as.numeric(Sys.time() - start_time),
-            "date"=Sys.Date()))
+          cat("\ntranslate.responses: finished - PARTIAL SUCCESS?\n")
+          info_df$status <- "partial success"
         }
       }
-    }else{
-      warning("Nothing to be translated")
     }
+  }else{
+    warning("Nothing to be translated")
+  }
+    # dump info about the results of translation
+  write.table(info_df, file = "translate_info.csv", append = TRUE, row.names = FALSE)
+  return(responses)
+}
+  
+create.translate.requests <- function(data, questions.db, responses, is.loop = F){
+    relevant_colnames <- append(colnames(responses), 
+                          c("name", "ref.name","full.label","ref.type", "choices.label", "country"))
     tryCatch({
       if(is.loop){
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, loop_index), by="loop_index")
+          left_join(select(data, loop_index, country), by="loop_index")
       } else {
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, uuid), by="uuid")
+          left_join(select(data, uuid, country), by="uuid")
         # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
       }
+      response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
       responses.j <- responses.j %>% 
-          select(all_of(relevant_colnames)) %>%   # NOTE: this line will throw an error if there isn't anything to be translated
+          select(any_of(relevant_colnames)) %>% 
           mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
                  "EXISTING other (copy the exact wording from the options in column G)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>% 
+          select(-c("loop_index")) %>%
+          relocate(country, .after = uuid) %>%
+          relocate(all_of(response_cols), .after = choices.label) %>%
           arrange(name)
       
     }, error = function(err){
       warning("Error while saving responses.j (this is to be expected if result_vec is NULL)\n::",err)
     })
-    # dump info about the results of translation
-    write.csv(info_df, file = "translate_info.csv", append = TRUE, row.names = FALSE)
+
     return(responses.j)
-  }
 }
 
 #------------------------------------------------------------------------------------------------------------
