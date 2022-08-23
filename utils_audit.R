@@ -97,11 +97,12 @@ process.uuid <- function(df){
 }
 
 
-find.similar.surveys <- function(data.main, tool.survey, uuid="_uuid", staff_name_col="Staff_Name"){
+find.similar.surveys <- function(data.main, tool.survey, uuid="_uuid", staff_name_col="Staff_Name", idnk_value="idnk"){
 #' for each survey, it finds the closest matching survey with the minimum number of different columns
 #' 
 #' @param uuid Name of the column in which uuids are stored.
 #' @param staff_name_col Name of the column in which enumerator's name (or identifier etc.) is stored
+#' @param idnk_value Value (from tool.choices) that represents the answer "I don't know"
   
   data <- data.main
   
@@ -117,7 +118,7 @@ find.similar.surveys <- function(data.main, tool.survey, uuid="_uuid", staff_nam
   # - columns starting with "_"
   # - option columns for the select multiple -> keeping only the concatenation column
   types_to_remove <- c("start", "end", "today", "deviceid", "date", "geopoint", "audit", 
-                       "note", "calculate", "text")
+                       "note", "calculate")
   cols_to_keep <- data.frame(column=colnames(data)) %>% 
     left_join(select(tool.survey, name, type), by=c("column"="name")) %>% 
     filter(column==staff_name_col | (!(type %in% types_to_remove) & 
@@ -144,13 +145,15 @@ find.similar.surveys <- function(data.main, tool.survey, uuid="_uuid", staff_nam
   }))
   
   # 7) add relevant columns
-  data[["num_cols_not_NA"]] <- rowSums(data!="NA")
-  data[[uuid]] <- uuids
-  data[["_id_most_similar_survey"]] <- uuids[as.numeric(names(r))]
-  data[["number_different_columns"]] <- as.numeric(r)
-  data <- data %>% arrange(number_different_columns, !!sym(uuid))
+  outdata <- data.main[, all_of(cols_to_keep$column)]
+  outdata[["num_cols_not_NA"]] <- rowSums(data!="NA")
+  outdata[[paste0("num_cols_", idnk_value)]] <- rowSums(data==idnk_value)
+  outdata[[uuid]] <- uuids
+  outdata[["_id_most_similar_survey"]] <- uuids[as.numeric(names(r))]
+  outdata[["number_different_columns"]] <- as.numeric(r)
+  outdata <- outdata %>% arrange(number_different_columns, !!sym(uuid))
   
-  return(data)
+  return(outdata)
 }
 
 check.soft.duplicates <- function(data.main, ids, uuid="_uuid", only_differences=F){
