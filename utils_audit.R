@@ -42,7 +42,7 @@ load.audit.files <- function(dir.audits, uuids=NULL, track.changes=F){
 }
 
 
-process_uuid <- function(df){
+process.uuid <- function(df){
   max.num.iterations <- 15
   t <- list() # Time of each iteration
   rt <- list() # response time of each iteration 
@@ -97,7 +97,7 @@ process_uuid <- function(df){
 }
 
 
-find_similar_surveys <- function(data.main, tool.survey, uuid="_uuid", staff_name_col="Staff_Name"){
+find.similar.surveys <- function(data.main, tool.survey, uuid="_uuid", staff_name_col="Staff_Name"){
 #' for each survey, it finds the closest matching survey with the minimum number of different columns
 #' 
 #' @param uuid Name of the column in which uuids are stored.
@@ -176,7 +176,7 @@ check.soft.duplicates <- function(data.main, ids, uuid="_uuid", only_differences
 # https://en.wikipedia.org/wiki/Silhouette_(clustering)
 # https://dpmartin42.github.io/posts/r/cluster-mixed-types
 # https://medium.com/@rumman1988/clustering-categorical-and-numerical-datatype-using-gower-distance-ab89b3aa90d9
-calculateEnumeratorSimilarity <- function(data, tool.survey, col_enum, col_admin="adm"){
+calculate.enumerator.similarity <- function(data, tool.survey, col_enum, col_admin="adm"){
   # convert columns using the tool
   data <- convertColTypes(data, tool.survey)
   # keep only relevant columns
