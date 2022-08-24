@@ -213,7 +213,7 @@ load.edited <- function(dir.edited, file.type){
 load.logic.request <- function(dir.requests){
   logic.filenames <- list.files(dir.requests, pattern="follow_up_requests.xlsx",
                                 recursive=TRUE, full.names=TRUE)
-  print(paste("Loading",length(logic.filenames),"logic requests logs"))
+  cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   for (filename in logic.filenames){
     # load file
     trans <- read_xlsx(filename) %>% 
@@ -227,7 +227,7 @@ load.logic.request <- function(dir.requests){
 load.outlier.edited <- function(dir.outlier.edited){
   logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
                                 recursive=TRUE, full.names=TRUE)
-  print(paste("Loading",length(logic.filenames),"outlier logs"))
+  cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   res <- data.frame()
   for (filename in logic.filenames){
     # load file
