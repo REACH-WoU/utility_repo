@@ -54,7 +54,7 @@ select_one.analysis <- function(srv.design, entry){
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
-  choices <- tool.choices$`label::English`[tool.choices$list_name==var_list_name]
+  choices <- tool.choices[[label_colname]][tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>% 
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
@@ -99,7 +99,7 @@ select_multiple.analysis <- function(srv.design, entry){
   # get list of columns for the selected question --> variables 
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
   choices <- tool.choices %>% filter(list_name==q.list_name) %>% 
-    select(name, `label::English`) %>% rename(label=`label::English`) %>% 
+    select(name, `label_colname`) %>% rename(label=`label_colname`) %>% 
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
   variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables), 
                                                          paste0(entry$variable, "___"))]
@@ -165,7 +165,7 @@ select_multiple.analysis <- function(srv.design, entry){
 select_multiple.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
-  choices <- tool.choices$`label::English`[tool.choices$list_name==var_list_name]
+  choices <- tool.choices[tool.choices$list_name==var_list_name, label_colname]
   res <- arrange(res, match(label, choices))
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res1 <- res %>% select(-ci) %>% pivot_wider(names_from="label", values_from=pct, values_fill="0%")
@@ -307,11 +307,12 @@ load.entry <- function(analysis.plan.row){
   disaggregate.variable <- as.character(analysis.plan.row$disaggregate.variable)
   data <- as.character(analysis.plan.row$data)
   xlsx_name <- as.character(analysis.plan.row$xlsx_name)
+  comments <- as.character(analysis.plan)
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
     disaggregate.variables <- c(str_split(disaggregate.variable, ";")[[1]])
   }
   return(list(section=section, label=label, variable=variable, func=func, 
-              admin=admin, disaggregate.variables=disaggregate.variables, data=data, xlsx_name=xlsx_name))
+              admin=admin, disaggregate.variables=disaggregate.variables, data=data, xlsx_name=xlsx_name, comments=comments))
 }
