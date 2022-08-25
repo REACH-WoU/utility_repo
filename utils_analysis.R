@@ -1,20 +1,8 @@
 ("./src/utils/kobo_utils.R")
 
-################################################################################################
-# CHECKS
-
-add.to.fu.requests <- function(checks, check.id, question.names=c()){
-  for(q.n in question.names){
-    new.entries <- checks %>% filter(flag) %>% 
-      mutate(id=id,
-             variable=q.n,
-             old.value=!!sym(q.n),
-             new.value=NA)
-    new.entries[["check.id"]] <- check.id
-    new.entries <- new.entries %>% select(id, check.id, variable, old.value, new.value)
-    fu.requests <<- arrange(rbind(fu.requests, new.entries), id)
-  }
-}
+###-----------------------------------------------------------------------------
+### CHECKS - why are they here...?
+###-----------------------------------------------------------------------------
 
 check.last.digit <- function(df){
   res <- data.frame()
@@ -135,56 +123,71 @@ remove_choice <- function(concat_value, choice){
   return(paste(l, collapse=" "))
 }
 
-################################################################################################
-# ANALYSIS
+###-----------------------------------------------------------------------------
+### DAP FUNCTIONS
+###-----------------------------------------------------------------------------
 
-convert.col.type <- function(df, col){
-  #' converts the type of a specified column of kobo data.
+
+
+###-----------------------------------------------------------------------------
+### ANALYSIS
+###-----------------------------------------------------------------------------
+
+convert.col.type <- function(df, col, omit_na = T){
+  #' Convert the type of a specified column of Kobo data.
   #' 
   #' @description  The provided dataframe is assumed to contain kobo data. 
   #' The type of `col` is taken from `tool.survey`, so `col` must be present in the `name` column of `tool.survey`.
   #' 
-  #' If `col` starts with the string "select_one", this function finds a list of choices for the specified question name.
+  #' If `col` type is "select_one", this function finds a list of choice labels for the specified question name.
   #' In this case the output is a factor vector. Levels for this factor are taken from the `label_colname` column in `tool.choices`.
   #' 
-  #' @details For 'integer'-type questions, the result is a numeric vector.
+  #' @details 
+  #' For 'integer'-type questions, the result is a numeric vector.
   #' 
   #' For 'date' questions results are converted from numeric to date and then returned as character.
   #' 
-  #' For 'select_one' questions, the result is a factor, with levels equal to a list of choice labels from `tool.choices`.
+  #' For 'select_one' questions, the result is a factor, with levels equal to a list of choice labels from `tool.choices`,
+  #' and including NA if `omit_na` is FALSE.
   #' 
-  #' For 'select_multiple' questions, the result is a factor with `levels=c(0, 1)`
+  #' For columns containing 'select_multiple' choices, the result is a factor with `levels=c(0, 1)` or `c(0, 1, NA)` if `omit_na` is FALSE
   #' 
-  #' 'text' questions are left as they are.
+  #' Other question types are left as they are.
   #'
   #' @param df Dataframe (containing kobo data) from which to extract a column.
   #' @param col Name of the column from `df` which should be converted
-  #' @returns a vector containing the converted values of `col`.
+  #' @param omit_na This flag should be set if NA values should be skipped (not included as level).
+  #' Otherwise NA values are included as levels and will be used for calculating num_samples.
+  #' @returns a vector containing the converted values of column `col`.
   
-  if ((col %in% tool.survey$name)){
-    q <- tool.survey[tool.survey$name==col,]
-    if (str_starts(q$type, "select_one")){
-      choices <- tool.choices %>% filter(list_name==q$list_name) %>%
+  if((col %in% tool.survey$name)){
+    if(get.type(col) == "select_one"){
+      choices <- tool.choices %>% filter(list_name==get.choice.list.from.name(col)) %>%
                                   select(name, `label_colname`) %>%
                                   rename(label = `label_colname`)
       d <- data.frame(col = as.character(df[[col]])) %>% 
                       left_join(choices, by=c("col"="name"))
-      return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      if(omit_na)
+        return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      else
+        return(factor(d$label, levels = choices$label, exclude = NA))
     }
-    else if (q$type=="integer" | q$type=="decimal") return(as.numeric(df[[col]]))
-    else if (q$type=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
+    else if (get.type(col)=="integer" | get.type(col)=="decimal") return(as.numeric(df[[col]]))
+    else if (get.type(col)=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
     else return(df[[col]])
   } else if (str_detect(col, "/")){
     # branch: column name present in data but not in tool.survey
-    # meaning it's most likely one of select_multiple options and should contain a "/"
-    return(factor(as.numeric(df[[col]]), levels=c(0, 1, NA), exclude = NULL))
+    # meaning it's one of select_multiple options and should contain a "/"
+    if(omit_na) return(factor(as.numeric(df[[col]]), levels=c(0, 1), exclude = NA))
+    else return(factor(as.numeric(df[[col]]), levels=c(0, 1, NA), exclude = NULL))
   }
   else return(df[[col]])
 }
 
 
-################################################################################################
-# CONVERT NAMES TO LABELS
+###-----------------------------------------------------------------------------
+### CONVERT NAMES TO LABELS
+###-----------------------------------------------------------------------------
 
 name2label.question <- function(col){
   if (str_detect(col, "/")) {
@@ -213,7 +216,7 @@ name2label.select_multiple.values <- function(df, col.name){
   col <- df[[col.name]]
   if (col.name %in% tool.survey$name){
     q <- tool.survey[tool.survey$name==col.name,]
-    if (str_starts(q$type, "select_multiple")){
+    if (str_starts(get.type(col), "select_multiple")){
       print(as.character(q$type))
       q.list_name <- str_split(q$type, " ")[[1]][2]
       col.labels <- as.character(lapply(col, function(x){
