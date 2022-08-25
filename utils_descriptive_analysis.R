@@ -54,7 +54,7 @@ select_one.analysis <- function(srv.design, entry){
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
-  choices <- as.vector(tool.choices[label_colname])[tool.choices$list_name==var_list_name]
+  choices <- tool.choices$`label::English`[tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>% 
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
@@ -87,6 +87,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -98,7 +99,7 @@ select_multiple.analysis <- function(srv.design, entry){
   # get list of columns for the selected question --> variables 
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
   choices <- tool.choices %>% filter(list_name==q.list_name) %>% 
-    select(name, `label_colname`) %>% rename(label=`label_colname`) %>% 
+    select(name, `label::English`) %>% rename(label=`label::English`) %>% 
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
   variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables), 
                                                          paste0(entry$variable, "___"))]
@@ -118,7 +119,7 @@ select_multiple.analysis <- function(srv.design, entry){
   } else{
     # get proportions and confidence intervals (using svyby + svymean)
     res.prop <- svyby(make.formula(variables), make.formula(disaggregations), srv.design, svymean, 
-                 drop.empty.groups=F, multicore=F, na.rm=T)
+                      drop.empty.groups=F, multicore=F, na.rm=T)
     res.ci <- data.frame(confint(res.prop, level=0.9))
     res.ci[,1] <- pmax(res.ci[, 1], 0)
     res.ci[,2] <- pmin(res.ci[, 2], 1)
@@ -164,7 +165,7 @@ select_multiple.analysis <- function(srv.design, entry){
 select_multiple.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
-  choices <- tool.choices[tool.choices$list_name==var_list_name, label_colname]
+  choices <- tool.choices$`label::English`[tool.choices$list_name==var_list_name]
   res <- arrange(res, match(label, choices))
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res1 <- res %>% select(-ci) %>% pivot_wider(names_from="label", values_from=pct, values_fill="0%")
@@ -201,6 +202,7 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -239,7 +241,7 @@ mean.to_html <- function(res, entry, include.CI=T){
   }
   
   if (!include.CI) res <- res %>% select(-CI)
-    
+  
   if (is.na(entry$disaggregate.variable)){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
@@ -264,6 +266,7 @@ mean.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -302,70 +305,13 @@ load.entry <- function(analysis.plan.row){
   func <- as.character(analysis.plan.row$func)
   admin <- as.character(analysis.plan.row$admin)
   disaggregate.variable <- as.character(analysis.plan.row$disaggregate.variable)
+  data <- as.character(analysis.plan.row$data)
+  xlsx_name <- as.character(analysis.plan.row$xlsx_name)
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
     disaggregate.variables <- c(str_split(disaggregate.variable, ";")[[1]])
   }
   return(list(section=section, label=label, variable=variable, func=func, 
-              admin=admin, disaggregate.variables=disaggregate.variables))
-}
-# combine intermediate excel outputs into master file
-combine.excel.outputs <- function(){
-  set.name <- function(x){
-    s <- str_split(x, "_")[[1]]
-    type <- head(s,1)
-    variable <- paste0(s[2:(length(s)-1)], collapse="_")
-    value <- tail(s, 1)
-    if (type %in% c("value", "CI")){
-      if (type=="value") out.end <- "" else out.end <- " [CI]"
-      if (value=="NA") return(paste0("No disaggregation", out.end))
-      if (variable=="q_HoH_gender") return(paste0("HoH gender - ", value, out.end))
-      if (variable=="q_HoH_age_cat") return(paste0("HoH age - ", value, out.end))
-      if (variable=="q_HoH_marital") return(paste0("HoH marital status - ", value, out.end))
-      if (variable=="q_HoH_employ") return(paste0("HoH employment status - ", value, out.end))
-      if (variable=="q_wg1") return(paste0("HoH disability - ", value, out.end))
-      if (variable=="pop_group") return(paste0("Population group - ", value, out.end))
-      if (variable=="durat_displ_IDP") return(paste0("Duration of displacement IDP - ", value, out.end))
-      if (variable=="durat_displ_RET") return(paste0("Duration of displacement RET - ", value, out.end))
-      if (variable=="num_displ_IDP") return(paste0("Number of displacements IDP - ", value, out.end))
-      if (variable=="num_displ_RET") return(paste0("Number of displacements RET - ", value, out.end))
-      if (variable=="year_of_return") return(paste0("Year of return - ", value, out.end))
-      stop("Variable unknown")
-    } else return(x)
-  }
-  # combine analysis from all 4 admin levels (national, governorate, district, sub-district)
-  df <- rbind(read_excel("output/intermediate/excel.report_NA.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_region.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_q_k7.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_q_k8.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_q_k9.xlsx", col_types="text"))
-  df <- df %>% 
-    mutate_at("value", as.numeric) %>% 
-    mutate(value=ifelse((level!="mean" & !str_detect(level, "percentile")) |
-                          (level=="mean" & str_starts(variable, "pct.")), round(value/100, 3), round(value, 3)),
-           CI=ifelse(str_detect(CI, "NA%"), "NA", CI))
-  save(df, file="output/intermediate/excel.reports.RData")
-  # move disaggregation.variables to columns
-  df.pivot <- df %>% 
-    pivot_wider(names_from = c(disaggregate.by, disaggregate.by.value), values_from = c(value, CI))
-  colnames(df.pivot) <- as.character(lapply(colnames(df.pivot), set.name))
-  df.pivot <- df.pivot %>% select(-indicator.category)
-  # build output file
-  wb <- createWorkbook()
-  sheet_msna <- "MSNA_2021_Analysis"
-  addWorksheet(wb, sheet_msna)
-  writeData(wb = wb, x = df.pivot, sheet = sheet_msna, startRow = 1)
-  header.style1 <- createStyle(textDecoration="bold", fgFill="#FFDDBB",
-                               border="TopBottomLeftRight", borderColour="#000000")
-  header.style2 <- createStyle(textDecoration="bold", fgFill="#DEDEDE",
-                               border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  header.style3 <- createStyle(textDecoration="bold", fgFill="#CDCDCD",
-                               border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  setColWidths(wb, sheet_msna, cols=1:6, widths=15)
-  setColWidths(wb, sheet_msna, cols=7:74, widths=12)
-  addStyle(wb, sheet_msna, style = header.style1, rows = 1, cols=1:6)
-  addStyle(wb, sheet_msna, style = header.style2, rows = 1, cols=7:40)
-  addStyle(wb, sheet_msna, style = header.style3, rows = 1, cols=41:74)
-  saveWorkbook(wb, paste0("output/", Sys.Date(), "_SYR_MSNA2021_analysis_master_file.xlsx"), overwrite = TRUE)
+              admin=admin, disaggregate.variables=disaggregate.variables, data=data, xlsx_name=xlsx_name))
 }
