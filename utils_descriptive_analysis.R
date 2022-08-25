@@ -307,7 +307,8 @@ load.entry <- function(analysis.plan.row){
   disaggregate.variable <- as.character(analysis.plan.row$disaggregate.variable)
   data <- as.character(analysis.plan.row$data)
   xlsx_name <- as.character(analysis.plan.row$xlsx_name)
-  comments <- as.character(analysis.plan)
+  calculation <- as.character(analysis.plan.row$calculation)
+  comments <- as.character(analysis.plan.row$comments)
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
