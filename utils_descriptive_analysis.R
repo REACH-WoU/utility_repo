@@ -1,6 +1,7 @@
 ###--------------------------------------------------------------------------------------------------------------
 ### SELECT_ONE
 ###--------------------------------------------------------------------------------------------------------------
+
 # function to run the analysis
 select_one.analysis <- function(srv.design, entry){
   # get list of disaggregations to be done (disaggregate.variable + admin.level) and keep only those not NA
@@ -50,6 +51,7 @@ select_one.analysis <- function(srv.design, entry){
   }
   return(res)
 }
+
 # function to produce HTML table
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
@@ -93,6 +95,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
 ###--------------------------------------------------------------------------------------------------------------
 ### SELECT_MULTIPLE
 ###--------------------------------------------------------------------------------------------------------------
+
 # function to run the analysis
 select_multiple.analysis <- function(srv.design, entry){
   # get list of columns for the selected question --> variables 
@@ -105,6 +108,7 @@ select_multiple.analysis <- function(srv.design, entry){
   # get list of disaggregations to be done (disaggregate.variable + admin.level)
   disaggregations <- c(entry$disaggregate.variable, entry$admin)
   disaggregations <- disaggregations[!is.na(disaggregations)]
+  
   if (length(disaggregations)==0) {
     # get proportions and confidence intervals (using svymean)
     res.prop <- svymean(make.formula(variables), srv.design, na.rm=T)
@@ -160,6 +164,7 @@ select_multiple.analysis <- function(srv.design, entry){
   res <- res %>% arrange(label)
   return(res)
 }
+
 # function to produce HTML table
 select_multiple.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
@@ -207,6 +212,7 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
 ###--------------------------------------------------------------------------------------------------------------
 ### MEAN
 ###--------------------------------------------------------------------------------------------------------------
+
 # function to run the analysis
 mean.analysis <- function(srv.design, entry){
   srv.design.grouped <- srv.design
@@ -232,6 +238,7 @@ mean.analysis <- function(srv.design, entry){
     res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
   return(res)
 }
+
 # function to produce HTML table
 mean.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
@@ -270,6 +277,7 @@ mean.to_html <- function(res, entry, include.CI=T){
 ###--------------------------------------------------------------------------------------------------------------
 ### OTHER FUNCTIONS
 ###--------------------------------------------------------------------------------------------------------------
+
 # add table to HTML
 subch <- function(g) {
   g_deparsed <- paste0(deparse(function() {g}), collapse = '')
@@ -277,14 +285,17 @@ subch <- function(g) {
                       g_deparsed, ")()\n```", "\n")
   cat(knitr::knit(text = knitr::knit_expand(text = sub_chunk), quiet = TRUE))
 }
+
 # add section to HTML
 add_to_html.section <- function(name) cat(paste0(paste0(rep("\n",2), collapse=""), "# ", name))
+
 # add title to HTML
 add_to_html.title <- function(entry){
   # title <- ifelse(is.na(entry$variable), entry$name, entry$variable)
   # cat(paste0(paste0(rep("\n",2), collapse=""), paste0(rep("#",3), collapse=""), " ", title))
   cat(paste0(paste0(rep("\n",2), collapse=""), paste0(rep("#",3), collapse=""), " ", entry$label))
 }
+
 # add subtitle to HTML
 add_to_html.sub_title <- function(disaggregate.variable){
   if (is.na(disaggregate.variable)) {
@@ -294,78 +305,4 @@ add_to_html.sub_title <- function(disaggregate.variable){
                disaggregate.variable))
   }
 }
-# load entry from analysis plan
-load.entry <- function(analysis.plan.row){
-  section <- as.character(analysis.plan.row$section)
-  label <- as.character(analysis.plan.row$label)
-  variable <- as.character(analysis.plan.row$variable)
-  func <- as.character(analysis.plan.row$func)
-  admin <- as.character(analysis.plan.row$admin)
-  disaggregate.variable <- as.character(analysis.plan.row$disaggregate.variable)
-  if (is.na(disaggregate.variable)) {
-    disaggregate.variables <- c(NA)
-  } else{
-    disaggregate.variables <- c(str_split(disaggregate.variable, ";")[[1]])
-  }
-  return(list(section=section, label=label, variable=variable, func=func, 
-              admin=admin, disaggregate.variables=disaggregate.variables))
-}
-# combine intermediate excel outputs into master file
-combine.excel.outputs <- function(){
-  set.name <- function(x){
-    s <- str_split(x, "_")[[1]]
-    type <- head(s,1)
-    variable <- paste0(s[2:(length(s)-1)], collapse="_")
-    value <- tail(s, 1)
-    if (type %in% c("value", "CI")){
-      if (type=="value") out.end <- "" else out.end <- " [CI]"
-      if (value=="NA") return(paste0("No disaggregation", out.end))
-      if (variable=="q_HoH_gender") return(paste0("HoH gender - ", value, out.end))
-      if (variable=="q_HoH_age_cat") return(paste0("HoH age - ", value, out.end))
-      if (variable=="q_HoH_marital") return(paste0("HoH marital status - ", value, out.end))
-      if (variable=="q_HoH_employ") return(paste0("HoH employment status - ", value, out.end))
-      if (variable=="q_wg1") return(paste0("HoH disability - ", value, out.end))
-      if (variable=="pop_group") return(paste0("Population group - ", value, out.end))
-      if (variable=="durat_displ_IDP") return(paste0("Duration of displacement IDP - ", value, out.end))
-      if (variable=="durat_displ_RET") return(paste0("Duration of displacement RET - ", value, out.end))
-      if (variable=="num_displ_IDP") return(paste0("Number of displacements IDP - ", value, out.end))
-      if (variable=="num_displ_RET") return(paste0("Number of displacements RET - ", value, out.end))
-      if (variable=="year_of_return") return(paste0("Year of return - ", value, out.end))
-      stop("Variable unknown")
-    } else return(x)
-  }
-  # combine analysis from all 4 admin levels (national, governorate, district, sub-district)
-  df <- rbind(read_excel("output/intermediate/excel.report_NA.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_region.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_q_k7.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_q_k8.xlsx", col_types="text"),
-              read_excel("output/intermediate/excel.report_q_k9.xlsx", col_types="text"))
-  df <- df %>% 
-    mutate_at("value", as.numeric) %>% 
-    mutate(value=ifelse((level!="mean" & !str_detect(level, "percentile")) |
-                          (level=="mean" & str_starts(variable, "pct.")), round(value/100, 3), round(value, 3)),
-           CI=ifelse(str_detect(CI, "NA%"), "NA", CI))
-  save(df, file="output/intermediate/excel.reports.RData")
-  # move disaggregation.variables to columns
-  df.pivot <- df %>% 
-    pivot_wider(names_from = c(disaggregate.by, disaggregate.by.value), values_from = c(value, CI))
-  colnames(df.pivot) <- as.character(lapply(colnames(df.pivot), set.name))
-  df.pivot <- df.pivot %>% select(-indicator.category)
-  # build output file
-  wb <- createWorkbook()
-  sheet_msna <- "MSNA_2021_Analysis"
-  addWorksheet(wb, sheet_msna)
-  writeData(wb = wb, x = df.pivot, sheet = sheet_msna, startRow = 1)
-  header.style1 <- createStyle(textDecoration="bold", fgFill="#FFDDBB",
-                               border="TopBottomLeftRight", borderColour="#000000")
-  header.style2 <- createStyle(textDecoration="bold", fgFill="#DEDEDE",
-                               border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  header.style3 <- createStyle(textDecoration="bold", fgFill="#CDCDCD",
-                               border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  setColWidths(wb, sheet_msna, cols=1:6, widths=15)
-  setColWidths(wb, sheet_msna, cols=7:74, widths=12)
-  addStyle(wb, sheet_msna, style = header.style1, rows = 1, cols=1:6)
-  addStyle(wb, sheet_msna, style = header.style2, rows = 1, cols=7:40)
-  addStyle(wb, sheet_msna, style = header.style3, rows = 1, cols=41:74)
-  saveWorkbook(wb, paste0("output/", Sys.Date(), "_SYR_MSNA2021_analysis_master_file.xlsx"), overwrite = TRUE)
-}
+

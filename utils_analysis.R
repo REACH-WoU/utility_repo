@@ -1,20 +1,8 @@
 ("./src/utils/kobo_utils.R")
 
-################################################################################################
-# CHECKS
-
-add.to.fu.requests <- function(checks, check.id, question.names=c()){
-  for(q.n in question.names){
-    new.entries <- checks %>% filter(flag) %>% 
-      mutate(id=id,
-             variable=q.n,
-             old.value=!!sym(q.n),
-             new.value=NA)
-    new.entries[["check.id"]] <- check.id
-    new.entries <- new.entries %>% select(id, check.id, variable, old.value, new.value)
-    fu.requests <<- arrange(rbind(fu.requests, new.entries), id)
-  }
-}
+###-----------------------------------------------------------------------------
+### CHECKS - why are they here...?
+###-----------------------------------------------------------------------------
 
 check.last.digit <- function(df){
   res <- data.frame()
@@ -135,11 +123,51 @@ remove_choice <- function(concat_value, choice){
   return(paste(l, collapse=" "))
 }
 
-################################################################################################
-# ANALYSIS
+###-----------------------------------------------------------------------------
+### DAP FUNCTIONS
+###-----------------------------------------------------------------------------
 
-convert.col.type <- function(df, col){
-  #' converts the type of a specified column of kobo data.
+load.entry <- function(analysis.plan.row){
+  #' Load entry from analysis plan
+  #'
+  #' @param analysis.plan.row row from dataframe containing a DAP
+  #' 
+  #' @returns Named vector containing entry
+  
+  section <- as.character(analysis.plan.row$section)
+  label <- as.character(analysis.plan.row$label)
+  variable <- as.character(analysis.plan.row$variable)
+  calculation <- as.character(analysis.plan.row$calculation)
+  func <- as.character(analysis.plan.row$func)
+  admin <- as.character(analysis.plan.row$admin)
+  disaggregate.variable <- as.character(analysis.plan.row$disaggregate.variable)
+  if (is.na(disaggregate.variable)) {
+    disaggregate.variables <- c(NA)
+  } else{
+    disaggregate.variables <- c(str_split(disaggregate.variable, ";")[[1]])
+  }
+  comments <- as.character(analysis.plan.row$comments)
+  return(list(section=section, label=label, variable=variable, 
+              calculation=calculation, func=func, 
+              admin=admin, disaggregate.variables=disaggregate.variables,
+              comments=comments))
+}
+
+check.dap <- function(analysis.plan){
+  #' Check for issues with DAP.
+  #' 
+  #' Uses tool.survey and tool.choices to verify that correct variable names, functions and disaggregations are used.
+  cat("Checking DAP...\n")
+  cat("\n...no problems with your DAP :)\n")
+}
+
+
+###-----------------------------------------------------------------------------
+### ANALYSIS
+###-----------------------------------------------------------------------------
+
+convert.col.type <- function(df, col, omit_na = F){
+  #' Convert the type of a specified column of Kobo data.
   #' 
   #' @description  The provided dataframe is assumed to contain kobo data. 
   #' The type of `col` is taken from `tool.survey`, so `col` must be present in the `name` column of `tool.survey`.
@@ -147,19 +175,23 @@ convert.col.type <- function(df, col){
   #' If `col` starts with the string "select_one", this function finds a list of choices for the specified question name.
   #' In this case the output is a factor vector. Levels for this factor are taken from the `label_colname` column in `tool.choices`.
   #' 
-  #' @details For 'integer'-type questions, the result is a numeric vector.
+  #' @details This function also checks if the question has anything in the 'relevant' cell: if no, NAs are added as level.
+  #' 
+  #' For 'integer'-type questions, the result is a numeric vector.
   #' 
   #' For 'date' questions results are converted from numeric to date and then returned as character.
   #' 
   #' For 'select_one' questions, the result is a factor, with levels equal to a list of choice labels from `tool.choices`.
   #' 
-  #' For 'select_multiple' questions, the result is a factor with `levels=c(0, 1)`
+  #' For columns containing 'select_multiple' choices, the result is a factor with ```levels=c(0, 1)```
   #' 
   #' 'text' questions are left as they are.
   #'
   #' @param df Dataframe (containing kobo data) from which to extract a column.
   #' @param col Name of the column from `df` which should be converted
-  #' @returns a vector containing the converted values of `col`.
+  #' @param omit_na This flag should be set if NA values should be skipped (not included as level).
+  #' Otherwise (and by default) NA values are included as levels and will be used for calculating num_samples.
+  #' @returns a vector containing the converted values of column `col`.
   
   if ((col %in% tool.survey$name)){
     q <- tool.survey[tool.survey$name==col,]
@@ -169,7 +201,11 @@ convert.col.type <- function(df, col){
                                   rename(label = `label_colname`)
       d <- data.frame(col = as.character(df[[col]])) %>% 
                       left_join(choices, by=c("col"="name"))
-      return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      # check if there is relevancy, if no include NA as level
+      if(is.na(q$relevant))
+        return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      else
+        return(factor(d$label, levels = choices$label, exclude = NA))
     }
     else if (q$type=="integer" | q$type=="decimal") return(as.numeric(df[[col]]))
     else if (q$type=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
@@ -178,13 +214,16 @@ convert.col.type <- function(df, col){
     # branch: column name present in data but not in tool.survey
     # meaning it's most likely one of select_multiple options and should contain a "/"
     return(factor(as.numeric(df[[col]]), levels=c(0, 1, NA), exclude = NULL))
+    # else
+    #   return(factor(as.numeric(df[[col]]), levels=c(0, 1), exclude = NA))
   }
   else return(df[[col]])
 }
 
 
-################################################################################################
-# CONVERT NAMES TO LABELS
+###-----------------------------------------------------------------------------
+### CONVERT NAMES TO LABELS
+###-----------------------------------------------------------------------------
 
 name2label.question <- function(col){
   if (str_detect(col, "/")) {
