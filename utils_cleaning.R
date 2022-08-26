@@ -142,7 +142,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
     saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
-save.follow.up.requests.XJ <- function(cleaning.log, data){
+save.follow.up.requests <- function(cleaning.log, data){
   use.color <- function(check.id){
     return(str_starts(check.id, "0")) 
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
@@ -521,7 +521,7 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
-add.to.cleaning.log.XJ <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
+add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>% 
       mutate(uuid=uuid,
@@ -538,7 +538,7 @@ add.to.cleaning.log.XJ <- function(checks, check.id, question.names=c(), issue="
   }
 }
 
-add.to.cleaning.log.other.remove.XJ <- function(data, x){
+add.to.cleaning.log.other.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
@@ -570,7 +570,7 @@ add.to.cleaning.log.other.remove.XJ <- function(data, x){
   }
 }
 
-add.to.cleaning.log.trans.remove.XJ <- function(data, x){
+add.to.cleaning.log.trans.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
@@ -578,7 +578,7 @@ add.to.cleaning.log.trans.remove.XJ <- function(data, x){
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
 }
 
-add.to.cleaning.log.other.recode.one.XJ <- function(x){
+add.to.cleaning.log.other.recode.one <- function(x){
   issue <- "Recoding other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
@@ -612,7 +612,7 @@ add.to.cleaning.log.other.recode.one.XJ <- function(x){
   }
 }
 
-add.to.cleaning.log.other.recode.multiple.XJ <- function(data, x){
+add.to.cleaning.log.other.recode.multiple <- function(data, x){
   issue <- "Recoding other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
