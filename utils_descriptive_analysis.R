@@ -315,5 +315,6 @@ load.entry <- function(analysis.plan.row){
     disaggregate.variables <- c(str_split(disaggregate.variable, ";")[[1]])
   }
   return(list(section=section, label=label, variable=variable, func=func, 
-              admin=admin, disaggregate.variables=disaggregate.variables, data=data, xlsx_name=xlsx_name, comments=comments))
+              admin=admin, disaggregate.variables=disaggregate.variables, data=data,
+              xlsx_name=xlsx_name, comments=comments, calculation=calculation))
 }
