@@ -142,7 +142,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
     saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
-save.follow.up.requests.XJ <- function(cleaning.log, data){
+save.follow.up.requests <- function(cleaning.log, data){
   use.color <- function(check.id){
     return(str_starts(check.id, "0")) 
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
@@ -521,7 +521,7 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
-add.to.cleaning.log.XJ <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
+add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>% 
       mutate(uuid=uuid,
@@ -538,7 +538,7 @@ add.to.cleaning.log.XJ <- function(checks, check.id, question.names=c(), issue="
   }
 }
 
-add.to.cleaning.log.other.remove.XJ <- function(data, x){
+add.to.cleaning.log.other.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
@@ -570,7 +570,7 @@ add.to.cleaning.log.other.remove.XJ <- function(data, x){
   }
 }
 
-add.to.cleaning.log.trans.remove.XJ <- function(data, x){
+add.to.cleaning.log.trans.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
@@ -578,7 +578,7 @@ add.to.cleaning.log.trans.remove.XJ <- function(data, x){
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
 }
 
-add.to.cleaning.log.other.recode.one.XJ <- function(x){
+add.to.cleaning.log.other.recode.one <- function(x){
   issue <- "Recoding other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
@@ -612,7 +612,7 @@ add.to.cleaning.log.other.recode.one.XJ <- function(x){
   }
 }
 
-add.to.cleaning.log.other.recode.multiple.XJ <- function(data, x){
+add.to.cleaning.log.other.recode.multiple <- function(data, x){
   issue <- "Recoding other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
@@ -733,8 +733,6 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
   info_df <- data.frame()
   start_time <- Sys.time()
-  relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
-                         "choices.label", values_from)
   
   # counts characters which will be translated
   char_counter <- sum(str_length(responses[[values_from]]))
@@ -743,7 +741,6 @@ translate.responses <- function(responses, values_from = "response.uk", language
     for (code in language_codes) {
       cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0('response.en.from.',code)
-      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
       # cleaning up html leftovers:
       responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
       responses[[col_name]] <- NULL
@@ -778,7 +775,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
     warning("Nothing to be translated")
   }
     # dump info about the results of translation
-  write.table(info_df, file = "translate_info.csv", append = TRUE, row.names = FALSE)
+  write.table(info_df, file = "translate_info.csv", append = T, row.names = F, col.names = F, sep = ',')
   return(responses)
 }
   
