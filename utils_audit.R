@@ -1,6 +1,6 @@
 load.audit.files <- function(dir.audits, uuids=NULL, track.changes=F){
   #' Returns a dataframe with contents of all `audit.csv` files from `dir.audits` or its subdirectories.
-
+  
   #' @param dir.audits The directory in which to look for audit files (path resembling .../data/audits/...)
   #' @param uuids The uuids of surveys that are to be loaded. If NULL is provided here (and by default) all uuids from dir.audits will be loaded.
   #' @param track.changes Whether the survey has the parameter track-changes set to `true`
