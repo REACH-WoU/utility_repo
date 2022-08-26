@@ -213,7 +213,7 @@ load.edited <- function(dir.edited, file.type){
 load.logic.request <- function(dir.requests){
   logic.filenames <- list.files(dir.requests, pattern="follow_up_requests.xlsx",
                                 recursive=TRUE, full.names=TRUE)
-  print(paste("Loading",length(logic.filenames),"logic requests logs"))
+  cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   for (filename in logic.filenames){
     # load file
     trans <- read_xlsx(filename) %>% 
@@ -227,7 +227,7 @@ load.logic.request <- function(dir.requests){
 load.outlier.edited <- function(dir.outlier.edited){
   logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
                                 recursive=TRUE, full.names=TRUE)
-  print(paste("Loading",length(logic.filenames),"outlier logs"))
+  cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   res <- data.frame()
   for (filename in logic.filenames){
     # load file
@@ -303,7 +303,7 @@ add.to.cleaning.log.trans.remove <- function(data, x){
 add.to.cleaning.log.other.recode <- function(data, x){
   if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
-  if (res == "err") stop("Errors encountered while recoding other. Check the warnings!")
+  if (res == "err") cat("Errors encountered while recoding other. Check the warnings!")
 }
 
 add.to.cleaning.log.other.recode.one <- function(x){
@@ -336,6 +336,7 @@ add.to.cleaning.log.other.recode.one <- function(x){
     df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
                      old.value="Other_please_specify", new.value=new.code$name)
     cleaning.log.other <<- rbind(cleaning.log.other, df)
+    return("succ")
   }
 }
 
@@ -385,6 +386,7 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
   df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
                    old.value=old.value, new.value=new.value)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
+  return("succ")
 }
 
 
