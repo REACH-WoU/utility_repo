@@ -1,9 +1,10 @@
-source("./src/utils/kobo_utils.R")
 
 # ------------------------------------------------------------------------------------------
 # SAVING RESPONSES/REQUESTS
 # ------------------------------------------------------------------------------------------
 
+
+# ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
   # TODO: upgrade this function to work on changing df sizes
   style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
@@ -77,6 +78,9 @@ save.trans.responses <- function(df, or.submission=""){
   }
 }
 
+# ------------------------------------------------------------------------------------------
+# OUTLIER SECTION
+# ------------------------------------------------------------------------------------------
 save.outlier.responses <- function(df, or.submission=""){
   for (i in country_list){
     df1 <- df %>% 
@@ -108,6 +112,34 @@ save.outlier.responses <- function(df, or.submission=""){
     saveWorkbook(wb, filename, overwrite=TRUE)
     rm(df1)
   }
+}
+
+save.outlier.responses_msna <- function(df, or.submission=""){
+    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
+                                   valign="top", wrapText=T)
+    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    style.col.color.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    wb <- createWorkbook()
+    addWorksheet(wb, "Sheet1")
+    writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
+    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=7)
+    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
+    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=5)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
+    addStyle(wb, "Sheet1", style = style.col.color.first, rows = 1, cols=6:7)
+    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
+    filename <- paste0("output/checking/outliers/outliers_requests.xlsx")
+    saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
 save.follow.up.requests <- function(cleaning.log, data){
@@ -180,7 +212,6 @@ save.follow.up.requests <- function(cleaning.log, data){
   }
 }
 
-
 # ------------------------------------------------------------------------------------------
 # LOADING REQUESTS/RESPONSES FILES
 # ------------------------------------------------------------------------------------------
@@ -213,7 +244,7 @@ load.edited <- function(dir.edited, file.type){
 load.logic.request <- function(dir.requests){
   logic.filenames <- list.files(dir.requests, pattern="follow_up_requests.xlsx",
                                 recursive=TRUE, full.names=TRUE)
-  print(paste("Loading",length(logic.filenames),"logic requests logs"))
+  cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   for (filename in logic.filenames){
     # load file
     trans <- read_xlsx(filename) %>% 
@@ -227,7 +258,7 @@ load.logic.request <- function(dir.requests){
 load.outlier.edited <- function(dir.outlier.edited){
   logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
                                 recursive=TRUE, full.names=TRUE)
-  print(paste("Loading",length(logic.filenames),"outlier logs"))
+  cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   res <- data.frame()
   for (filename in logic.filenames){
     # load file
@@ -243,7 +274,13 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
-add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue=""){
+add.to.cleaning.log.other.recode <- function(data, x){
+  if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
+  if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
+  if (res == "err") cat("Errors encountered while recoding other. Check the warnings!")
+}
+
+add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>% 
       mutate(uuid=uuid,
@@ -298,12 +335,6 @@ add.to.cleaning.log.trans.remove <- function(data, x){
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
-}
-
-add.to.cleaning.log.other.recode <- function(data, x){
-  if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
-  if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
-  if (res == "err") cat("Errors encountered while recoding other. Check the warnings!")
 }
 
 add.to.cleaning.log.other.recode.one <- function(x){
@@ -462,8 +493,6 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
   info_df <- data.frame()
   start_time <- Sys.time()
-  relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
-                         "choices.label", values_from)
   
   # counts characters which will be translated
   char_counter <- sum(str_length(responses[[values_from]]))
@@ -472,7 +501,6 @@ translate.responses <- function(responses, values_from = "response.uk", language
     for (code in language_codes) {
       cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0('response.en.from.',code)
-      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
       # cleaning up html leftovers:
       responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
       responses[[col_name]] <- NULL
@@ -507,7 +535,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
     warning("Nothing to be translated")
   }
     # dump info about the results of translation
-  write.table(info_df, file = "translate_info.csv", append = TRUE, row.names = FALSE)
+  write.table(info_df, file = "translate_info.csv", append = T, row.names = F, col.names = F, sep = ',')
   return(responses)
 }
   
