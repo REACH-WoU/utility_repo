@@ -449,8 +449,9 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   } else {    
     data[["loop_index"]] <- NA
   }
-  responses <- data[, c("uuid", "loop_index", all_of(questions.db$name))] %>% 
-      pivot_longer(cols = all_of(questions.db$name), names_to="question.name", values_to=values_to) %>% 
+  responses <- data %>%
+      select(c("uuid", "loop_index", any_of(questions.db$name))) %>% 
+      pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>% 
       filter(!is.na(!!sym(values_to))) %>% 
       select(uuid,loop_index, question.name, !!sym(values_to))
   
@@ -517,18 +518,18 @@ create.translate.requests <- function(data, questions.db, responses, is.loop = F
       if(is.loop){
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, loop_index, country), by="loop_index")
+          left_join(select(data, any_of(c("loop_index", "country"))), by="loop_index")
       } else {
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, uuid, country), by="uuid")
+          left_join(select(data, any_of(c("uuid", "country"))), by="uuid")
         # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
       }
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
       responses.j <- responses.j %>% 
           select(any_of(relevant_colnames)) %>% 
-          mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
-                 "EXISTING other (copy the exact wording from the options in column G)"=NA,
+          mutate("TRUE other (provide a better translation if necessary)"=NA,
+                 "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>% 
           select(-c("loop_index")) %>%
           relocate(country, .after = uuid) %>%
