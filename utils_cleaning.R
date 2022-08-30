@@ -539,18 +539,19 @@ translate.responses <- function(responses, values_from = "response.uk", language
   return(responses)
 }
   
-create.translate.requests <- function(data, questions.db, responses, is.loop = F){
+create.translate.requests <- function(data, questions.db, responses, is.loop = F, include_cols = "country"){
+  
     relevant_colnames <- append(colnames(responses), 
-                          c("name", "ref.name","full.label","ref.type", "choices.label", "country"))
+                          c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
     tryCatch({
       if(is.loop){
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, any_of(c("loop_index", "country"))), by="loop_index")
+          left_join(select(data, any_of(append(include_cols, "loop_index"))), by="loop_index")
       } else {
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, any_of(c("uuid", "country"))), by="uuid")
+          left_join(select(data, any_of(append(include_cols, "uuid"))), by="uuid")
         # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
       }
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
@@ -560,7 +561,7 @@ create.translate.requests <- function(data, questions.db, responses, is.loop = F
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>% 
           select(-c("loop_index")) %>%
-          relocate(country, .after = uuid) %>%
+          relocate(all_of(include_cols), .after = uuid) %>%
           relocate(all_of(response_cols), .after = choices.label) %>%
           arrange(name)
       
