@@ -242,8 +242,8 @@ load.edited <- function(dir.edited, file.type){
 }
 
 load.logic.request <- function(dir.requests){
-  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests.xlsx",
-                                recursive=TRUE, full.names=TRUE)
+  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
+                                recursive=FALSE, full.names=TRUE)
   cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   for (filename in logic.filenames){
     # load file
