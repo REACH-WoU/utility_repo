@@ -365,7 +365,7 @@ add.to.cleaning.log.other.recode.one <- function(x){
   }
   else{
     df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
-                     old.value="Other_please_specify", new.value=new.code$name)
+                     old.value="other", new.value=new.code$name)
     cleaning.log.other <<- rbind(cleaning.log.other, df)
     return("succ")
   }
@@ -385,13 +385,13 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
   }
   choices <- choices[choices!=""]
   # set variable/other to "0"
-  df <- data.frame(uuid=x$uuid,  variable=paste0(x$ref.name, "/Other_please_specify"), issue=issue,
+  df <- data.frame(uuid=x$uuid,  variable=paste0(x$ref.name, "/other"), issue=issue,
                    old.value="1", new.value="0")
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices already selected
   old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name[1]])
   l <- str_split(old.value, " ")[[1]]
-  l.cumulative <- l[l!="Other_please_specify"]
+  l.cumulative <- l[l!="other"]
   # add to the cleaning log each choice in the other response
   for (choice in choices){
     # set corresponding variable to "1" if not already "1"
