@@ -95,6 +95,8 @@ get.select.db <- function(){
 
 # ------------------------------------------------------------------------------------------
 get.other.db <- function(){
+  #' finds all 'other' questions and their ref question and choices
+  #' #' @returns Dataframe containing name, ref.name, full.label, choices etc.
   select.questions <- get.select.db()
   
   # for each "other" question, get ref.question and list of choices
@@ -114,6 +116,7 @@ get.other.db <- function(){
 # ------------------------------------------------------------------------------------------
 get.trans.db <- function(){
   #' finds all questions which should be translated (meaning all 'text'-type question that are not 'other's)
+  #' somewhat obsolete because it searches for ref questions too which are unnecesary
   select.questions <- get.select.db()
   
   df1 <- tool.survey %>% filter(type == "text" & !(str_ends(name, "_other"))) %>%
