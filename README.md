@@ -38,7 +38,7 @@ Now change your directory out of `utils` back to your base repository folder:
 
 - ```cd ..```
  
-and run `git submodule status again`. The output should change to:
+and run `git submodule status` again. The output should change to:
 
 ```
 +56cd7caf704941c60a9f7589c64aad5310fb1855 utils (heads/dev_DB)
