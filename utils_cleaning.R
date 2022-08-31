@@ -274,6 +274,35 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
+make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today")){
+  #' Create a logical check DF
+  #' 
+  #' this function replaces `add.to.cleaning.log`. The functionality is changed: 
+  #' no longer modifies a global environment variable, instead returns a dataframe.
+  #' 
+  #' @param check Dataframe the same as raw.main, but containing a column named `flag`
+  #' @param id The identifier of this logical check. 
+  #' @param question.names List of relevant queston names for this logical check.
+  #' @param cols_to_keep List of columns from raw.main to be included in result.
+  #' 
+  #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
+  #' This object can be later added to cleaning log.
+  
+  res <- data.frame()
+  for(q.n in question.names){
+    new.entries <- checks %>% filter(flag) %>% 
+      mutate(variable = q.n, issue=issue, 
+             old.value =!!sym(q.n), new.value = NA, explanation = NA)
+    new.entries[["check.id"]] <- id
+    new.entries <- new.entries %>% 
+      select(any_of(c(cols_to_keep, "check.id", "variable", "issue",
+                      "old.value", "new.value", "explanation"))) %>%
+      dplyr::rename(survey.date=today)
+    res <- rbind(res, new.entries)
+  }
+  return(res %>% arrange(uuid))
+}
+
 add.to.cleaning.log.other.recode <- function(data, x){
   if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
@@ -283,16 +312,16 @@ add.to.cleaning.log.other.recode <- function(data, x){
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>% 
-      mutate(uuid=uuid,
-             variable = q.n,
+      mutate(variable = q.n,
              issue=issue,
              old.value =!!sym(q.n),
              new.value=NA,
              explanation =NA)
     new.entries[["check.id"]] <- check.id 
-    new.entries <- new.entries %>% select(today, uuid, country, Reporting_organization, Staff_Name, check.id, 
-                                          variable,issue, old.value, new.value, explanation) %>%
-      dplyr::rename(enumerator.code="Staff_Name", survey.date=today)
+    new.entries <- new.entries %>% select(any_of(c("today", "uuid", "country", "Reporting_organization", 
+                                          enumerator.code.col, "check.id", 
+                                          "variable", "issue", "old.value", "new.value", "explanation"))) %>%
+      dplyr::rename(enumerator.code=enumerator.code.col, survey.date=today)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries),country, uuid)
   }
 }
