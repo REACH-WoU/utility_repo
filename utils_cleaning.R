@@ -242,8 +242,8 @@ load.edited <- function(dir.edited, file.type){
 }
 
 load.logic.request <- function(dir.requests){
-  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests.xlsx",
-                                recursive=TRUE, full.names=TRUE)
+  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
+                                recursive=FALSE, full.names=TRUE)
   cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   for (filename in logic.filenames){
     # load file
@@ -274,6 +274,35 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
+make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today")){
+  #' Create a logical check DF
+  #' 
+  #' this function replaces `add.to.cleaning.log`. The functionality is changed: 
+  #' no longer modifies a global environment variable, instead returns a dataframe.
+  #' 
+  #' @param check Dataframe the same as raw.main, but containing a column named `flag`
+  #' @param id The identifier of this logical check. 
+  #' @param question.names List of relevant queston names for this logical check.
+  #' @param cols_to_keep List of columns from raw.main to be included in result.
+  #' 
+  #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
+  #' This object can be later added to cleaning log.
+  
+  res <- data.frame()
+  for(q.n in question.names){
+    new.entries <- checks %>% filter(flag) %>% 
+      mutate(variable = q.n, issue=issue, 
+             old.value =!!sym(q.n), new.value = NA, explanation = NA)
+    new.entries[["check.id"]] <- id
+    new.entries <- new.entries %>% 
+      select(any_of(c(cols_to_keep, "check.id", "variable", "issue",
+                      "old.value", "new.value", "explanation"))) %>%
+      dplyr::rename(survey.date=today)
+    res <- rbind(res, new.entries)
+  }
+  return(res %>% arrange(uuid))
+}
+
 add.to.cleaning.log.other.recode <- function(data, x){
   if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
@@ -283,16 +312,16 @@ add.to.cleaning.log.other.recode <- function(data, x){
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>% 
-      mutate(uuid=uuid,
-             variable = q.n,
+      mutate(variable = q.n,
              issue=issue,
              old.value =!!sym(q.n),
              new.value=NA,
              explanation =NA)
     new.entries[["check.id"]] <- check.id 
-    new.entries <- new.entries %>% select(today, uuid, country, Reporting_organization, Staff_Name, check.id, 
-                                          variable,issue, old.value, new.value, explanation) %>%
-      dplyr::rename(enumerator.code="Staff_Name", survey.date=today)
+    new.entries <- new.entries %>% select(any_of(c("today", "uuid", "country", "Reporting_organization", 
+                                          enumerator.code.col, "check.id", 
+                                          "variable", "issue", "old.value", "new.value", "explanation"))) %>%
+      dplyr::rename(enumerator.code=enumerator.code.col, survey.date=today)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries),country, uuid)
   }
 }
@@ -365,7 +394,7 @@ add.to.cleaning.log.other.recode.one <- function(x){
   }
   else{
     df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
-                     old.value="Other_please_specify", new.value=new.code$name)
+                     old.value="other", new.value=new.code$name)
     cleaning.log.other <<- rbind(cleaning.log.other, df)
     return("succ")
   }
@@ -385,13 +414,13 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
   }
   choices <- choices[choices!=""]
   # set variable/other to "0"
-  df <- data.frame(uuid=x$uuid,  variable=paste0(x$ref.name, "/Other_please_specify"), issue=issue,
+  df <- data.frame(uuid=x$uuid,  variable=paste0(x$ref.name, "/other"), issue=issue,
                    old.value="1", new.value="0")
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices already selected
   old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name[1]])
   l <- str_split(old.value, " ")[[1]]
-  l.cumulative <- l[l!="Other_please_specify"]
+  l.cumulative <- l[l!="other"]
   # add to the cleaning log each choice in the other response
   for (choice in choices){
     # set corresponding variable to "1" if not already "1"
@@ -480,8 +509,9 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   } else {    
     data[["loop_index"]] <- NA
   }
-  responses <- data[, c("uuid", "loop_index", all_of(questions.db$name))] %>% 
-      pivot_longer(cols = all_of(questions.db$name), names_to="question.name", values_to=values_to) %>% 
+  responses <- data %>%
+      select(c("uuid", "loop_index", any_of(questions.db$name))) %>% 
+      pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>% 
       filter(!is.na(!!sym(values_to))) %>% 
       select(uuid,loop_index, question.name, !!sym(values_to))
   
@@ -538,28 +568,29 @@ translate.responses <- function(responses, values_from = "response.uk", language
   return(responses)
 }
   
-create.translate.requests <- function(data, questions.db, responses, is.loop = F){
+create.translate.requests <- function(data, questions.db, responses, is.loop = F, include_cols = "country"){
+  
     relevant_colnames <- append(colnames(responses), 
-                          c("name", "ref.name","full.label","ref.type", "choices.label", "country"))
+                          c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
     tryCatch({
       if(is.loop){
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, loop_index, country), by="loop_index")
+          left_join(select(data, any_of(append(include_cols, "loop_index"))), by="loop_index")
       } else {
         responses.j <- responses %>% 
           left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
-          left_join(select(data, uuid, country), by="uuid")
+          left_join(select(data, any_of(append(include_cols, "uuid"))), by="uuid")
         # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
       }
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
       responses.j <- responses.j %>% 
           select(any_of(relevant_colnames)) %>% 
-          mutate("TRUE other (provide a better translation if response.en is not correct)"=NA,
-                 "EXISTING other (copy the exact wording from the options in column G)"=NA,
+          mutate("TRUE other (provide a better translation if necessary)"=NA,
+                 "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>% 
           select(-c("loop_index")) %>%
-          relocate(country, .after = uuid) %>%
+          relocate(all_of(include_cols), .after = uuid) %>%
           relocate(all_of(response_cols), .after = choices.label) %>%
           arrange(name)
       
