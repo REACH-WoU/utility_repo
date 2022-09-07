@@ -216,8 +216,60 @@ save.follow.up.requests <- function(cleaning.log, data){
 # LOADING REQUESTS/RESPONSES FILES
 # ------------------------------------------------------------------------------------------
 
+load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
+  #' Load 'request' logs from specified directory.
+  #' 
+  #' Searches `dir` to find XLSX files with names that start with a match for `filename.pattern`. 
+  #' NB: This pattern-matching is case-insensitive. If files contain the classic "TRUE", "EXISTING" or "INVALID" (TEI) columns,
+  #' these will be renamed to "true.v", "existing.v", and "invalid.v" respectively and optionally validated for errors.
+  #' 
+  #' @param dir Directory which should be searched for files.
+  #' @param filename.pattern String with a regex pattern which will be passed to `list.files` to match files,
+  #' however: '^' (string start) is added at the start of the pattern, and ".*\\.xlsx" is added at the end,
+  #' so effectively files that will be loaded must be XLSX and have names that start with the provided pattern.
+  #' 
+  #' @param sheet Optional parameter passed to `read_xlsx`, defaults to NULL (first sheet of an Excel workbook)
+  #' @param validate Should the file be validated (make sure that only one of TEI columns is filled.)
+  
+  file.type = str_squish(str_replace_all(filename.pattern, "[^a-zA-Z]+"," "))
+  filenames <- list.files(dir, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
+                          pattern=paste0("^",filename.pattern,".*\\.xlsx"))
+  if (length(filenames) == 0){
+    warning(paste("Files with",file.type,"requests not found!"))
+  } else {
+    cat(paste("Loading",length(filenames),file.type,"requests files:\n"),paste(filenames, collapse = "\n "),"\n")
+    res <- data.frame()
+    for (filename in filenames){
+      # load file
+      other <- read_xlsx(filename, col_types = "text", sheet = sheet)
+      if (filename==filenames[1]) res <- other
+      else res <- rbind(res, other)
+    }
+    c_tei_cols <- c("true", "existing", "invalid")
+    for(c in c_tei_cols) colnames(res)[str_starts(colnames(res), str_to_upper(c))] <- paste0(c,'.v')
+    if(validate){
+      c_tei_cols <- paste0(c_tei_cols, ".v")
+      if(all(c_tei_cols %in% colnames(res))){
+        res <- res %>% mutate(check = rowSums(is.na(select(res, all_of(c_tei_cols)))))
+        check.res <- res %>% select(c(
+          any_of(c("uuid","ref.name","check")))) %>% filter(check!=2)
+        if(nrow(check.res)>0) {
+          warning(paste0("Missing entries or multiple columns selected:\n", paste0(" ", unlist(check.res[,1]) , collapse = "\n")))
+        }
+      }else{
+        stop("One or more of 'true', 'existing', 'invalid' columns not found in requests files.")
+      }
+    }
+    return(res)   
+  }
+}
+
 load.edited <- function(dir.edited, file.type){
-  # function for loading responses or requests, doesn't matter if edited or not
+  #' Load logs from specified directory.
+  #' 
+  #' This function is superceded by load.requests
+
+  
   # file.type should be one of the following: 
   valid_types = c("other","translate","follow_up","outliers")
   if(!(file.type %in% valid_types))
@@ -466,7 +518,9 @@ create.deletion.log <- function(ids, reason){
 }
 
 create.deletion.log.minors <- function(data){
-  #' find all submissions run with minor age <18 and no legal guardian consent
+  #' [obsolete] find all submissions run with minor age <18 and no legal guardian consent
+  #'
+  #' warning: Hardcoded column names for the purposes of PP.
   #' creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
   #' 
   #' @param data Raw data (`raw.main`)
@@ -621,6 +675,7 @@ what.country <- function(id){
 "%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
 "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
 "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
+"%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
 
 
 # ------------------------------------------------------------------------------------------
