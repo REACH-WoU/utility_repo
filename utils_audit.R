@@ -93,6 +93,8 @@ process.uuid <- function(df){
   if (length(w)>0){
     for (i in 1:min(length(w), max.num.iterations)) res[1, paste0("w", i)] <- round(w[[i]], 1)
   }
+  # new funcionality :)
+  res <- res %>%  discard(~all(is.na(.) | . == ""))  # dropping empty columns (all NA)
   return(res)
 }
 
