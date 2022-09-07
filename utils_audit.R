@@ -51,7 +51,7 @@ process.uuid <- function(df){
   w <- list() # waiting time
   # e <- list() # number of edits
   t1 <- df$start[1]
-  if (df$event[1]!="form.start") stop()
+  if (df$event[1]!="form.start") stop("First event is not form.start?!")
   status <- "filling"
   for (r in 2:nrow(df)){
     if (status=="filling" & df$event[r]=="form.exit"){
@@ -68,7 +68,10 @@ process.uuid <- function(df){
       t1 <- df$start[r]
       w <- append(w, (t1-t2)/1000/60)
       status <- "filling"
-    } else if (status=="waiting" & df$event[r]=="form.exit") stop(df$uuid)
+    } else if (status=="waiting" & df$event[r]=="form.exit"){
+      if("uuid2" %in% colnames(df)) warning(paste("status=waiting while form.exit! uuid:",df$uuid2[r]))
+      else warning("status=waiting while form.exit!")
+    } 
   }
   res <- data.frame()
   res[1, "n.iteration"] <- length(t)
@@ -93,7 +96,9 @@ process.uuid <- function(df){
   if (length(w)>0){
     for (i in 1:min(length(w), max.num.iterations)) res[1, paste0("w", i)] <- round(w[[i]], 1)
   }
-  # new funcionality :)
+  if("uuid2" %in% colnames(res)) res <- res %>% select(-uuid2)
+  
+  # new functionality :)
   res <- res %>%  discard(~all(is.na(.) | . == ""))  # dropping empty columns (all NA)
   return(res)
 }
