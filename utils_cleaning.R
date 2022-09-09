@@ -7,7 +7,7 @@
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
   # TODO: upgrade this function to work on changing df sizes
-  style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
+  style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                  valign="top", wrapText=T)
   style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
@@ -43,7 +43,7 @@ save.responses <- function(df, wb_name, or.submission=""){
 save.trans.responses <- function(df, or.submission=""){
   for (countr in country_list){
     df1 <- df %>% filter(country == str_to_lower(countr))
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
+    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                    valign="top", wrapText=T)
     style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
@@ -83,9 +83,9 @@ save.trans.responses <- function(df, or.submission=""){
 # ------------------------------------------------------------------------------------------
 save.outlier.responses <- function(df, or.submission=""){
   for (i in country_list){
-    df1 <- df %>% 
+    df1 <- df %>%
       filter(country == i)
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
+    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                    valign="top", wrapText=T)
     style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
@@ -115,7 +115,7 @@ save.outlier.responses <- function(df, or.submission=""){
 }
 
 save.outlier.responses_msna <- function(df, or.submission=""){
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000", 
+    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                    valign="top", wrapText=T)
     style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
@@ -144,7 +144,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
 
 save.follow.up.requests <- function(cleaning.log, data){
   use.color <- function(check.id){
-    return(str_starts(check.id, "0")) 
+    return(str_starts(check.id, "0"))
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
   }
   # define styles
@@ -154,52 +154,52 @@ save.follow.up.requests <- function(cleaning.log, data){
   col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
                            border="TopBottomLeftRight", borderColour="#000000")
   # arrange cleaning.log so that colors are properly assigned later
-  cleaning.log <- cleaning.log %>% 
-    arrange(country) %>% 
-    group_by(country) %>% 
+  cleaning.log <- cleaning.log %>%
+    arrange(country) %>%
+    group_by(country) %>%
     group_modify(~ rbind(
       filter(.x, !use.color(check.id)) %>% arrange(check.id, uuid),
       filter(.x, use.color(check.id)) %>% arrange(check.id)))
   # add missing columns
-  cl <- cleaning.log %>% 
-    left_join(select(data, uuid, `_submission_time`), by="uuid") %>% 
-    rename(submission_time="_submission_time") %>% 
-    select(uuid, submission_time, country, Reporting_organization, enumerator.code, check.id, 
-           variable, issue, old.value, new.value) %>% 
+  cl <- cleaning.log %>%
+    left_join(select(data, uuid, `_submission_time`), by="uuid") %>%
+    rename(submission_time="_submission_time") %>%
+    select(uuid, submission_time, country, Reporting_organization, enumerator.code, check.id,
+           variable, issue, old.value, new.value) %>%
     mutate(explanation=NA)
   cl <- cl %>% arrange(match(check.id, str_sort(unique(cl$check.id), numeric=T)))
   for(i in country_list){
-    cl1 <- cl %>% 
+    cl1 <- cl %>%
       filter(country == i)
     # save follow-up requests
     wb <- createWorkbook()
     addWorksheet(wb, "Follow-up")
     writeData(wb = wb, x = cl1, sheet = "Follow-up", startRow = 1)
-    
+
     addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=10)
     addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=11)
-    
+
     setColWidths(wb, "Follow-up", cols=1:ncol(cl1), widths="auto")
     setColWidths(wb, "Follow-up", cols=7, widths=50)
     setColWidths(wb, "Follow-up", cols=8, widths=50)
-    
+
     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl1)+1), cols=7)
     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl1)+1), cols=8)
-    
+
     addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl1))
-    
+
     col.id <- which(colnames(cl1)=="old.value")
     if(nrow(cl1) > 0){
       random.color <- ""
       for (r in 2:nrow(cl1)){
-        if((!use.color(as.character(cl1[r, "check.id"])) & 
+        if((!use.color(as.character(cl1[r, "check.id"])) &
             as.character(cl1[r, "uuid"])==as.character(cl1[r-1, "uuid"]) &
             as.character(cl1[r, "check.id"])==as.character(cl1[r-1, "check.id"])) |
-           (use.color(as.character(cl1[r, "check.id"])) & 
+           (use.color(as.character(cl1[r, "check.id"])) &
             as.character(cl1[r, "country"])==as.character(cl1[r-1, "country"]) &
             as.character(cl1[r, "check.id"])==as.character(cl1[r-1, "check.id"]))){
           if (random.color == "") random.color <- randomColor(1, luminosity = "light")
-          addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T), 
+          addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
                    rows = r:(r+1), cols=col.id)
         } else random.color=""
       }
@@ -218,11 +218,11 @@ save.follow.up.requests <- function(cleaning.log, data){
 
 load.edited <- function(dir.edited, file.type){
   # function for loading responses or requests, doesn't matter if edited or not
-  # file.type should be one of the following: 
+  # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
   if(!(file.type %in% valid_types))
     warning("Unexpected file.type for load.edited")
-  
+
   filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
                           pattern=paste0(".*",file.type,"_((responses)|(requests))(_edited)?.*\\.xlsx$"))
   if (length(filenames) == 0){
@@ -236,8 +236,8 @@ load.edited <- function(dir.edited, file.type){
       if (filename==filenames[1]) res <- other
       else res <- rbind(res, other)
     }
-    return(res)   
-    
+    return(res)
+
   }
 }
 
@@ -247,7 +247,7 @@ load.logic.request <- function(dir.requests){
   cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
   for (filename in logic.filenames){
     # load file
-    trans <- read_xlsx(filename) %>% 
+    trans <- read_xlsx(filename) %>%
       mutate(uuid=uuid, .before=1)
     if (filename==logic.filenames[1]) res <- trans
     else res <- rbind(res, trans)
@@ -262,7 +262,7 @@ load.outlier.edited <- function(dir.outlier.edited){
   res <- data.frame()
   for (filename in logic.filenames){
     # load file
-    trans <- read_xlsx(filename) %>% 
+    trans <- read_xlsx(filename) %>%
       mutate(uuid=uuid, .before=1)
     if (filename==logic.filenames[1]) res <- trans
     else res <- rbind(res, trans)
@@ -276,25 +276,25 @@ load.outlier.edited <- function(dir.outlier.edited){
 
 make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today")){
   #' Create a logical check DF
-  #' 
-  #' this function replaces `add.to.cleaning.log`. The functionality is changed: 
+  #'
+  #' this function replaces `add.to.cleaning.log`. The functionality is changed:
   #' no longer modifies a global environment variable, instead returns a dataframe.
-  #' 
+  #'
   #' @param check Dataframe the same as raw.main, but containing a column named `flag`
-  #' @param id The identifier of this logical check. 
+  #' @param id The identifier of this logical check.
   #' @param question.names List of relevant queston names for this logical check.
   #' @param cols_to_keep List of columns from raw.main to be included in result.
-  #' 
+  #'
   #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
   #' This object can be later added to cleaning log.
-  
+
   res <- data.frame()
   for(q.n in question.names){
-    new.entries <- checks %>% filter(flag) %>% 
-      mutate(variable = q.n, issue=issue, 
+    new.entries <- checks %>% filter(flag) %>%
+      mutate(variable = q.n, issue=issue,
              old.value =!!sym(q.n), new.value = NA, explanation = NA)
     new.entries[["check.id"]] <- id
-    new.entries <- new.entries %>% 
+    new.entries <- new.entries %>%
       select(any_of(c(cols_to_keep, "check.id", "variable", "issue",
                       "old.value", "new.value", "explanation"))) %>%
       dplyr::rename(survey.date=today)
@@ -311,15 +311,15 @@ add.to.cleaning.log.other.recode <- function(data, x){
 
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   for(q.n in question.names){
-    new.entries <- checks %>% filter(flag) %>% 
+    new.entries <- checks %>% filter(flag) %>%
       mutate(variable = q.n,
              issue=issue,
              old.value =!!sym(q.n),
              new.value=NA,
              explanation =NA)
-    new.entries[["check.id"]] <- check.id 
-    new.entries <- new.entries %>% select(any_of(c("today", "uuid", "country", "Reporting_organization", 
-                                          enumerator.code.col, "check.id", 
+    new.entries[["check.id"]] <- check.id
+    new.entries <- new.entries %>% select(any_of(c("today", "uuid", "country", "Reporting_organization",
+                                          enumerator.code.col, "check.id",
                                           "variable", "issue", "old.value", "new.value", "explanation"))) %>%
       dplyr::rename(enumerator.code=enumerator.code.col, survey.date=today)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries),country, uuid)
@@ -329,7 +329,7 @@ add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", 
 add.to.cleaning.log.other.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
+  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # remove relative entries
@@ -361,7 +361,7 @@ add.to.cleaning.log.other.remove <- function(data, x){
 add.to.cleaning.log.trans.remove <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
+  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
 }
@@ -371,7 +371,7 @@ add.to.cleaning.log.other.recode.one <- function(x){
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
-  
+
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -456,7 +456,7 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
 
 create.deletion.log <- function(ids, reason){
   #' Creates a deletion log for the provided ids and reason.
-  #' 
+  #'
   #' @param ids This is a vector of uuids, obtained for example from follow-ups with FPs.
   #' @param reason This is a string describing the reason for removing a survey from data.
   #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if `ids` is empty.
@@ -467,19 +467,21 @@ create.deletion.log <- function(ids, reason){
 
 create.deletion.log.minors <- function(data){
   #' find all submissions run with minor age <18 and no legal guardian consent
-  #' creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
-  #' 
+  #'
+  #' Warning1: hardcoded for PP.
+  #' WARNING2: creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
+  #'
   #' @param data Raw data (`raw.main`)
   #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if no surveys with minors found.
-  
+
   ids <- data[data$a4_2_resp_age < 18,]
-  ids <- ids %>% 
-    filter(!is.na(uuid)) %>% 
+  ids <- ids %>%
+    filter(!is.na(uuid)) %>%
     mutate(delete = ifelse(is.na(Legal_guardian_consent),"yes",
-                           ifelse(Legal_guardian_consent == "yes","no","yes"))) %>% 
-    select(uuid,delete) %>% 
+                           ifelse(Legal_guardian_consent == "yes","no","yes"))) %>%
+    select(uuid,delete) %>%
     filter(delete=="yes")
-  
+
   ids <- ids$uuid
   return(create.deletion.log(ids=ids, reason="Survey done with a minor"))
 }
@@ -498,23 +500,23 @@ create.deletion.log.duplicates <- function(data, ids){
 
 find.responses <- function(data, questions.db, values_to="response.uk", is.loop = F){
   #' looks up `data` using `questions.db` to find all responses
-  #' 
+  #'
   #' response vector is stored in column specified by `values_to`
   if(is.loop){
     if("loop1_index" %in% colnames(data)){
       data[["loop_index"]] <- data[["loop1_index"]]
     } else {
       data[["loop_index"]] <- data[["loop2_index"]]
-    } 
-  } else {    
+    }
+  } else {
     data[["loop_index"]] <- NA
   }
   responses <- data %>%
-      select(c("uuid", "loop_index", any_of(questions.db$name))) %>% 
-      pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>% 
-      filter(!is.na(!!sym(values_to))) %>% 
+      select(c("uuid", "loop_index", any_of(questions.db$name))) %>%
+      pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>%
+      filter(!is.na(!!sym(values_to))) %>%
       select(uuid,loop_index, question.name, !!sym(values_to))
-  
+
   return(responses)
 }
 
@@ -522,10 +524,10 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
   info_df <- data.frame()
   start_time <- Sys.time()
-  
+
   # counts characters which will be translated
   char_counter <- sum(str_length(responses[[values_from]]))
-  
+
   if(nrow(responses) > 0){
     for (code in language_codes) {
       cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
@@ -541,13 +543,13 @@ translate.responses <- function(responses, values_from = "response.uk", language
       # checking the results
        info_df <- rbind(info_df, data.frame(
           "input_responses_num" = nrow(responses),
-          "translated_characters_num" = char_counter, 
-          "language_from" = code, 
+          "translated_characters_num" = char_counter,
+          "language_from" = code,
           "result_num" = length(result_vec),
           "time_elapsed" = as.numeric(Sys.time() - start_time),
           "date"=Sys.Date()))
       if(is.null(result_vec)){
-        warning("Error while translating responses: result_vec is NULL\n") 
+        warning("Error while translating responses: result_vec is NULL\n")
         info_df$status <- "error"
       }else{
         responses[[col_name]] <- gsub("&#39;", "'", result_vec)
@@ -567,33 +569,33 @@ translate.responses <- function(responses, values_from = "response.uk", language
   write.table(info_df, file = "translate_info.csv", append = T, row.names = F, col.names = F, sep = ',')
   return(responses)
 }
-  
+
 create.translate.requests <- function(data, questions.db, responses, is.loop = F, include_cols = "country"){
-  
-    relevant_colnames <- append(colnames(responses), 
+
+    relevant_colnames <- append(colnames(responses),
                           c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
     tryCatch({
       if(is.loop){
-        responses.j <- responses %>% 
-          left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
+        responses.j <- responses %>%
+          left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
           left_join(select(data, any_of(append(include_cols, "loop_index"))), by="loop_index")
       } else {
-        responses.j <- responses %>% 
-          left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>% 
+        responses.j <- responses %>%
+          left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
           left_join(select(data, any_of(append(include_cols, "uuid"))), by="uuid")
         # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
       }
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
-      responses.j <- responses.j %>% 
-          select(any_of(relevant_colnames)) %>% 
+      responses.j <- responses.j %>%
+          select(any_of(relevant_colnames)) %>%
+          relocate(all_of(response_cols), .after = last_col()) %>%
           mutate("TRUE other (provide a better translation if necessary)"=NA,
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
-                 "INVALID other (insert yes or leave blank)"=NA) %>% 
+                 "INVALID other (insert yes or leave blank)"=NA) %>%
           select(-c("loop_index")) %>%
           relocate(all_of(include_cols), .after = uuid) %>%
-          relocate(all_of(response_cols), .after = choices.label) %>%
           arrange(name)
-      
+
     }, error = function(err){
       warning("Error while saving responses.j (this is to be expected if result_vec is NULL)\n::",err)
     })
@@ -604,7 +606,7 @@ create.translate.requests <- function(data, questions.db, responses, is.loop = F
 #------------------------------------------------------------------------------------------------------------
 what.country <- function(id){
   #' Looks up raw.main to find to which country an id belongs to.
-  #' 
+  #'
   #' @param id uuid to look up in `raw.main`
   #' @returns a string found in the `country` column of `raw.main`.
   return(raw.main %>% filter(uuid == id) %>% pull(country))
