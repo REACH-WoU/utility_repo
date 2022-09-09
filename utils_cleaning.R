@@ -216,9 +216,73 @@ save.follow.up.requests <- function(cleaning.log, data){
 # LOADING REQUESTS/RESPONSES FILES
 # ------------------------------------------------------------------------------------------
 
+load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
+  #' Load 'request' logs from specified directory.
+  #' 
+  #' Searches `dir` to find XLSX files with names that start with a match for `filename.pattern`. 
+  #' NB: This pattern-matching is case-insensitive. If files contain the classic "TRUE", "EXISTING" or "INVALID" (TEI) columns,
+  #' these will be renamed to "true.v", "existing.v", and "invalid.v" respectively and optionally validated for errors.
+  #' 
+  #' @param dir Directory which should be searched for files.
+  #' @param filename.pattern String with a regex pattern which will be passed to `list.files` to match files,
+  #' however: '^' (string start) is added at the start of the pattern, and ".*\\.xlsx" is added at the end,
+  #' so effectively files that will be loaded must be XLSX and have names that start with the provided pattern.
+  #' 
+  #' @param sheet Optional parameter passed to `read_xlsx`, defaults to NULL (first sheet of an Excel workbook)
+  #' @param validate Should the file be validated (make sure that only one of TEI columns is filled.)
+  
+  file.type = str_squish(str_replace_all(filename.pattern, "[^a-zA-Z]+"," "))
+  filenames <- list.files(dir, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
+                          pattern=paste0("^",filename.pattern,".*\\.xlsx"))
+  if (length(filenames) == 0){
+    warning(paste("Files with",file.type,"requests not found!"))
+  } else {
+    cat(paste("Loading",length(filenames),file.type,"requests files:\n"),paste(filenames, collapse = "\n "),"\n")
+    res <- data.frame()
+    for (filename in filenames){
+      # load file
+      other <- read_xlsx(filename, col_types = "text", sheet = sheet)
+      if (filename==filenames[1]) res <- other
+      else res <- rbind(res, other)
+    }
+    # rename: TRUE -> true.v, EXISTING -> existing.v, INVALID -> invalid.v
+    c_tei_cols <- c("true", "existing", "invalid")
+    for(c in c_tei_cols) colnames(res)[str_starts(colnames(res), str_to_upper(c))] <- paste0(c,'.v')
+    
+    if(validate){
+      c_tei_cols <- paste0(c_tei_cols, ".v")
+      if(all(c_tei_cols %in% colnames(res))){
+        res <- res %>% mutate(check = rowSums(is.na(select(res, all_of(c_tei_cols)))))
+        check.res <- res %>% select(c(
+          any_of(c("uuid","ref.type","check")))) 
+        check.missing <- check.res %>% filter(check == 3)
+        if(nrow(check.missing)){
+          warning(paste0("Missing entries:\n", paste0(" ", unlist(check.missing[,1]) , collapse = "\n")))
+        }
+        if("ref.type" %in% colnames(check.res)){
+          check.res <- check.res %>% 
+            filter(check == 0 | (check == 1 & ref.type != "select_multiple"))  # select_multiple can have 2 columns selected
+        }else{
+          check.res <- filter(check.res, check != 2)
+        }
+        if(nrow(check.res)>0) {
+          warning(paste0("Multiple columns selected:\n", paste0(" ", unlist(check.res[,1]) , collapse = "\n")))
+        }
+      }else{
+        stop("One or more of 'true', 'existing', 'invalid' columns not found in requests files.")
+      }
+    }
+    return(res)   
+  }
+}
+
 load.edited <- function(dir.edited, file.type){
-  # function for loading responses or requests, doesn't matter if edited or not
-  # file.type should be one of the following:
+  #' Load logs from specified directory.
+  #' 
+  #' This function is superceded by load.requests
+
+  
+  # file.type should be one of the following: 
   valid_types = c("other","translate","follow_up","outliers")
   if(!(file.type %in% valid_types))
     warning("Unexpected file.type for load.edited")
@@ -274,6 +338,40 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
+apply.changes <- function(data, clog){
+  #' Apply changes to main data basing on a cleaning log.
+  #' 
+  #' Outputs warnings if uuids or variables from `clog` are not found in `data`
+  #' @param data Data (raw.main)
+  #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value
+  #' 
+  #' @returns Dataframe containing data with applied changes
+  if(nrow(clog) == 0){
+    warning("No changes to be applied (cleaning log empty).")
+  }
+  else{
+    missinguuids <- c()
+    missingvars <- c()
+    for (r in 1:nrow(clog)){
+      uuid <- as.character(clog$uuid[r])
+      if(!uuid %in% data$uuid) {
+        missinguuids <- append(missinguuids, uuid)
+        next
+      }
+      variable <- as.character(clog$variable[r])
+      if(!variable %in% colnames(data)) {
+        missingvars <- append(missingvars, variable)
+        next
+      }
+      data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
+    }
+    if(length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
+    if(length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n", paste0(missingvars, collapse = "\n")))
+    return(data)
+  }
+}
+
+
 make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today")){
   #' Create a logical check DF
   #'
@@ -304,12 +402,13 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
 }
 
 add.to.cleaning.log.other.recode <- function(data, x){
-  if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(x)
+  if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(data, x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
   if (res == "err") cat("Errors encountered while recoding other. Check the warnings!")
 }
 
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
+  #' [obsolete]
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>%
       mutate(variable = q.n,
@@ -328,9 +427,10 @@ add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", 
 
 add.to.cleaning.log.other.remove <- function(data, x){
   issue <- "Invalid other response"
+  old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
-                   old.value=x$response.uk, new.value=NA)
+  df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue, 
+                   old.value=old.response, new.value=NA)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # remove relative entries
   if (x$ref.type[1]=="select_one"){
@@ -366,12 +466,13 @@ add.to.cleaning.log.trans.remove <- function(data, x){
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
 }
 
-add.to.cleaning.log.other.recode.one <- function(x){
+add.to.cleaning.log.other.recode.one <- function(data, x){
   issue <- "Recoding other response"
+  old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
-                   old.value=x$response.uk, new.value=NA)
-
+                   old.value=old.response, new.value=NA)
+  
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -402,9 +503,10 @@ add.to.cleaning.log.other.recode.one <- function(x){
 
 add.to.cleaning.log.other.recode.multiple <- function(data, x){
   issue <- "Recoding other response"
+  old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
-                   old.value=x$response.uk, new.value=NA)
+                   old.value=old.response, new.value=NA)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -466,11 +568,11 @@ create.deletion.log <- function(ids, reason){
 }
 
 create.deletion.log.minors <- function(data){
-  #' find all submissions run with minor age <18 and no legal guardian consent
+  #' [obsolete] find all submissions run with minor age <18 and no legal guardian consent
   #'
-  #' Warning1: hardcoded for PP.
-  #' WARNING2: creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
-  #'
+  #' warning: Hardcoded column names for the purposes of PP.
+  #' creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
+  #' 
   #' @param data Raw data (`raw.main`)
   #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if no surveys with minors found.
 
@@ -487,12 +589,12 @@ create.deletion.log.minors <- function(data){
 }
 
 create.deletion.log.too.fast <- function (data, ids){
-  #' obsolete
+  #' [obsolete]
   return(create.deletion.log(ids=ids, reason="Survey duration < 3 minutes"))
 }
 
 create.deletion.log.duplicates <- function(data, ids){
-  #' obsolete - TO BE USED ONLY FOR SOFT DUPLICATES (NOT REGULAR UUID DUPLICATES)
+  #' [obsolete] - TO BE USED ONLY FOR SOFT DUPLICATES (NOT REGULAR UUID DUPLICATES)
   return(create.deletion.log(ids=ids, reason= "Surveys with only 10 or less diff columns"))
 }
 
@@ -623,6 +725,7 @@ what.country <- function(id){
 "%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
 "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
 "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
+"%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
 
 
 # ------------------------------------------------------------------------------------------

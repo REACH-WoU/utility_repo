@@ -20,7 +20,7 @@ get.choice.list.from.name <- function(variable){
   #' find the choices list name
   #' @param variable This is the name of the header from raw data.
   if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
-  return(tool.survey$list_name[tool.survey$name==variable])
+  return(tool.survey %>% filter(name == variable) %>% pull(list_name))
 }
 
 get.choice.list.from.type <- function(q_type){

@@ -97,6 +97,9 @@ process.uuid <- function(df){
     for (i in 1:min(length(w), max.num.iterations)) res[1, paste0("w", i)] <- round(w[[i]], 1)
   }
   if("uuid2" %in% colnames(res)) res <- res %>% select(-uuid2)
+  
+  # new functionality :)
+  res <- res %>%  discard(~all(is.na(.) | . == ""))  # dropping empty columns (all NA)
   return(res)
 }
 
