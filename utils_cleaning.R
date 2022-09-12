@@ -338,6 +338,57 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
+recode.multiple.set.choice <- function(data, variable, choice, issue){
+
+    choice_column <- paste0(variable,"/",choice)
+    if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
+    # filter out cases that already have choice selected
+    data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
+    if(nrow(data) > 0){
+        cl_cummulative <- select(data, uuid, variable) %>%
+            rename(old.value = !!sym(variable)) %>%
+            mutate(variable = variable, new.value = choice, issue = issue)
+
+        cl_choices <- select(data, uuid) %>%
+            mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
+
+        # set all other choices columns to 0
+        cols <- colnames(data)[str_starts(colnames(data), paste0(variable, "/")) &
+                                   !(str_ends(colnames(data), choice))]
+        for(col in cols){
+            df <- data %>% filter(!!sym(col) == "1")
+            if(nrow(df>0)){
+                cl <- data.frame(
+                    uuid = df$uuid, variable = col, old.value = "1", new.value = "0", issue = issue
+                )
+                cl_choices <- rbind(cl_choices, cl)
+            }
+        }
+
+        return(rbind(cl_cummulative, cl_choices))
+
+    }
+    return(data.frame())
+}
+
+recode.multiple.add.choice <- function(data, variable, choice, issue){
+
+    choice_column <- paste0(variable,"/",choice)
+    if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
+    # filter out cases that already have choice selected
+    data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
+    if(nrow(data) > 0){
+        cl_cummulative <- select(data, uuid, variable) %>%
+            rename(old.value = !!sym(variable)) %>%
+            mutate(variable = variable, new.value = paste(old.value, choice), issue = issue)
+
+        cl_choice <- select(data, uuid) %>%
+            mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
+        return(rbind(cl_cummulative, cl_choice))
+    }
+    return(data.frame())
+}
+
 apply.changes <- function(data, clog){
   #' Apply changes to main data basing on a cleaning log.
   #'
@@ -365,7 +416,8 @@ apply.changes <- function(data, clog){
       }
       if(data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
           warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
-                      "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable]))
+                      "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
+                      "\tReplacing with: ", clog$new.value[r]))
       }
       data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
     }
