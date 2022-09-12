@@ -16,6 +16,15 @@ get.label <- function(variable){
   return(tool.survey[tool.survey$name == variable, ][[label_colname]])
 }
 
+get.choice.label <- function(choice, list){
+  #' finds the label of a choice in a list
+  #' @param choice the name of the choice
+  #' @param list the name of the list containing choice
+  res <- tool.choices %>% filter(list_name == list & name == choice)
+  if(nrow(res) == 0) stop("choice not in the list!")
+  return(pull(res, label_colname))
+}
+
 get.choice.list.from.name <- function(variable){
   #' find the choices list name
   #' @param variable This is the name of the header from raw data.
