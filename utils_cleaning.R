@@ -143,6 +143,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
 }
 
 save.follow.up.requests <- function(cleaning.log, data){
+    #' [obsolete] - replaced by `create.follow.up.requests`
   use.color <- function(check.id){
     return(str_starts(check.id, "0"))
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
@@ -212,6 +213,61 @@ save.follow.up.requests <- function(cleaning.log, data){
   }
 }
 
+create.follow.up.requests <- function(checks.df, wb_name){
+    use.color <- function(check.id){
+        return(str_starts(check.id, "0"))
+    }
+    # define styles
+    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
+    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
+                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=F)
+    col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
+                             border="TopBottomLeftRight", borderColour="#000000")
+    # arrange cleaning.log so that colors are properly assigned later
+    cl <- checks.df %>%
+        arrange(variable) %>%
+        group_modify(~ rbind(
+            filter(.x, !use.color(check.id)) %>% arrange(check.id, uuid),
+            filter(.x, use.color(check.id)) %>% arrange(check.id)))
+    cl <- cl %>% arrange(match(check.id, str_sort(unique(cl$check.id), numeric=T)))
+    # save follow-up requests
+    wb <- createWorkbook()
+    addWorksheet(wb, "Follow-up", zoom = 90)
+    writeData(wb = wb, x = cl, sheet = "Follow-up", startRow = 1)
+
+    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="explanation"))
+    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="new.value"))
+    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=which(colnames(cl)=="explanation"))
+    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=which(colnames(cl)=="new.value"))
+
+    setColWidths(wb, "Follow-up", cols=1:ncol(cl), widths="auto")
+    # setColWidths(wb, "Follow-up", cols=ncol(cl)-1, widths=50)
+
+    setColWidths(wb, "Follow-up", cols=which(colnames(cl)=="issue"), widths=50)
+    addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="issue"))
+
+    addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl))
+
+    col.id <- which(colnames(cl)=="old.value")
+    if(nrow(cl) > 0){
+        random.color <- ""
+        for (r in 2:nrow(cl)){
+            if((!use.color(as.character(cl[r, "check.id"])) &
+                as.character(cl[r, "uuid"])==as.character(cl[r-1, "uuid"]) &
+                as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"])) |
+               (use.color(as.character(cl[r, "check.id"])) &
+                as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"]))){
+                if (random.color == "") random.color <- randomColor(1, luminosity = "light")
+                addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
+                         rows = r:(r+1), cols=col.id)
+            } else random.color=""
+        }
+    }
+
+    filename <- paste0("output/checking/requests/", wb_name)
+    saveWorkbook(wb, filename, overwrite = TRUE)
+}
+
 # ------------------------------------------------------------------------------------------
 # LOADING REQUESTS/RESPONSES FILES
 # ------------------------------------------------------------------------------------------
@@ -243,7 +299,11 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
       # load file
       other <- read_xlsx(filename, col_types = "text", sheet = sheet)
       if (filename==filenames[1]) res <- other
-      else res <- rbind(res, other)
+      else{
+          if(ncol(res)!=ncol(other)) warning("Number of columns differs between files! Check them to make sure everything is correct, please!")
+          res <- bind_rows(res, other)
+      }
+
     }
     # rename: TRUE -> true.v, EXISTING -> existing.v, INVALID -> invalid.v
     c_tei_cols <- c("true", "existing", "invalid")
@@ -338,29 +398,59 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
-recode.multiple.set.choice <- function(data, variable, choice, issue){
+recode.multiple.set.NA <- function(data, variable, issue){
+    #' TODO add documentation
+    ccols <- colnames(data)[str_starts(colnames(data), paste0(variable, "/"))]
 
+    # filter out cases that already are NA
+    data <- data %>% filter(if_all(all_of(ccols), ~is.na(.)))
+    if(nrow(data)>0){
+        cl_cummulative <- select(data, uuid, variable) %>%
+            mutate(variable = variable, old.value = !!sym(variable), new.value = NA, issue = issue) %>%
+            select(uuid, variable, old.value, new.value, issue)
+        cl_choices <- data.frame()
+        for(col in ccols){
+            df <- data %>% filter(!is.na(!!sym(col)))
+            if(nrow(df)>0){
+                cl <- df %>%
+                    mutate(variable = col, old.value = !!sym(col), new.value = NA, issue = issue) %>%
+                    select(uuid, variable, old.value, new.value, issue)
+
+                cl_choices <- rbind(cl_choices, cl)
+            }
+        }
+        return(rbind(cl_cummulative, cl_choices))
+
+    }
+    return(data.frame())
+
+}
+
+recode.multiple.set.choice <- function(data, variable, choice, issue){
+    #' TODO add documentation
     choice_column <- paste0(variable,"/",choice)
     if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
     # filter out cases that already have choice selected
-    data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
+    data <- data %>% filter(str_detect(variable, choice, negate = T))
     if(nrow(data) > 0){
         cl_cummulative <- select(data, uuid, variable) %>%
             rename(old.value = !!sym(variable)) %>%
             mutate(variable = variable, new.value = choice, issue = issue)
 
-        cl_choices <- select(data, uuid) %>%
-            mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
+        cl_choices <- data %>%
+            mutate(variable = choice_column, old.value = !!sym(choice_column), new.value = "1", issue = issue) %>%
+            select(uuid, variable, old.value, new.value, issue)
 
         # set all other choices columns to 0
         cols <- colnames(data)[str_starts(colnames(data), paste0(variable, "/")) &
                                    !(str_ends(colnames(data), choice))]
         for(col in cols){
-            df <- data %>% filter(!!sym(col) == "1")
+            df <- data %>% filter(!!sym(col) != "0")
             if(nrow(df>0)){
-                cl <- data.frame(
-                    uuid = df$uuid, variable = col, old.value = "1", new.value = "0", issue = issue
-                )
+                cl <- df %>%
+                    mutate(variable = col, old.value = !!sym(col), new.value = "0", issue = issue) %>%
+                    select(uuid, variable, old.value, new.value, issue)
+
                 cl_choices <- rbind(cl_choices, cl)
             }
         }
@@ -372,7 +462,7 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
 }
 
 recode.multiple.add.choice <- function(data, variable, choice, issue){
-
+    #' TODO add documentation
     choice_column <- paste0(variable,"/",choice)
     if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
     # filter out cases that already have choice selected
@@ -389,6 +479,25 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
     return(data.frame())
 }
 
+recode.multiple.remove.choice <- function(data, variable, choice, issue){
+    #' TODO add documentation
+    choice_column <- paste0(variable,"/",choice)
+    if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
+    # filter out cases that dont have the choice selected
+    data <- data %>% filter(str_detect(!!sym(variable), choice))
+    if(nrow(data) > 0){
+        cl_cummulative <- select(data, uuid, variable) %>%
+            rename(old.value = !!sym(variable)) %>%
+            mutate(variable = variable, new.value = str_squish(str_remove(old.value, choice)), issue = issue)
+
+        cl_choice <- select(data, uuid) %>%
+            mutate(variable = choice_column, old.value = "1", new.value = "0", issue = issue)
+        return(rbind(cl_cummulative, cl_choice))
+    }
+    return(data.frame())
+}
+
+
 apply.changes <- function(data, clog){
   #' Apply changes to main data basing on a cleaning log.
   #'
@@ -399,6 +508,7 @@ apply.changes <- function(data, clog){
   #' @returns Dataframe containing data with applied changes
   if(nrow(clog) == 0){
     warning("No changes to be applied (cleaning log empty).")
+      return(data)
   }
   else{
     missinguuids <- c()
@@ -434,7 +544,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   #' this function replaces `add.to.cleaning.log`. The functionality is changed:
   #' no longer modifies a global environment variable, instead returns a dataframe.
   #'
-  #' @param check Dataframe the same as raw.main, but containing a column named `flag`
+  #' @param check Dataframe with data, filtered according to some flag. Must contain columns `uuid` and all columns in `question.names`
   #' @param id The identifier of this logical check.
   #' @param question.names List of relevant queston names for this logical check.
   #' @param cols_to_keep List of columns from raw.main to be included in result.
@@ -444,14 +554,15 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
 
   res <- data.frame()
   for(q.n in question.names){
-    new.entries <- checks %>% filter(flag) %>%
+    new.entries <- check %>%
       mutate(variable = q.n, issue=issue,
              old.value =!!sym(q.n), new.value = NA, explanation = NA)
     new.entries[["check.id"]] <- id
     new.entries <- new.entries %>%
-      select(any_of(c(cols_to_keep, "check.id", "variable", "issue",
+      select(any_of(c(cols_to_keep, "uuid", "check.id", "variable", "issue",
                       "old.value", "new.value", "explanation"))) %>%
-      dplyr::rename(survey.date=today)
+      rename(survey.date=today) %>% relocate(uuid) %>%
+        mutate_all(as.character)
     res <- rbind(res, new.entries)
   }
   return(res %>% arrange(uuid))
@@ -463,7 +574,7 @@ add.to.cleaning.log.other.recode <- function(data, x){
     } # a bit of a dirty fix :)
   if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(data, x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
-  if (res == "err") cat("Errors encountered while recoding other. Check the warnings!")
+  if (res == "err") cat("Errors while recoding other. Check the warnings!\t")
 }
 
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
@@ -786,6 +897,7 @@ what.country <- function(id){
 "%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
 "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
 "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
+"%_+_%" <- function(a,b) as.numeric(a) + as.numeric(b)
 "%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
 
 
