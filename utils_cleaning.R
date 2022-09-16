@@ -7,18 +7,18 @@
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
   # TODO: upgrade this function to work on changing df sizes
-  style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+  style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                  valign="top", wrapText=T)
-  style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+  style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  style.col.color.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+  style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
   wb <- createWorkbook()
   addWorksheet(wb, "Sheet1")
   writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
-  addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=10)
-  addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=11)
-  addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=12)
+  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=10)
+  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=11)
+  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=12)
   setColWidths(wb, "Sheet1", cols=1, widths=35)
   setColWidths(wb, "Sheet1", cols=c(5, 7), widths=50)
   setColWidths(wb, "Sheet1", cols=c(8:9), widths=30)
@@ -34,7 +34,7 @@ save.responses <- function(df, wb_name, or.submission=""){
   addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=8)
   addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=9)
   addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
-  addStyle(wb, "Sheet1", style = style.col.color.first, rows = 1, cols=10:12)
+  addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=10:12)
   modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
   filename <- paste0("output/checking/requests/", wb_name, ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
@@ -43,18 +43,18 @@ save.responses <- function(df, wb_name, or.submission=""){
 save.trans.responses <- function(df, or.submission=""){
   for (countr in country_list){
     df1 <- df %>% filter(country == str_to_lower(countr))
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                    valign="top", wrapText=T)
-    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    style.col.color.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
                                           border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
     wb <- createWorkbook()
     addWorksheet(wb, "Sheet1")
     writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=13-2)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=13-1)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=13)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=13-2)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=13-1)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=13)
     setColWidths(wb, "Sheet1", cols=1, widths=35)
     setColWidths(wb, "Sheet1", cols=c(5, 7), widths=50)
     setColWidths(wb, "Sheet1", cols=c(8:10), widths=30)
@@ -70,7 +70,7 @@ save.trans.responses <- function(df, or.submission=""){
       addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=i)
     }
     addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
-    addStyle(wb, "Sheet1", style = style.col.color.first, rows = 1, cols=11:ncol(df))
+    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=11:ncol(df))
     modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
     filename <- paste0("output/checking/requests/",countr,"_translate_responses.xlsx")
     saveWorkbook(wb, filename, overwrite=TRUE)
@@ -85,17 +85,17 @@ save.outlier.responses <- function(df, or.submission=""){
   for (i in country_list){
     df1 <- df %>%
       filter(country == i)
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                    valign="top", wrapText=T)
-    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    style.col.color.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
                                           border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
     wb <- createWorkbook()
     addWorksheet(wb, "Sheet1")
     writeData(wb = wb, x = df1, sheet = "Sheet1", startRow = 1)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df1)+1), cols=6)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df1)+1), cols=7)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=7)
     setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
     setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
     addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=1)
@@ -106,7 +106,7 @@ save.outlier.responses <- function(df, or.submission=""){
     addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=6)
     addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=7)
     addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df1))
-    addStyle(wb, "Sheet1", style = style.col.color.first, rows = 1, cols=6:7)
+    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
     modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
     filename <- paste0("output/checking/outliers/",i,"_outliers_requests.xlsx")
     saveWorkbook(wb, filename, overwrite=TRUE)
@@ -115,17 +115,17 @@ save.outlier.responses <- function(df, or.submission=""){
 }
 
 save.outlier.responses_msna <- function(df, or.submission=""){
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
                                    valign="top", wrapText=T)
-    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    style.col.color.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
                                           border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
     wb <- createWorkbook()
     addWorksheet(wb, "Sheet1")
     writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=6)
-    addStyle(wb, "Sheet1", style = style.col.color, rows = 1:(nrow(df)+1), cols=7)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=7)
     setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
     setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
     addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
@@ -136,7 +136,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
     addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=6)
     addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
     addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
-    addStyle(wb, "Sheet1", style = style.col.color.first, rows = 1, cols=6:7)
+    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
     modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
     filename <- paste0("output/checking/outliers/outliers_requests.xlsx")
     saveWorkbook(wb, filename, overwrite=TRUE)
@@ -149,8 +149,8 @@ save.follow.up.requests <- function(cleaning.log, data){
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
   }
   # define styles
-  style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
-  style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
+  style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
+  style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=F)
   col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
                            border="TopBottomLeftRight", borderColour="#000000")
@@ -177,8 +177,8 @@ save.follow.up.requests <- function(cleaning.log, data){
     addWorksheet(wb, "Follow-up")
     writeData(wb = wb, x = cl1, sheet = "Follow-up", startRow = 1)
 
-    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=10)
-    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl1)+1), cols=11)
+    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl1)+1), cols=10)
+    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl1)+1), cols=11)
 
     setColWidths(wb, "Follow-up", cols=1:ncol(cl1), widths="auto")
     setColWidths(wb, "Follow-up", cols=7, widths=50)
@@ -205,8 +205,8 @@ save.follow.up.requests <- function(cleaning.log, data){
         } else random.color=""
       }
     }
-    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=10)
-    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=11)
+    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=10)
+    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=11)
     filename <- paste0("output/checking/requests/", str_to_lower(i) , "_follow_up_requests.xlsx")
     saveWorkbook(wb, filename, overwrite = TRUE)
     rm(cl1)
@@ -218,8 +218,8 @@ create.follow.up.requests <- function(checks.df, wb_name){
         return(str_starts(check.id, "0"))
     }
     # define styles
-    style.col.color <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
-    style.col.color.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=F)
     col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
                              border="TopBottomLeftRight", borderColour="#000000")
@@ -235,10 +235,13 @@ create.follow.up.requests <- function(checks.df, wb_name){
     addWorksheet(wb, "Follow-up", zoom = 90)
     writeData(wb = wb, x = cl, sheet = "Follow-up", startRow = 1)
 
-    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="explanation"))
-    addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="new.value"))
-    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=which(colnames(cl)=="explanation"))
-    addStyle(wb, "Follow-up", style = style.col.color.first, rows = 1, cols=which(colnames(cl)=="new.value"))
+    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="explanation"))
+    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="invalid"))
+    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="new.value"))
+    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="explanation"))
+    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="new.value"))
+    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="invalid"))
+
 
     setColWidths(wb, "Follow-up", cols=1:ncol(cl), widths="auto")
     # setColWidths(wb, "Follow-up", cols=ncol(cl)-1, widths=50)
@@ -556,11 +559,11 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   for(q.n in question.names){
     new.entries <- check %>%
       mutate(variable = q.n, issue=issue,
-             old.value =!!sym(q.n), new.value = NA, explanation = NA)
+             old.value =!!sym(q.n), new.value = NA, invalid = NA, explanation = NA)
     new.entries[["check.id"]] <- id
     new.entries <- new.entries %>%
       select(any_of(c(cols_to_keep, "uuid", "check.id", "variable", "issue",
-                      "old.value", "new.value", "explanation"))) %>%
+                      "old.value", "new.value", "invalid", "explanation"))) %>%
       rename(survey.date=today) %>% relocate(uuid) %>%
         mutate_all(as.character)
     res <- rbind(res, new.entries)
