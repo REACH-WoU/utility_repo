@@ -779,15 +779,8 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   #' looks up `data` using `questions.db` to find all responses
   #'
   #' response vector is stored in column specified by `values_to`
-  if(is.loop){
-    if("loop1_index" %in% colnames(data)){
-      data[["loop_index"]] <- data[["loop1_index"]]
-    } else {
-      data[["loop_index"]] <- data[["loop2_index"]]
-    }
-  } else {
-    data[["loop_index"]] <- NA
-  }
+  if(!is.loop) data[["loop_index"]] <- NA
+
   responses <- data %>%
     select(c("uuid", "loop_index", any_of(questions.db$name))) %>%
     pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>%
@@ -801,7 +794,8 @@ translate.responses <- function(responses, values_from = "response.uk", language
   
   info_df <- data.frame()
   start_time <- Sys.time()
-  
+  relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
+                         "choices.label", values_from)
   # counts characters which will be translated
   char_counter <- sum(str_length(responses[[values_from]]))
   
@@ -809,6 +803,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
     for (code in language_codes) {
       cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0('response.en.from.',code)
+      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
       # cleaning up html leftovers:
       responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
       responses[[col_name]] <- NULL
@@ -847,10 +842,9 @@ translate.responses <- function(responses, values_from = "response.uk", language
   return(responses)
 }
 
-<<<<<<< Updated upstream
-create.translate.requests <- function(questions.db, responses, is.loop = F, include_cols = "country"){
+create.translate.requests <- function(questions.db, responses.j, is.loop = F, include_cols = "country"){
 
-    relevant_colnames <- append(colnames(responses),
+    relevant_colnames <- append(colnames(responses.j),
                           c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
     tryCatch({
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
@@ -861,48 +855,14 @@ create.translate.requests <- function(questions.db, responses, is.loop = F, incl
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>%
           relocate(all_of(include_cols), .after = uuid) %>%
-          arrange(name)
+          arrange(question.name)
       if(!is.loop)
         responses.j <- responses.j %>% select(-c("loop_index"))
 
     }, error = function(err){
       warning("Error while saving responses.j (this is to be expected if result_vec is NULL)\n::",err)
     })
-
     return(responses.j)
-=======
-create.translate.requests <- function(data, questions.db, responses, is.loop = F, include_cols = "country"){
-  
-  relevant_colnames <- append(colnames(responses),
-                              c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
-  tryCatch({
-    if(is.loop){
-      responses.j <- responses %>%
-        left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
-        left_join(select(data, any_of(append(include_cols, "loop_index"))), by="loop_index")
-    } else {
-      responses.j <- responses %>%
-        left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
-        left_join(select(data, any_of(append(include_cols, "uuid"))), by="uuid")
-      # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
-    }
-    response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
-    responses.j <- responses.j %>%
-      select(any_of(relevant_colnames)) %>%
-      relocate(all_of(response_cols), .after = last_col()) %>%
-      mutate("TRUE other (provide a better translation if necessary)"=NA,
-             "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
-             "INVALID other (insert yes or leave blank)"=NA) %>%
-      select(-c("loop_index")) %>%
-      relocate(all_of(include_cols), .after = uuid) %>%
-      arrange(name)
-    
-  }, error = function(err){
-    warning("Error while saving responses.j (this is to be expected if result_vec is NULL)\n::",err)
-  })
-  
-  return(responses.j)
->>>>>>> Stashed changes
 }
 
 #------------------------------------------------------------------------------------------------------------
