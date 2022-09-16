@@ -154,7 +154,7 @@ add.to.cleaning.log.LOOP <- function(checks, check.id, question.names=c(), issue
              new.value=NA,
              explanation =NA)
     new.entries[["check.id"]] <- check.id 
-    new.entries <- new.entries %>% select(today, uuid, country, enumerator_num, check.id, 
+    new.entries <- new.entries %>% select(today, uuid, enumerator_num, check.id, 
                                           variable,issue, old.value, new.value, explanation) %>%
       dplyr::rename(enumerator.code="enumerator_num", survey.date=today)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries),country, uuid)
