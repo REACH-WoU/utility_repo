@@ -779,22 +779,26 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   #' looks up `data` using `questions.db` to find all responses
   #'
   #' response vector is stored in column specified by `values_to`
-  if(is.loop){
-    if("loop1_index" %in% colnames(data)){
-      data[["loop_index"]] <- data[["loop1_index"]]
-    } else {
-      data[["loop_index"]] <- data[["loop2_index"]]
-    }
-  } else {
+  if(!is.loop){
     data[["loop_index"]] <- NA
   }
   responses <- data %>%
       select(c("uuid", "loop_index", any_of(questions.db$name))) %>%
       pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>%
       filter(!is.na(!!sym(values_to))) %>%
-      select(uuid,loop_index, question.name, !!sym(values_to))
+      select(uuid, loop_index, question.name, !!sym(values_to))
 
-  return(responses)
+  if(is.loop){
+    responses.j <- responses %>%
+      left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
+      left_join(select(data, loop_index), by="loop_index")
+    } else {
+    responses.j <- responses %>%
+        left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
+        left_join(select(data, uuid), by="uuid")
+    # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
+    }
+  return(responses.j)
 }
 
 translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F){
@@ -847,26 +851,23 @@ translate.responses <- function(responses, values_from = "response.uk", language
   return(responses)
 }
 
-create.translate.requests <- function(questions.db, responses, is.loop = F, include_cols = "country"){
+create.translate.requests <- function(questions.db, responses.j, is.loop = F){
 
-    relevant_colnames <- append(colnames(responses),
-                          c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
-    tryCatch({
+    relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","full.label","ref.type", "choices.label")
+
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
+      relevant_colnames <- append(relevant_colnames, response_cols)
       responses.j <- responses.j %>%
           select(any_of(relevant_colnames)) %>%
           relocate(all_of(response_cols), .after = last_col()) %>%
           mutate("TRUE other (provide a better translation if necessary)"=NA,
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>%
-          relocate(all_of(include_cols), .after = uuid) %>%
           arrange(name)
-      if(!is.loop)
-        responses.j <- responses.j %>% select(-c("loop_index"))
+      if(!is.loop) {
+          responses.j <- responses.j %>% select(-loop_index)
+          }
 
-    }, error = function(err){
-      warning("Error while saving responses.j (this is to be expected if result_vec is NULL)\n::",err)
-    })
 
     return(responses.j)
 }
