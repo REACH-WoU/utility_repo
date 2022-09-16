@@ -7,6 +7,7 @@ select_one.analysis <- function(srv.design, entry){
   disaggregations <- c(entry$disaggregate.variable, entry$admin)
   disaggregations <- disaggregations[!is.na(disaggregations)]
   if (length(disaggregations)==0) {
+    warning(paste("length(disaggregations)=0 for variable", entry$variable))
     # get proportions and confidence intervals (using svymean)
     res.prop <- svymean(make.formula(entry$variable), srv.design, na.rm=T)
     res.ci <- confint(res.prop, level=0.90)
@@ -107,6 +108,7 @@ select_multiple.analysis <- function(srv.design, entry){
   disaggregations <- c(entry$disaggregate.variable, entry$admin)
   disaggregations <- disaggregations[!is.na(disaggregations)]
   if (length(disaggregations)==0) {
+    warning(paste("length(disaggregations)=0 for variable", entry$variable))
     # get proportions and confidence intervals (using svymean)
     res.prop <- svymean(make.formula(variables), srv.design, na.rm=T)
     res.ci <- confint(res.prop, level=0.90)
@@ -161,6 +163,7 @@ select_multiple.analysis <- function(srv.design, entry){
   res <- res %>% arrange(label)
   return(res)
 }
+
 # function to produce HTML table
 select_multiple.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
@@ -202,6 +205,9 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
+  if(!entry$omit_na){
+    res$num_samples <- nrow(data) # spit and fix
+  }
   write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
