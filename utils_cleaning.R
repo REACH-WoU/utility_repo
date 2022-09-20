@@ -461,22 +461,57 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
     return(data.frame())
 }
 
-recode.multiple.add.choice <- function(data, variable, choice, issue){
+recode.multiple.add.choices <- function(data, variable, choices, issue){
     #' TODO add documentation
-    choice_column <- paste0(variable,"/",choice)
-    if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
-    # filter out cases that already have choice selected
-    data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
+    #' 
+    choice_columns <- paste0(variable,"/",choices)
+    if(any(!choice_columns %in% colnames(data))){
+      stop(paste("\nColumn",choice_columns[!choice_columns %in% colnames(data)],"not present in data!"))
+    } 
+    choices_pattern <- paste0("(",paste0(choices, collapse = ")|("), ")")
+    choices_len <- str_length(paste0(choices, collapse = "")) + length(choices)
+    # filter out cases that already have all choices selected
+    data <- data %>% 
+      select(uuid, variable, all_of(choice_columns)) %>% filter(!is.na(!!sym(variable))) %>% 
+        mutate(variable2 = str_squish(str_remove_all(!!sym(variable), choices_pattern))) %>% 
+        mutate(len_diff = str_length(!!sym(variable)) - str_length(variable2)) %>% 
+        filter(str_length(!!sym(variable)) - str_length(variable2) != choices_len)
     if(nrow(data) > 0){
-        cl_cummulative <- select(data, uuid, variable) %>%
-            rename(old.value = !!sym(variable)) %>%
-            mutate(variable = variable, new.value = paste(old.value, choice), issue = issue)
-
-        cl_choice <- select(data, uuid) %>%
-            mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
-        return(rbind(cl_cummulative, cl_choice))
+      cl_cummulative <- select(data, uuid, variable, variable2) %>%
+          rename(old.value = !!sym(variable)) %>%
+          mutate(variable = variable, new.value = paste(variable2, paste0(choices, collapse = " ")), issue = issue) %>% 
+          select(-variable2)
+      cl_choices <- data.frame()
+      for(choice in choices){
+          choice_column <- paste0(variable,"/",choice)
+          data1 <- data %>% filter(!!sym(choice_column) == "0")
+          if(nrow(data1) > 0){
+            cl_choice <- select(data1, uuid) %>%
+                mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
+            cl_choices <- rbind(cl_choices, cl_choice)
+          }
+      }
+      return(rbind(cl_cummulative, cl_choices))
     }
     return(data.frame())
+}
+
+recode.multiple.add.choice <- function(data, variable, choice, issue){
+  #' TODO add documentation
+  choice_column <- paste0(variable,"/",choice)
+  if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
+  # filter out cases that already have choice selected
+  data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
+  if(nrow(data) > 0){
+    cl_cummulative <- select(data, uuid, variable) %>%
+      rename(old.value = !!sym(variable)) %>%
+      mutate(variable = variable, new.value = paste(old.value, choice), issue = issue)
+    
+    cl_choice <- select(data, uuid) %>%
+      mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
+    return(rbind(cl_cummulative, cl_choice))
+  }
+  return(data.frame())
 }
 
 recode.multiple.remove.choice <- function(data, variable, choice, issue){
@@ -847,7 +882,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
 create.translate.requests <- function(data, questions.db, responses, is.loop = F, include_cols = "country"){
 
     relevant_colnames <- append(colnames(responses),
-                          c("name", "ref.name","full.label","ref.type", "choices.label", include_cols))
+                          c("name", "full.label", "ref.name","ref.type", "choices.label", include_cols))
     tryCatch({
       if(is.loop){
         responses.j <- responses %>%
