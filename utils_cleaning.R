@@ -300,7 +300,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
     res <- data.frame()
     for (filename in filenames){
       # load file
-      other <- read_xlsx(filename, col_types = "text", sheet = sheet)
+      other <- read_xlsx(filename, col_types = "text", trim_ws = T, sheet = sheet)
       if (filename==filenames[1]) res <- other
       else{
           if(ncol(res)!=ncol(other)) warning("Number of columns differs between files! Check them to make sure everything is correct, please!")
@@ -893,6 +893,7 @@ what.country <- function(id){
 "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
 "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
 "%_+_%" <- function(a,b) as.numeric(a) + as.numeric(b)
+"%==na%" <- function(e1, e2) (e1 == e2 | (is.na(e1) & is.na(e2)))
 "%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
 
 
