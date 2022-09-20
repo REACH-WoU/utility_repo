@@ -32,14 +32,30 @@ save.other.requests <- function(df, wb_name){
                                       fontSize = 10, fontName = "Arial Narrow", wrapText=T)
   
   wb <- loadWorkbook("resources/other_requests_template.xlsx")
-  addWorksheet(wb, "Sheet2")
-  writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1)
-  setColWidths(wb, "Sheet2", cols = 2:3, widths = "auto")
+  addWorksheet(wb, "Sheet2", zoom = 90)
+  writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1, 
+            headerStyle = createStyle(textDecoration="bold", border = "Bottom", fontName = "Arial"))
+  
+  # addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial", wrapText = T),
+  #          rows = 2:nrow(df)+1, cols=ncol(df) - 3)
+
+    response_cols_ind <- which(str_starts(colnames(df), "response"))
+  for(i in response_cols_ind){
+    addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T),
+             rows = 1:nrow(df)+1, cols=i)
+    setColWidths(wb, "Sheet2", cols = i, widths = 30)
+  }
+  addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T),
+           rows = 1:nrow(df)+1, cols=which(colnames(df) == "choices.label"))
+  addStyle(wb, "Sheet2", style = createStyle(fontSize = 11, wrapText = T),
+           rows = 1:nrow(df)+1, cols=which(colnames(df) == "full.label"))
+  
+  setColWidths(wb, "Sheet2", cols = 1, widths = 5)
+  setColWidths(wb, "Sheet2", cols = 2:which(colnames(df) == "choices.label")-1, widths = "auto")
+  setColWidths(wb, "Sheet2", cols = which(colnames(df) == "choices.label"), widths = 50)
+  setColWidths(wb, "Sheet2", cols = which(colnames(df) == "full.label"), widths = 30)
   setColWidths(wb, "Sheet2", cols = (ncol(df)-4):(ncol(df)), widths = 35)
-  addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial", wrapText = T), rows = 2:nrow(df)+1, cols=ncol(df) - 3)
-  addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T), rows = 2:nrow(df)+1, cols=ncol(df) - 4)
-  addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T), rows = 2:nrow(df)+1, cols=ncol(df) - 6)
-  addStyle(wb, "Sheet2", style = createStyle(textDecoration="bold", border = "Bottom", fontName = "Arial"), rows = 1, cols=1:ncol(df), stack = T)
+  
   addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-2, stack = T)
   addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-1, stack = T)
   addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df), stack = T)
@@ -54,7 +70,7 @@ save.other.requests <- function(df, wb_name){
 
 #-------------------------------------------------------------------------------
 create.gis.checks <- function(data){
-  cols_to_keep_gis_check <- append(c("enumerator_nr","uuid",
+  cols_to_keep_gis_check <- append(c("enumerator_id","uuid","site_Name",
                                      "admin1", "admin2", "admin2_Label",
                                      "site_pCode", "pulled_Address", "comments_text"),
                              colnames(data)[str_starts(colnames(data), "site_(Add?ress)") |  str_starts(colnames(data), "site_Loc_GPS") ])
@@ -63,7 +79,7 @@ create.gis.checks <- function(data){
     arrange(site_pCode) %>% 
     relocate(all_of(colnames(data)[str_starts(colnames(data), "(site_Add?ress)|(admin)")]), .after = last_col()) %>%
     relocate(comments_text, .after = last_col()) %>% 
-    relocate(uuid) %>% 
+    relocate(site_pCode, uuid) %>% 
     mutate("TRUE NEW site (provide a name)"=NA,
            "EXISTING (paste the correct pCode for the site)"=NA,
            "INVALID (provide an explanation)"=NA)
@@ -110,7 +126,7 @@ save.gis.checks <- function(df, wb_name, blue_cols = NULL){
 create.newsite.requests <- function(data){
 
     tryCatch({
-        cols_to_keep_new_sites <- append(c("enumerator_nr","uuid",
+        cols_to_keep_new_sites <- append(c("enumerator_id","uuid",
                                             "admin1", "admin2", "admin2_Label",
                                             "site_New_name", "comments_text"),
                           colnames(data)[str_starts(colnames(data), "site_(Add?ress)|(Manager)") | str_detect("site_Loc_GPS", colnames(data))])
