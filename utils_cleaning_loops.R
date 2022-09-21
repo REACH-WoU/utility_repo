@@ -4,6 +4,9 @@
 # ------------------------------------------------------------------------------------------
 
 add.to.cleaning.log.other.recode.LOOP <- function(data, x){
+  if(!"existing.other" %in% colnames(x)){
+    x <- rename_with(x, ~gsub(".v",".other", .), ends_with(".v"))
+  } # a bit of a dirty fix :)
   if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one.LOOP(x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple.LOOP(data, x)
   if (res == "err") cat("Errors encountered while recoding other. Check the warnings!")
@@ -24,9 +27,9 @@ add.to.cleaning.log.other.remove.LOOP <- function(data, x){
   }
   if (x$ref.type[1]=="select_multiple"){
     if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
-      old.value <- as.character(data[data$loop1_index==x$loop_index[1], x$ref.name])
+      old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
     } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
-      old.value <- as.character(data[data$loop2_index==x$loop_index[1], x$ref.name])
+      old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
     } else {
       old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
     }
@@ -68,9 +71,9 @@ add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
   # get list of choices already selected
   
   if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
-    old.value <- as.character(data[data$loop1_index==x$loop_index[1], x$ref.name])
+    old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
   } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
-    old.value <- as.character(data[data$loop2_index==x$loop_index[1], x$ref.name])
+    old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
   } else {
     old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
   }
@@ -88,9 +91,9 @@ add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
     variable.name <- paste0(x$ref.name, "/", new.code$name)
     if (variable.name %in% colnames(data)){
       if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
-        old.boolean <- data[[variable.name]][data$loop1_index==x$loop_index[1]]
+        old.boolean <- data[[variable.name]][data$loop_index==x$loop_index[1]]
       } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")){
-        old.boolean <- data[[variable.name]][data$loop2_index==x$loop_index[1]]
+        old.boolean <- data[[variable.name]][data$loop_index==x$loop_index[1]]
       } else {
         old.boolean <- data[[variable.name]][data$uuid==x$uuid[1]]
       }
@@ -305,6 +308,11 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
     return(data)
   }
   else{
+    if(!isLoop && ("loop_index" %in% colnames(clog))){
+      clog <- filter(clog, is.na(loop_index))  
+    }else(
+      clog <- filter(clog, !is.na(loop_index))
+    )
     missinguuids <- c()
     missingloop_indexs <- c()
     missingvars <- c()
@@ -339,8 +347,8 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
         data[data$loop_index == loop_index, variable] <- as.character(clog$new.value[r])
       }
     }
-    if(length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
-    if(length(missingloop_indexs > 0))  warning(paste0("loop_indexs from cleaning log not found in data:\n", paste0(missingloop_indexs, collapse = "\n")))
+    if(length(missinguuids > 0) && !isLoop) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
+    if(length(missingloop_indexs) > 0 && isLoop)  warning(paste0("loop_indexs from cleaning log not found in data:\n", paste0(missingloop_indexs, collapse = "\n")))
     if(length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n", paste0(missingvars, collapse = "\n")))
     return(data)
   }
