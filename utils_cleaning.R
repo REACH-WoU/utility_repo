@@ -359,7 +359,7 @@ load.edited <- function(dir.edited, file.type){
     res <- data.frame()
     for (filename in filenames){
       # load file
-      other <- read_xlsx(filename) %>% mutate(uuid=uuid, .before=1)
+      other <- read_xlsx(filename, col_types = "text") %>% mutate(uuid=uuid, .before=1)
       if (filename==filenames[1]) res <- other
       else res <- rbind(res, other)
     }
