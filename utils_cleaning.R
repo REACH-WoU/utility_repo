@@ -927,7 +927,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
 create.translate.requests <- function(questions.db, responses.j, is.loop = F){
 
-    relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","full.label","ref.type", "choices.label")
+    relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","label","ref.type", "choices.label")
 
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
       relevant_colnames <- append(relevant_colnames, response_cols)
