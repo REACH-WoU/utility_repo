@@ -441,11 +441,22 @@ load.outlier.edited <- function(dir.outlier.edited){
 # ------------------------------------------------------------------------------------------
 
 recode.multiple.set.NA <- function(data, variable, issue){
-    #' TODO add documentation
+    #' Recode select_multiple responses: set to NA.
+    #'
+    #' Changes all 1s and 0s to NA in choice columns, sets cumulative variable and _other text answers to NA.
+    #'
+    #' @param data Dataframe containing records which will be affected.
+    #' @param variable String containing the name of the select_multiple variable.
+    #' @param issue String with explanation used for the cleaning log entry.
+    #'
+    #' @returns Dataframe containing cleaning log entries constructed from `data`.
+    #'
+    #' @usage `recode.multiple.set.NA(data = filter(raw.main, condition), variable = "question_name", issue = "explanation")`
+
     ccols <- colnames(data)[str_starts(colnames(data), paste0(variable, "/"))]
 
     # filter out cases that already are NA
-    data <- data %>% filter(if_all(all_of(ccols), ~is.na(.)))
+    data <- data %>% filter(!if_all(all_of(ccols), ~is.na(.)))
     if(nrow(data)>0){
         cl_cummulative <- select(data, uuid, variable) %>%
             mutate(variable = variable, old.value = !!sym(variable), new.value = NA, issue = issue) %>%
@@ -459,6 +470,13 @@ recode.multiple.set.NA <- function(data, variable, issue){
                     select(uuid, variable, old.value, new.value, issue)
 
                 cl_choices <- rbind(cl_choices, cl)
+                # remove text from text other response
+                if(str_ends(col, "/other")){
+                    cl_choices <- rbind(cl_choices, df %>% mutate(
+                        variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
+                                                                                 new.value = NA, issue = issue) %>%
+                            select(uuid, variable, old.value, new.value, issue))
+                }
             }
         }
         return(rbind(cl_cummulative, cl_choices))
@@ -875,7 +893,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   return(responses.j)
 }
 
-translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F){
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F, target_lang = "en"){
 
   info_df <- data.frame()
   start_time <- Sys.time()
@@ -885,7 +903,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
   if(nrow(responses) > 0){
     for (code in language_codes) {
-      cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
+      cat(nrow(responses),"responses will be translated from",code,"to",target_lang, "\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0('response.en.from.',code)
       # cleaning up html leftovers:
       responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
@@ -894,7 +912,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
       result_vec <- NULL
       result_vec <- translateR::translate(content.vec = responses[[values_from]],
                           google.api.key = source("resources/google.api.key_regional.R")$value,
-                          source.lang = code, target.lang = "en")
+                          source.lang = code, target.lang = target_lang)
       # checking the results
        info_df <- rbind(info_df, data.frame(
           "input_responses_num" = nrow(responses),
