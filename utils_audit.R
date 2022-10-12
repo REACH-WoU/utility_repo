@@ -18,8 +18,12 @@ load.audit.files <- function(dir.audits, uuids=NULL, track.changes=F){
       # load file
       audit <- read_csv(filename, show_col_types = FALSE, locale = locale(encoding = "UTF-8")) %>% 
         mutate(uuid=uuid, .before=1)
-      if(track.changes)
+      # TODO: make sure that the below is correctly done (probably not)
+      if(track.changes & "old-value" %in% colnames(audit)) {
         audit <- audit %>% rename("old.value" = `old-value`, "new.value" = `new-value`)
+      } else {
+        audit <- audit %>% mutate(old.value = NA, new.value = NA)
+      }
       counter <- counter + 1
       res <- rbind(res, audit)
       cat("...")
@@ -49,7 +53,7 @@ process.uuid <- function(df){
   j <- list() # number of jumps
   q <- list() # number of questions
   w <- list() # waiting time
-  # e <- list() # number of edits
+  e <- list() # number of edits
   t1 <- df$start[1]
   if (df$event[1]!="form.start") stop("First event is not form.start?!")
   status <- "filling"
@@ -62,7 +66,7 @@ process.uuid <- function(df){
       rt <- append(rt, sum(questions$duration)/60)
       q <- append(q, length(unique(questions$node)))
       j <- append(j, sum(sub.df$event=="jump"))
-      # e <- append(e, nrow(filter(questions, !is.na(`old.value`) & `old.value`!="")))
+      e <- append(e, nrow(filter(questions, !is.na(`old.value`) & `old.value`!="")))
       status <- "waiting"
     } else if (status=="waiting" & df$event[r]=="form.resume"){
       t1 <- df$start[r]
@@ -80,7 +84,7 @@ process.uuid <- function(df){
   for (i in 1:max.num.iterations){
     res[1, c(paste0("t", i), paste0("rt", i), 
              paste0("q", i), paste0("j", i),
-             # paste0("e", i),
+             paste0("e", i),
              paste0("w", i))] <- NA
   }
   if (length(t)==0) stop()
@@ -90,7 +94,7 @@ process.uuid <- function(df){
       res[1, paste0("rt", i)] <- round(rt[[i]], 1)
       res[1, paste0("q", i)] <- q[[i]]
       res[1, paste0("j", i)] <- j[[i]]
-      # res[1, paste0("e", i)] <- e[[i]]
+      res[1, paste0("e", i)] <- e[[i]]
     }
   }
   if (length(w)>0){

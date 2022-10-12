@@ -280,32 +280,32 @@ create.follow.up.requests <- function(checks.df, wb_name){
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="explanation"))
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="new.value"))
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="invalid"))
-
-
+    
+    
     setColWidths(wb, "Follow-up", cols=1:ncol(cl), widths="auto")
     # setColWidths(wb, "Follow-up", cols=ncol(cl)-1, widths=50)
-
+    
     setColWidths(wb, "Follow-up", cols=which(colnames(cl)=="issue"), widths=50)
     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="issue"))
-
+    
     addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl))
-
+    
     col.id <- which(colnames(cl)=="old.value")
     if(nrow(cl) > 0){
-        random.color <- ""
-        for (r in 2:nrow(cl)){
-            if((!use.color(as.character(cl[r, "check.id"])) &
-                as.character(cl[r, "uuid"])==as.character(cl[r-1, "uuid"]) &
-                as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"])) |
-               (use.color(as.character(cl[r, "check.id"])) &
-                as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"]))){
-                if (random.color == "") random.color <- randomColor(1, luminosity = "light")
-                addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
-                         rows = r:(r+1), cols=col.id)
-            } else random.color=""
-        }
+      random.color <- ""
+      for (r in 2:nrow(cl)){
+        if((!use.color(as.character(cl[r, "check.id"])) &
+            as.character(cl[r, "uuid"])==as.character(cl[r-1, "uuid"]) &
+            as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"])) |
+           (use.color(as.character(cl[r, "check.id"])) &
+            as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"]))){
+          if (random.color == "") random.color <- randomColor(1, luminosity = "light")
+          addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
+                   rows = r:(r+1), cols=col.id)
+        } else random.color=""
+      }
     }
-
+    
     filename <- paste0("output/checking/requests/", wb_name)
     saveWorkbook(wb, filename, overwrite = TRUE)
 }
@@ -328,7 +328,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
   #'
   #' @param sheet Optional parameter passed to `read_xlsx`, defaults to NULL (first sheet of an Excel workbook)
   #' @param validate Should the file be validated (make sure that only one of TEI columns is filled.)
-
+  
   file.type = str_squish(str_replace_all(filename.pattern, "[^a-zA-Z]+"," "))
   filenames <- list.files(dir, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
                           pattern=paste0("^",filename.pattern,".*\\.xlsx"))
@@ -342,15 +342,15 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
       other <- read_xlsx(filename, col_types = "text", trim_ws = T, sheet = sheet)
       if (filename==filenames[1]) res <- other
       else{
-          if(ncol(res)!=ncol(other)) warning("Number of columns differs between files! Check them to make sure everything is correct, please!")
-          res <- bind_rows(res, other)
+        if(ncol(res)!=ncol(other)) warning("Number of columns differs between files! Check them to make sure everything is correct, please!")
+        res <- bind_rows(res, other)
       }
-
+      
     }
     # rename: TRUE -> true.v, EXISTING -> existing.v, INVALID -> invalid.v
     c_tei_cols <- c("true", "existing", "invalid")
     for(c in c_tei_cols) colnames(res)[str_starts(colnames(res), str_to_upper(c))] <- paste0(c,'.v')
-
+    
     if(validate){
       c_tei_cols <- paste0(c_tei_cols, ".v")
       if(all(c_tei_cols %in% colnames(res))){
@@ -382,13 +382,13 @@ load.edited <- function(dir.edited, file.type){
   #' Load logs from specified directory.
   #'
   #' This function is superceded by load.requests
-
-
+  
+  
   # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
   if(!(file.type %in% valid_types))
     warning("Unexpected file.type for load.edited")
-
+  
   filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
                           pattern=paste0(".*",file.type,"_((responses)|(requests))(_edited)?.*\\.xlsx$"))
   if (length(filenames) == 0){
@@ -398,12 +398,12 @@ load.edited <- function(dir.edited, file.type){
     res <- data.frame()
     for (filename in filenames){
       # load file
-      other <- read_xlsx(filename) %>% mutate(uuid=uuid, .before=1)
+      other <- read_xlsx(filename, col_types = "text") %>% mutate(uuid=uuid, .before=1)
       if (filename==filenames[1]) res <- other
       else res <- rbind(res, other)
     }
     return(res)
-
+    
   }
 }
 
@@ -575,21 +575,21 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
 }
 
 recode.multiple.remove.choice <- function(data, variable, choice, issue){
-    #' TODO add documentation
-    choice_column <- paste0(variable,"/",choice)
-    if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
-    # filter out cases that dont have the choice selected
-    data <- data %>% filter(str_detect(!!sym(variable), choice))
-    if(nrow(data) > 0){
-        cl_cummulative <- select(data, uuid, variable) %>%
-            rename(old.value = !!sym(variable)) %>%
-            mutate(variable = variable, new.value = str_squish(str_remove(old.value, choice)), issue = issue)
-
-        cl_choice <- select(data, uuid) %>%
-            mutate(variable = choice_column, old.value = "1", new.value = "0", issue = issue)
-        return(rbind(cl_cummulative, cl_choice))
-    }
-    return(data.frame())
+  #' TODO add documentation
+  choice_column <- paste0(variable,"/",choice)
+  if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
+  # filter out cases that dont have the choice selected
+  data <- data %>% filter(str_detect(!!sym(variable), choice))
+  if(nrow(data) > 0){
+    cl_cummulative <- select(data, uuid, variable) %>%
+      rename(old.value = !!sym(variable)) %>%
+      mutate(variable = variable, new.value = str_squish(str_remove(old.value, choice)), issue = issue)
+    
+    cl_choice <- select(data, uuid) %>%
+      mutate(variable = choice_column, old.value = "1", new.value = "0", issue = issue)
+    return(rbind(cl_cummulative, cl_choice))
+  }
+  return(data.frame())
 }
 
 
@@ -603,7 +603,7 @@ apply.changes <- function(data, clog){
   #' @returns Dataframe containing data with applied changes
   if(nrow(clog) == 0){
     warning("No changes to be applied (cleaning log empty).")
-      return(data)
+    return(data)
   }
   else{
     missinguuids <- c()
@@ -620,9 +620,9 @@ apply.changes <- function(data, clog){
         next
       }
       if(data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
-          warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
-                      "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
-                      "\tReplacing with: ", clog$new.value[r]))
+        warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
+                       "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
+                       "\tReplacing with: ", clog$new.value[r]))
       }
       data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
     }
@@ -646,7 +646,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   #'
   #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
   #' This object can be later added to cleaning log.
-
+  
   res <- data.frame()
   for(q.n in question.names){
     new.entries <- check %>%
@@ -657,16 +657,16 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
       select(any_of(c(cols_to_keep, "uuid", "check.id", "variable", "issue",
                       "old.value", "new.value", "invalid", "explanation"))) %>%
       rename(survey.date=today) %>% relocate(uuid) %>%
-        mutate_all(as.character)
+      mutate_all(as.character)
     res <- rbind(res, new.entries)
   }
   return(res %>% arrange(uuid))
 }
 
 add.to.cleaning.log.other.recode <- function(data, x){
-    if(!"existing.other" %in% colnames(x)){
-        x <- rename_with(x, ~gsub(".v",".other", .), ends_with(".v"))
-    } # a bit of a dirty fix :)
+  if(!"existing.other" %in% colnames(x)){
+    x <- rename_with(x, ~gsub(".v",".other", .), ends_with(".v"))
+  } # a bit of a dirty fix :)
   if (x$ref.type[1]=="select_one") res <- add.to.cleaning.log.other.recode.one(data, x)
   if (x$ref.type[1]=="select_multiple") res <- add.to.cleaning.log.other.recode.multiple(data, x)
   if (res == "err") cat("Errors while recoding other. Check the warnings!\t")
@@ -683,8 +683,8 @@ add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", 
              explanation =NA)
     new.entries[["check.id"]] <- check.id
     new.entries <- new.entries %>% select(any_of(c("today", "uuid", "country", "Reporting_organization",
-                                          enumerator.code.col, "check.id",
-                                          "variable", "issue", "old.value", "new.value", "explanation"))) %>%
+                                                   enumerator.code.col, "check.id",
+                                                   "variable", "issue", "old.value", "new.value", "explanation"))) %>%
       dplyr::rename(enumerator.code=enumerator.code.col, survey.date=today)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries),country, uuid)
   }
@@ -714,7 +714,7 @@ add.to.cleaning.log.other.remove <- function(data, x){
       # set all choices columns to NA
       cols <- colnames(data)[str_starts(colnames(data), paste0(x$ref.name, "/"))]
       oldvalues <- data %>% filter(uuid == x$uuid) %>%
-          select(all_of(cols)) %>% unlist() %>% unname()
+        select(all_of(cols)) %>% unlist() %>% unname()
       df <- data.frame(uuid=x$uuid, variable=cols, issue=issue, old.value=oldvalues, new.value=NA)
       cleaning.log.other <<- rbind(cleaning.log.other, df)
     } else{
@@ -739,7 +739,7 @@ add.to.cleaning.log.other.recode.one <- function(data, x){
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
                    old.value=old.response, new.value=NA)
-
+  
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -842,7 +842,7 @@ create.deletion.log.minors <- function(data){
   #'
   #' @param data Raw data (`raw.main`)
   #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if no surveys with minors found.
-
+  
   ids <- data[data$a4_2_resp_age < 18,]
   ids <- ids %>%
     filter(!is.na(uuid)) %>%
@@ -850,7 +850,7 @@ create.deletion.log.minors <- function(data){
                            ifelse(Legal_guardian_consent == "yes","no","yes"))) %>%
     select(uuid,delete) %>%
     filter(delete=="yes")
-
+  
   ids <- ids$uuid
   return(create.deletion.log(ids=ids, reason="Survey done with a minor"))
 }
@@ -897,14 +897,16 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
   info_df <- data.frame()
   start_time <- Sys.time()
-
+  relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
+                         "choices.label", values_from)
   # counts characters which will be translated
   char_counter <- sum(str_length(responses[[values_from]]))
-
+  
   if(nrow(responses) > 0){
     for (code in language_codes) {
       cat(nrow(responses),"responses will be translated from",code,"to",target_lang, "\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0('response.en.from.',code)
+      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged
       # cleaning up html leftovers:
       responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
       responses[[col_name]] <- NULL
@@ -914,13 +916,13 @@ translate.responses <- function(responses, values_from = "response.uk", language
                           google.api.key = source("resources/google.api.key_regional.R")$value,
                           source.lang = code, target.lang = target_lang)
       # checking the results
-       info_df <- rbind(info_df, data.frame(
-          "input_responses_num" = nrow(responses),
-          "translated_characters_num" = char_counter,
-          "language_from" = code,
-          "result_num" = length(result_vec),
-          "time_elapsed" = as.numeric(Sys.time() - start_time),
-          "date"=Sys.Date()))
+      info_df <- rbind(info_df, data.frame(
+        "input_responses_num" = nrow(responses),
+        "translated_characters_num" = char_counter,
+        "language_from" = code,
+        "result_num" = length(result_vec),
+        "time_elapsed" = as.numeric(Sys.time() - start_time),
+        "date"=Sys.Date()))
       if(is.null(result_vec)){
         warning("Error while translating responses: result_vec is NULL\n")
         info_df$status <- "error"
@@ -938,10 +940,11 @@ translate.responses <- function(responses, values_from = "response.uk", language
   }else{
     warning("Nothing to be translated")
   }
-    # dump info about the results of translation
+  # dump info about the results of translation
   write.table(info_df, file = "translate_info.csv", append = T, row.names = F, col.names = F, sep = ',')
   return(responses)
 }
+
 
 create.translate.requests <- function(questions.db, responses.j, is.loop = F){
 
@@ -959,7 +962,6 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
       if(!is.loop) {
           responses.j <- responses.j %>% select(-loop_index)
           }
-
 
     return(responses.j)
 }
