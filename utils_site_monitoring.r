@@ -16,8 +16,8 @@ recode.new.site <- function(raw.data, x, f){
     uuid=x$uuid, variable="site_pCode", issue="Recoding an identified new site.",
     old.value=pull(raw.data %>% filter(uuid==x$uuid), site_pCode), new.value=f())
   cl <- rbind(cl, data.frame(
-    uuid=x$uuid, variable="site_Name", issue="Recoding an identified new site.",
-    old.value=pull(raw.data %>% filter(uuid==x$uuid), site_Name), new.value=x$true.v))
+      uuid=x$uuid, variable="site_Name", issue="Recoding an identified new site.",
+      old.value=pull(raw.data %>% filter(uuid==x$uuid), site_Name), new.value=x$true.v))
   return(cl)
 }
 
@@ -69,13 +69,10 @@ save.other.requests <- function(df, wb_name){
 }
 
 #-------------------------------------------------------------------------------
-create.gis.checks <- function(data){
-  cols_to_keep_gis_check <- append(c("enumerator_id","uuid","site_Name",
-                                     "admin1", "admin2", "admin2_Label",
-                                     "site_pCode", "pulled_Address", "comments_text"),
-                             colnames(data)[str_starts(colnames(data), "site_(Add?ress)") |  str_starts(colnames(data), "site_Loc_GPS") ])
+create.gis.checks <- function(data, cols_to_keep){
+  
   gis.check.df <- data %>% filter(site_pCode != "new") %>% 
-    select(all_of(cols_to_keep_gis_check)) %>% 
+    select(all_of(cols_to_keep)) %>% 
     arrange(site_pCode) %>% 
     relocate(all_of(colnames(data)[str_starts(colnames(data), "(site_Add?ress)|(admin)")]), .after = last_col()) %>%
     relocate(comments_text, .after = last_col()) %>% 
@@ -110,12 +107,13 @@ save.gis.checks <- function(df, wb_name, blue_cols = NULL){
     addStyle(wb, "Sheet2", style = style.col.blue, rows = 1:(nrow(df)+1), cols = i, stack = T)
   }
   addStyle(wb, "Sheet2", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df), stack = T)
-  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-2, stack = T)
-  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-1, stack = T)
-  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df), stack = T)
-  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-2, stack = T)
-  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1, stack = T)
-  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df), stack = T)
+  i <- ifelse("what.to.clean" %in% colnames(df), -1, 0)
+  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-2+i, stack = T)
+  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-1+i, stack = T)
+  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)  +i, stack = T)
+  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-2+i, stack = T)
+  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1+i, stack = T)
+  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)  +i, stack = T)
   
   filename <- paste0("output/checking/requests/", wb_name, ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
@@ -123,16 +121,12 @@ save.gis.checks <- function(df, wb_name, blue_cols = NULL){
 }
 
 #-------------------------------------------------------------------------------
-create.newsite.requests <- function(data){
+create.newsite.requests <- function(data, cols_to_keep){
 
     tryCatch({
-        cols_to_keep_new_sites <- append(c("enumerator_id","uuid",
-                                            "admin1", "admin2", "admin2_Label",
-                                            "site_New_name", "comments_text"),
-                          colnames(data)[str_starts(colnames(data), "site_(Add?ress)|(Manager)") | str_detect("site_Loc_GPS", colnames(data))])
         new.sites.df <- data %>% filter(site_pCode == "new") %>%
            arrange(`_index`) %>%
-           select(all_of(cols_to_keep_new_sites)) %>%
+           select(all_of(cols_to_keep)) %>%
            relocate(all_of(colnames(data)[str_starts(colnames(data), "(site_Add?ress)|(admin)")]), .after = last_col()) %>%
            relocate(comments_text, .after = last_col()) %>% 
            mutate("TRUE NEW site (provide a better name if necessary)"=NA,
