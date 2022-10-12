@@ -29,11 +29,22 @@ get.label <- function(variable){
 }
 
 get.choice.label <- function(choice, list){
-  #' finds the label of a choice in a list
+  #' finds the label of choices in a list
+  #'
+  #' Looks up the "name" and `label_colname` in tool.choices. Operates on single values and vectors.
+  #'
   #' @param choice the name of the choice
   #' @param list the name of the list containing choice
-  res <- tool.choices %>% filter(list_name == list & name == choice)
-  if(nrow(res) == 0) stop("choice not in the list!")
+  #'
+  res <- data.frame(name = unlist(choice)) %>%
+      left_join(select(tool.choices, name, list_name, label_colname) %>% filter(list_name == list),
+                by = "name", na_matches = "never")
+  if(any(is.na(res[[label_colname]]))){
+    culprits <- paste0(filter(res, is.na(!!sym(label_colname))) %>%
+                         pull(name), collapse = ", ")
+    warning(paste0("Choices not in the list (", list, "):", culprits))
+  }
+  if(nrow(res) == 0) stop("All choices not in the list!")
   return(pull(res, label_colname))
 }
 
@@ -99,8 +110,8 @@ get.select.db <- function(){
 
   # list of choices for each list_name (from TOOL_CHOICES)
   list.choices <- tool.choices %>% filter(!is.na(list_name)) %>% group_by(list_name) %>%
-    mutate(choices=paste(name, collapse=";\r\n"),
-           choices.label=paste(!!sym(label_colname), collapse=";\r\n")) %>%
+    mutate(choices=paste(name, collapse=";\n"),
+           choices.label=paste(!!sym(label_colname), collapse=";\n")) %>%
     summarise(choices=choices[1], choices.label=choices.label[1])
   # list of choices for each question
   select.questions <- tool.survey %>%
