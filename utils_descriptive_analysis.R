@@ -246,7 +246,7 @@ mean.to_html <- function(res, entry, include.CI=T){
     res <- res %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
   }
   
-  if (!include.CI) res <- res %>% select(-CI)
+  if (!include.CI) res <- res %>% select(-ci)
   
   if (is.na(entry$disaggregate.variable)){
     t <- data %>%
@@ -272,6 +272,105 @@ mean.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  return(subch(datatable(res)))
+}
+###--------------------------------------------------------------------------------------------------------------
+### MEDIAN
+###--------------------------------------------------------------------------------------------------------------
+# function to run the analysis
+median.analysis <- function(srv.design, entry){
+  srv.design.grouped <- srv.design
+  if (!is.na(entry$admin))
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$admin), .add=T, .drop=T)
+  if (!is.na(entry$disaggregate.variable))
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
+  if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
+  res <- srv.design.grouped %>% 
+    filter(!is.na(!!sym(entry$variable))) %>% 
+    summarise(median = survey_median(!!sym(entry$variable), vartype="ci", level=0.90))
+  if (str_starts(entry$variable, "pct.")){
+    res <- res %>% mutate(median=round(median, 1),
+                          ci=paste0(format(round(median_low, 1), scientific=F), "%-", 
+                                    format(round(median_upp, 1), scientific=F), "%"))
+  } else{
+    res <- res %>% mutate(median=round(median, 2),
+                          ci=paste0(format(round(median_low, 2), scientific=F), "-", 
+                                    format(round(median_upp, 2), scientific=F)))
+  }
+  res <- res %>% select(-c(median_low, median_upp))
+  if (!is.na(entry$disaggregate.variable))
+    res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
+  return(res)
+}
+# function to produce HTML table
+median.to_html <- function(res, entry, include.CI=T){
+  if (str_starts(entry$variable, "pct.")){
+    res <- res %>% mutate(median=ifelse(is.na(median), NA, paste0(median, "%")))
+  }
+  
+  if (!include.CI) res <- res %>% select(-ci)
+  
+  if (is.na(entry$disaggregate.variable)){
+    t <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin)) %>%
+      summarise(num_samples=n())
+    n_rows <- nrow(res)
+    res <- res %>% 
+      left_join(t, by=set_names(entry$admin)) %>% 
+      relocate("num_samples", .after=1)
+    if (nrow(res)!=n_rows) stop()
+  }
+  if (!is.na(entry$disaggregate.variable)){
+    t <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n()) %>% 
+      ungroup()
+    n_rows <- nrow(res)
+    res <- res %>% 
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+      relocate("num_samples", .after=2)
+    if (nrow(res)!=n_rows) stop()
+  }
+  res <- res %>% filter(!is.na(num_samples))
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  return(subch(datatable(res)))
+}
+###--------------------------------------------------------------------------------------------------------------
+### COUNT
+###--------------------------------------------------------------------------------------------------------------
+# function to run the analysis
+count.analysis <- function(srv.design, entry){
+  srv.design.grouped <- srv.design
+  if (!is.na(entry$admin))
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$admin), .add=T, .drop=T)
+  if (!is.na(entry$disaggregate.variable))
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
+  if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
+  res <- srv.design.grouped %>% 
+    filter(!is.na(!!sym(entry$variable))) %>% 
+    survey_count(!!sym(entry$variable), sort = T)
+  res <- res %>% select(-n_se)
+  if (!is.na(entry$disaggregate.variable))
+    res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
+  return(res)
+}
+# function to produce HTML table
+count.to_html <- function(res, entry){
+  if (!is.na(entry$disaggregate.variable)){
+    t <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n()) %>% 
+      ungroup()
+    n_rows <- nrow(res)
+    res <- res %>% 
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+      relocate("num_samples", .after=2)
+    if (nrow(res)!=n_rows) stop()
+  }
   write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
@@ -314,13 +413,14 @@ load.entry <- function(analysis.plan.row){
   data <- as.character(analysis.plan.row$data)
   xlsx_name <- as.character(analysis.plan.row$xlsx_name)
   calculation <- as.character(analysis.plan.row$calculation)
+  join <- !is.na(analysis.plan.row$join)
   comments <- as.character(analysis.plan.row$comments)
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
-    disaggregate.variables <- c(str_split(disaggregate.variable, ";")[[1]])
+    disaggregate.variables <- c(str_split(disaggregate.variable, " ?;+ ?")[[1]])
   }
   return(list(section=section, label=label, variable=variable, func=func, 
               admin=admin, disaggregate.variables=disaggregate.variables, data=data,
-              xlsx_name=xlsx_name, comments=comments, calculation=calculation))
+              xlsx_name=xlsx_name, comments=comments, calculation=calculation, join = join))
 }
