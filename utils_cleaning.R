@@ -3,12 +3,18 @@
 # SAVING RESPONSES/REQUESTS
 # ------------------------------------------------------------------------------------------
 
+# styles
+style.col.blue <- createStyle(fgFill="#CCE5FF", valign="top",
+                              border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+                              valign="top", fontSize = 10, fontName = "Arial Narrow", wrapText=T)
+style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                              border="TopBottomLeftRight", borderColour="#000000",
+                              fontSize = 10, fontName = "Arial Narrow", wrapText=T)
 
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
   # TODO: upgrade this function to work on changing df sizes
-  style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
-                                 valign="top", wrapText=T)
   style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
   style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
@@ -40,42 +46,75 @@ save.responses <- function(df, wb_name, or.submission=""){
   saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
-save.trans.responses <- function(df, or.submission=""){
-  for (countr in country_list){
-    df1 <- df %>% filter(country == str_to_lower(countr))
-    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
-                                   valign="top", wrapText=T)
-    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
-                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
-                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    wb <- createWorkbook()
-    addWorksheet(wb, "Sheet1")
-    writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=13-2)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=13-1)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=13)
-    setColWidths(wb, "Sheet1", cols=1, widths=35)
-    setColWidths(wb, "Sheet1", cols=c(5, 7), widths=50)
-    setColWidths(wb, "Sheet1", cols=c(8:10), widths=30)
-    setColWidths(wb, "Sheet1", cols=c(2:4, 6), widths=20)
-    setColWidths(wb, "Sheet1", cols=c(11:13), widths=40)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
-    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=5)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=6)
-    for(i in 7:ncol(df)-3){
-      addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=i)
-    }
-    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
-    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=11:ncol(df))
-    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
-    filename <- paste0("output/checking/requests/",countr,"_translate_responses.xlsx")
-    saveWorkbook(wb, filename, overwrite=TRUE)
-    rm(df1)
+save.other.requests <- function(df, wb_name, use_template = F){
+
+  if(use_template) wb <- loadWorkbook("resources/other_requests_template.xlsx")
+  else wb <- createWorkbook()
+  addWorksheet(wb, "Sheet2", zoom = 90)
+  writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1,
+            headerStyle = createStyle(textDecoration="bold", border = "Bottom", fontName = "Arial"))
+
+    response_cols_ind <- which(str_starts(colnames(df), "response"))
+  for(i in response_cols_ind){
+    addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T),
+             rows = 1:nrow(df)+1, cols=i)
+    setColWidths(wb, "Sheet2", cols = i, widths = 30)
   }
+  addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T),
+           rows = 1:nrow(df)+1, cols=which(colnames(df) == "choices.label"))
+  addStyle(wb, "Sheet2", style = createStyle(fontSize = 11, wrapText = T),
+           rows = 1:nrow(df)+1, cols=which(colnames(df) == "full.label"))
+
+  setColWidths(wb, "Sheet2", cols = 1, widths = 5)
+  setColWidths(wb, "Sheet2", cols = 2:which(colnames(df) == "choices.label")-1, widths = "auto")
+  setColWidths(wb, "Sheet2", cols = which(colnames(df) == "choices.label"), widths = 50)
+  setColWidths(wb, "Sheet2", cols = which(colnames(df) == "full.label"), widths = 30)
+  setColWidths(wb, "Sheet2", cols = (ncol(df)-4):(ncol(df)), widths = 35)
+
+  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-2, stack = T)
+  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-1, stack = T)
+  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df), stack = T)
+  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-2, stack = T)
+  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1, stack = T)
+  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df), stack = T)
+
+  filename <- paste0(dir.requests, wb_name, ".xlsx")
+  saveWorkbook(wb, filename, overwrite=TRUE)
+
+}
+
+save.trans.requests <- function(df, wb_name, blue_cols = NULL, use_template = F){
+
+    if(use_template) wb <- loadWorkbook("resources/trans_requests_template.xlsx")
+    else wb <- createWorkbook()
+    addWorksheet(wb, "Sheet2")
+    writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1)
+
+    setColWidths(wb, "Sheet2", cols = 1, widths = 5)
+    setColWidths(wb, "Sheet2", cols = 2:ncol(df), widths = "auto")
+
+    response_cols_ind <- which(str_starts(colnames(df), "response"))
+    for(i in append(response_cols_ind, 1)){
+        addStyle(wb, "Sheet2", style = createStyle(fontSize = 10, fontName = "Arial Narrow", wrapText = T),
+                 rows = 1:nrow(df)+1, cols=i)
+        setColWidths(wb, "Sheet2", cols = i, widths = 30)
+    }
+    for (col in blue_cols) {
+        i <- grep(paste0('^',col,'$'), colnames(df))
+        if(length(i) == 0) stop(paste(col,"not found in df!"))
+        addStyle(wb, "Sheet2", style = style.col.blue, rows = 1:(nrow(df)+1), cols = i, stack = T)
+        setColWidths(wb, "Sheet2", cols = which(colnames(df) == col), widths = 20)
+    }
+
+    addStyle(wb, "Sheet2", style = createStyle(textDecoration="bold", valign = "bottom"), rows = 1, cols=1:ncol(df), stack = T)
+
+    addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = which(str_starts(colnames(df), "TRUE")), stack = T)
+    addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = which(str_starts(colnames(df), "TRUE")), stack = T)
+    addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = which(str_starts(colnames(df), "INVALID")), stack = T)
+    addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = which(str_starts(colnames(df), "INVALID")), stack = T)
+
+    filename <- paste0(dir.requests, wb_name, ".xlsx")
+    saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
 # ------------------------------------------------------------------------------------------
@@ -402,11 +441,22 @@ load.outlier.edited <- function(dir.outlier.edited){
 # ------------------------------------------------------------------------------------------
 
 recode.multiple.set.NA <- function(data, variable, issue){
-    #' TODO add documentation
+    #' Recode select_multiple responses: set to NA.
+    #'
+    #' Changes all 1s and 0s to NA in choice columns, sets cumulative variable and _other text answers to NA.
+    #'
+    #' @param data Dataframe containing records which will be affected.
+    #' @param variable String containing the name of the select_multiple variable.
+    #' @param issue String with explanation used for the cleaning log entry.
+    #'
+    #' @returns Dataframe containing cleaning log entries constructed from `data`.
+    #'
+    #' @usage `recode.multiple.set.NA(data = filter(raw.main, condition), variable = "question_name", issue = "explanation")`
+
     ccols <- colnames(data)[str_starts(colnames(data), paste0(variable, "/"))]
 
     # filter out cases that already are NA
-    data <- data %>% filter(if_all(all_of(ccols), ~is.na(.)))
+    data <- data %>% filter(!if_all(all_of(ccols), ~is.na(.)))
     if(nrow(data)>0){
         cl_cummulative <- select(data, uuid, variable) %>%
             mutate(variable = variable, old.value = !!sym(variable), new.value = NA, issue = issue) %>%
@@ -420,6 +470,13 @@ recode.multiple.set.NA <- function(data, variable, issue){
                     select(uuid, variable, old.value, new.value, issue)
 
                 cl_choices <- rbind(cl_choices, cl)
+                # remove text from text other response
+                if(str_ends(col, "/other")){
+                    cl_choices <- rbind(cl_choices, df %>% mutate(
+                        variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
+                                                                                 new.value = NA, issue = issue) %>%
+                            select(uuid, variable, old.value, new.value, issue))
+                }
             }
         }
         return(rbind(cl_cummulative, cl_choices))
@@ -466,23 +523,23 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
 
 recode.multiple.add.choices <- function(data, variable, choices, issue){
     #' TODO add documentation
-    #' 
+    #'
     choice_columns <- paste0(variable,"/",choices)
     if(any(!choice_columns %in% colnames(data))){
       stop(paste("\nColumn",choice_columns[!choice_columns %in% colnames(data)],"not present in data!"))
-    } 
+    }
     choices_pattern <- paste0("(",paste0(choices, collapse = ")|("), ")")
     choices_len <- str_length(paste0(choices, collapse = "")) + length(choices)
     # filter out cases that already have all choices selected
-    data <- data %>% 
-      select(uuid, variable, all_of(choice_columns)) %>% filter(!is.na(!!sym(variable))) %>% 
-        mutate(variable2 = str_squish(str_remove_all(!!sym(variable), choices_pattern))) %>% 
-        mutate(len_diff = str_length(!!sym(variable)) - str_length(variable2)) %>% 
+    data <- data %>%
+      select(uuid, variable, all_of(choice_columns)) %>% filter(!is.na(!!sym(variable))) %>%
+        mutate(variable2 = str_squish(str_remove_all(!!sym(variable), choices_pattern))) %>%
+        mutate(len_diff = str_length(!!sym(variable)) - str_length(variable2)) %>%
         filter(str_length(!!sym(variable)) - str_length(variable2) != choices_len)
     if(nrow(data) > 0){
       cl_cummulative <- select(data, uuid, variable, variable2) %>%
           rename(old.value = !!sym(variable)) %>%
-          mutate(variable = variable, new.value = paste(variable2, paste0(choices, collapse = " ")), issue = issue) %>% 
+          mutate(variable = variable, new.value = paste(variable2, paste0(choices, collapse = " ")), issue = issue) %>%
           select(-variable2)
       cl_choices <- data.frame()
       for(choice in choices){
@@ -509,7 +566,7 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
     cl_cummulative <- select(data, uuid, variable) %>%
       rename(old.value = !!sym(variable)) %>%
       mutate(variable = variable, new.value = paste(old.value, choice), issue = issue)
-    
+
     cl_choice <- select(data, uuid) %>%
       mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
     return(rbind(cl_cummulative, cl_choice))
@@ -836,7 +893,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   return(responses.j)
 }
 
-translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F){
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F, target_lang = "en"){
 
   info_df <- data.frame()
   start_time <- Sys.time()
@@ -846,7 +903,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
   if(nrow(responses) > 0){
     for (code in language_codes) {
-      cat(nrow(responses),"responses will be translated from",code,"to English.\tThis means",char_counter,"utf-8 characters.\n")
+      cat(nrow(responses),"responses will be translated from",code,"to",target_lang, "\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0('response.en.from.',code)
       # cleaning up html leftovers:
       responses[[values_from]] <- gsub("&#39;", "'", responses[[values_from]])
@@ -855,7 +912,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
       result_vec <- NULL
       result_vec <- translateR::translate(content.vec = responses[[values_from]],
                           google.api.key = source("resources/google.api.key_regional.R")$value,
-                          source.lang = code, target.lang = "en")
+                          source.lang = code, target.lang = target_lang)
       # checking the results
        info_df <- rbind(info_df, data.frame(
           "input_responses_num" = nrow(responses),
@@ -888,7 +945,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
 create.translate.requests <- function(questions.db, responses.j, is.loop = F){
 
-    relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","full.label","ref.type", "choices.label", "today")
+    relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","label","ref.type", "choices.label", "today")
 
       response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
       relevant_colnames <- append(relevant_colnames, response_cols)
