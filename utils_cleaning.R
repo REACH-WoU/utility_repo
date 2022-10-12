@@ -473,7 +473,7 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
     if(nrow(data) > 0){
         cl_cummulative <- select(data, uuid, variable) %>%
             rename(old.value = !!sym(variable)) %>%
-            mutate(variable = variable, new.value = paste(old.value, choice), issue = issue)
+            mutate(variable = variable, new.value = str_squish(paste(old.value, choice)), issue = issue)
 
         cl_choice <- select(data, uuid) %>%
             mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)

@@ -86,7 +86,7 @@ add_to_groups <- function(id1, id2){
     }
   }
 }
-
+#--- these probably should go to kobo_utils
 choice.name2label <- function(list.name, name){
   return(as.character(tool.choices[tool.choices$list_name==list.name &
                                      tool.choices$name==name, label_colname]))
@@ -96,6 +96,7 @@ choice.label2name <- function(list.name, label){
   return(as.character(tool.choices[tool.choices$list_name==list.name &
                                      tool.choices[label_colname]==label, "name"]))
 }
+#---
 
 get.old.value.label <- function(cl){
   for (r in 1:nrow(cl)){
@@ -181,6 +182,9 @@ convert.col.type <- function(df, col, omit_na = T){
 
 
 convert.cols.check.dap <- function(df, dap) {
+  #' Convert types of columns in data and check DAP.
+  #' 
+  #' @description The provided dataframe is assumed to contain Kobo data.
 
     # - convert "select_one" columns (names -> labels) to factor
     # - convert "integer" and "decimal" columns to numeric
@@ -247,6 +251,7 @@ convert.cols.check.dap <- function(df, dap) {
         }
         cat("... done.\n")
     }
+    cat("\nAll conversions done!")
     return(df)
 }
 
@@ -309,3 +314,51 @@ name2label <- function(df){
   }
   return(df.label)
 }
+
+
+###-----------------------------------------------------------------------------
+### OTHER UTITILY FUNCTIONS
+###-----------------------------------------------------------------------------
+
+factorize <- function(
+    x,  # vector to be transformed
+    min_freq = .01,  # all levels < this % of records will be bucketed
+    min_n = 1,  # all levels < this # of records will be bucketed
+    NA_level = '(missing)',  # level created for NA values
+    blank_level = '(blank)',  # level created for "" values
+    infrequent_level = 'Other',  # level created for bucketing rare values
+    infrequent_can_include_blank_and_NA = F,  # default NA and blank are not bucketed
+    order = T,  # default to ordered
+    reverse_order = F  # default to increasing order
+) {
+  if (class(x) != 'factor'){
+    x <- as.factor(x)
+  }
+  # suspect this is faster than reassigning new factor object
+  levels(x) <- c(levels(x), NA_level, infrequent_level, blank_level)
+  
+  # Swap out the NA and blank categories
+  x[is.na(x)] <- NA_level
+  x[x == ''] <- blank_level
+  
+  # Going to use this table to reorder
+  f_tb <- table(x, useNA = 'always')
+  
+  # Which levels will be bucketed?
+  infreq_set <- c(
+    names(f_tb[f_tb < min_n]),
+    names(f_tb[(f_tb/sum(f_tb)) < min_freq])
+  )
+  
+  # If NA and/or blank were infrequent levels above, this prevents bucketing
+  if(!infrequent_can_include_blank_and_NA){
+    infreq_set <- infreq_set[!infreq_set %in% c(NA_level, blank_level)]
+  }
+  
+  # Relabel all the infrequent choices
+  x[x %in% infreq_set] <- infrequent_level
+  
+  # Return the reordered factor
+  reorder(droplevels(x), rep(1-(2*reverse_order),length(x)), FUN = sum, order = order)
+}
+
