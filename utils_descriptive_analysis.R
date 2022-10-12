@@ -762,6 +762,124 @@ count.to_html <- function(res, entry){
 }
 
 ###--------------------------------------------------------------------------------------------------------------
+### COUNT _AA
+###--------------------------------------------------------------------------------------------------------------
+# function to run the analysis
+count.analysis <- function(srv.design, entry){
+  srv.design <- srvyr.design
+  srv.design.grouped <- srv.design
+  if (!is.na(entry$admin)){
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$admin), .add=T, .drop=T)
+  }
+  if (!is.na(entry$disaggregate.variable)){
+    
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
+  }
+  if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
+  res <- srv.design.grouped %>% 
+    filter(!is.na(!!sym(entry$variable))) %>% 
+    survey_count(!!sym(entry$variable), sort = T)
+  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
+  res <- res %>% select(-n_se)
+  if (!is.na(entry$disaggregate.variable)) {
+    res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
+  }
+  return(res)
+}
+
+# function to run the analysis (overall)
+count.analysis_overall <- function(srv.design, entry){
+  srv.design.grouped <- srv.design
+  entry$admin <- "overall"
+  if (!is.na(entry$admin)){
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$admin), .add=T, .drop=T)
+  }
+  if (!is.na(entry$disaggregate.variable)){
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
+  }
+  if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
+  res.overall <- srv.design.grouped %>% 
+    filter(!is.na(!!sym(entry$variable))) %>% 
+    survey_count(!!sym(entry$variable), sort = T)
+  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
+  res.overall <- res.overall %>% select(-n_se)
+  if (!is.na(entry$disaggregate.variable)){
+    res.overall <- filter(res.overall, !is.na(!!sym(entry$disaggregate.variable)))
+  }
+  return(res.overall)
+}
+
+# function to produce HTML table (overall)
+count.to_html <- function(res, entry){
+  if (is.na(entry$disaggregate.variable)){
+    t.res <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin)) %>%
+      summarise(num_samples=n())
+    t.res_over <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(overall) %>%
+      summarise(num_samples=n()) %>% 
+      rename(strata = "overall") %>% 
+      mutate(strata = "Overall")
+    if (nrow(t.res) == 0){
+      return(data.frame())
+    } else{
+      n_rows <- nrow(res)
+      res <- res %>% 
+        left_join(t.res, by=set_names(entry$admin)) %>% 
+        relocate("num_samples", .after=1)
+      res.overall <- res.overall %>% 
+        rename(strata ="overall") %>% 
+        mutate(strata = "Overall") %>% 
+        left_join(t.res_over, by=("strata")) %>% 
+        relocate("num_samples", .after=1)
+      if (nrow(res)!=n_rows) stop()
+    }
+  }
+  if (!is.na(entry$disaggregate.variable)){
+    t.res <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n()) %>% 
+      ungroup()
+    t.res_over <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(overall, !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n())  %>% 
+      rename(strata = "overall") %>% 
+      mutate(strata = "Overall") %>% 
+      ungroup()
+    n_rows <- nrow(res)
+    res <- res %>% 
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+      relocate("num_samples", .after=2)
+    if (nrow(res)!=n_rows) stop()
+  }
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  return(subch(datatable(res)))
+}
+
+
+# function to produce HTML table
+count.to_html <- function(res, entry){
+  if (!is.na(entry$disaggregate.variable)){
+    t <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n()) %>% 
+      ungroup()
+    n_rows <- nrow(res)
+    res <- res %>% 
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+      relocate("num_samples", .after=2)
+    if (nrow(res)!=n_rows) stop()
+  }
+  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  return(subch(datatable(res)))
+}
+
+###--------------------------------------------------------------------------------------------------------------
 ### OTHER FUNCTIONS
 ###--------------------------------------------------------------------------------------------------------------
 # add table to HTML
