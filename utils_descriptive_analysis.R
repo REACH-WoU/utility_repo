@@ -532,7 +532,7 @@ mean.analysis_overall <- function(srv.design, entry){
   res.overall <- srv.design.grouped %>% 
     filter(!is.na(!!sym(entry$variable))) %>% 
     summarise(mean = survey_mean(!!sym(entry$variable), vartype="ci", level=0.90))
-  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res.overall,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   if (str_starts(entry$variable, "pct.")){
     res.overall <- res.overall %>% mutate(mean=round(mean, 1),
                                           ci=paste0(format(round(mean_low, 1), scientific=F), "%-", 
@@ -722,7 +722,7 @@ median.to_html <- function(res, entry, include.CI=T){
   return(subch(datatable(res)))
 }
 ###--------------------------------------------------------------------------------------------------------------
-### COUNT
+### COUNT _KJ
 ###--------------------------------------------------------------------------------------------------------------
 # function to run the analysis
 count.analysis <- function(srv.design, entry){
@@ -735,11 +735,14 @@ count.analysis <- function(srv.design, entry){
   res <- srv.design.grouped %>% 
     filter(!is.na(!!sym(entry$variable))) %>% 
     survey_count(!!sym(entry$variable), sort = T)
+  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   res <- res %>% select(-n_se)
   if (!is.na(entry$disaggregate.variable))
     res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
   return(res)
 }
+
+
 # function to produce HTML table
 count.to_html <- function(res, entry){
   if (!is.na(entry$disaggregate.variable)){
