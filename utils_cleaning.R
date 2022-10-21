@@ -539,8 +539,9 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
     if(nrow(data) > 0){
       cl_cummulative <- select(data, uuid, variable, variable2) %>%
           rename(old.value = !!sym(variable)) %>%
-          mutate(variable = variable, new.value = paste(variable2, paste0(choices, collapse = " ")), issue = issue) %>%
+          mutate(variable = variable, new.value = str_squish(paste(variable2, paste0(choices, collapse = " "))), issue = issue) %>%
           select(-variable2)
+      if(cl_cummulative$new.value %==na% cl_cummulative$old.value) cl_cummulative <- data.frame()
       cl_choices <- data.frame()
       for(choice in choices){
           choice_column <- paste0(variable,"/",choice)
@@ -811,7 +812,7 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
     l.cumulative <- unique(c(l.cumulative, new.code$name))
   }
   # update cumulative variable
-  new.value <- paste(sort(l.cumulative), collapse=" ")
+  new.value <- str_squish(paste(sort(l.cumulative), collapse=" "))
   df <- data.frame(uuid=x$uuid, variable=x$ref.name, issue=issue,
                    old.value=old.value, new.value=new.value)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
