@@ -11,13 +11,19 @@ recode.new.site <- function(raw.data, x, f){
   #' @param x Entry from a newsite requests file (containing columns uuid and true.v)
   #' @param f Function that returns a character string containing new pCode
   #' @returns Cleaning log entries - dataframe with columns uuid, variable, issue, old and new values.
-
+  
+  # recode pcode
   cl <- data.frame(
     uuid=x$uuid, variable="site_pCode", issue="Recoding an identified new site.",
     old.value=pull(raw.data %>% filter(uuid==x$uuid), site_pCode), new.value=f())
-  cl <- rbind(cl, data.frame(
-      uuid=x$uuid, variable="site_Name", issue="Recoding an identified new site.",
-      old.value=pull(raw.data %>% filter(uuid==x$uuid), site_Name), new.value=x$true.v))
+  
+  # recode name
+  old_name <- pull(raw.data %>% filter(uuid==x$uuid), site_Name)
+  if(x$true.v %!=na% old_name){
+    cl <- rbind(cl, data.frame(
+        uuid=x$uuid, variable="site_Name", issue="Recoding an identified new site.",
+        old.value=old_name, new.value=x$true.v))
+  }
   return(cl)
 }
 
@@ -47,28 +53,40 @@ save.gis.checks <- function(df, wb_name, blue_cols = NULL){
                                       fontSize = 10, fontName = "Arial Narrow", wrapText=T)
 
   wb <- loadWorkbook("resources/gis_checks_template.xlsx")
-  addWorksheet(wb, "Sheet2")
-  writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1)
-  setColWidths(wb, "Sheet2", cols = 1:(ncol(df)-4), widths = "auto")
-  setColWidths(wb, "Sheet2", cols = (ncol(df)-4):(ncol(df)), widths = 35)
-  i <- grep("comments", colnames(df))
-  setColWidths(wb, "Sheet2", cols = i, widths = 60)
-  addStyle(wb, "Sheet2", style = createStyle(wrapText=T, valign="top", fontSize = 10, fontName = "Arial Narrow"),
-           rows = 1:(nrow(df)+1), cols=i, stack = T)
-  for (col in blue_cols) {
-    i <- grep(paste0('^',col,'$'), colnames(df))
-    if(length(i) == 0) stop(paste(col,"not found in df!"))
-    addStyle(wb, "Sheet2", style = style.col.blue, rows = 1:(nrow(df)+1), cols = i, stack = T)
+  helper_col_present <- "what.to.clean" %in% colnames(df)
+  
+  if(helper_col_present){
+    sheet_names <- levels(factor(df %>% pull(what.to.clean)))
+  }else{
+    sheet_names <- c("Sheet2")
+    df$what.to.clean <- "Sheet2"
   }
-  addStyle(wb, "Sheet2", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df), stack = T)
-  i <- ifelse("what.to.clean" %in% colnames(df), -1, 0)
-  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-2+i, stack = T)
-  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-1+i, stack = T)
-  addStyle(wb, "Sheet2", style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)  +i, stack = T)
-  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-2+i, stack = T)
-  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1+i, stack = T)
-  addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)  +i, stack = T)
-
+  
+  for(sheet_name in sheet_names){
+    addWorksheet(wb, sheet_name)
+    
+    writeData(wb = wb, x = df %>% filter(what.to.clean == sheet_name),
+              sheet = sheet_name, startRow = 1)
+    setColWidths(wb, sheet_name, cols = 1:(ncol(df)-4), widths = "auto")
+    setColWidths(wb, sheet_name, cols = (ncol(df)-4):(ncol(df)), widths = 35)
+    i <- grep("comments", colnames(df))
+    setColWidths(wb, sheet_name, cols = i, widths = 60)
+    addStyle(wb, sheet_name, style = createStyle(wrapText=T, valign="top", fontSize = 10, fontName = "Arial Narrow"),
+             rows = 1:(nrow(df)+1), cols=i, stack = T)
+    for (col in blue_cols) {
+      i <- grep(paste0('^',col,'$'), colnames(df))
+      if(length(i) == 0) stop(paste(col,"not found in df!"))
+      addStyle(wb, sheet_name, style = style.col.blue, rows = 1:(nrow(df)+1), cols = i, stack = T)
+    }
+    addStyle(wb, sheet_name, style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df), stack = T)
+    i <- ifelse(helper_col_present, -1, 0)
+    addStyle(wb, sheet_name, style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-2+i, stack = T)
+    addStyle(wb, sheet_name, style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)-1+i, stack = T)
+    addStyle(wb, sheet_name, style = style.col.green, rows = 1:(nrow(df)+1), cols = ncol(df)  +i, stack = T)
+    addStyle(wb, sheet_name, style.col.green.bold, rows = 1, cols = ncol(df)-2+i, stack = T)
+    addStyle(wb, sheet_name, style.col.green.bold, rows = 1, cols = ncol(df)-1+i, stack = T)
+    addStyle(wb, sheet_name, style.col.green.bold, rows = 1, cols = ncol(df)  +i, stack = T)
+  }
   filename <- paste0(dir.requests, wb_name, ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
@@ -115,7 +133,10 @@ save.newsite.requests <- function(df, wb_name, blue_cols = NULL){
             rows = 1:(nrow(df)+1), cols=i, stack = T)
   for (col in blue_cols) {
      i <- grep(paste0('^',col,'$'), colnames(df))
-     if(length(i) == 0) stop(paste(col,"not found in df!"))
+     if(length(i) == 0) {
+       warning(paste(col,"not found in df!"))
+       next
+     }
      addStyle(wb, "Sheet2", style = style.col.blue, rows = 1:(nrow(df)+1), cols = i, stack = T)
   }
   addStyle(wb, "Sheet2", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df), stack = T)
