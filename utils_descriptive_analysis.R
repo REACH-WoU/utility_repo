@@ -109,7 +109,7 @@ select_one.analysis_overall <- function(srv.design, entry){
 select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
-  choices <- tool.choices$`label::English`[tool.choices$list_name==var_list_name]
+  choices <- (tool.choices %>% pull(label_colname))[tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>% 
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
@@ -229,7 +229,7 @@ select_multiple.analysis <- function(srv.design, entry){
   # get list of columns for the selected question --> variables 
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
   choices <- tool.choices %>% filter(list_name==q.list_name) %>% 
-    select(name, `label_colname`) %>% rename(label=`label_colname`) %>% 
+    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>% 
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
   variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables), 
                                                          paste0(entry$variable, "___"))]
@@ -297,7 +297,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
   # get list of columns for the selected question --> variables 
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
   choices <- tool.choices %>% filter(list_name==q.list_name) %>% 
-    select(name, `label::English`) %>% rename(label=`label::English`) %>% 
+    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>% 
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
   variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables), 
                                                          paste0(entry$variable, "___"))]
@@ -369,7 +369,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
 select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
-  choices <- tool.choices$`label::English`[tool.choices$list_name==var_list_name]
+  choices <- (tool.choices %>% pull (label_colname))[tool.choices$list_name==var_list_name]
   res <- arrange(res, match(label, choices))
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res.overall <- arrange(res.overall, match(label, choices))
@@ -743,24 +743,6 @@ count.analysis <- function(srv.design, entry){
 }
 
 
-# function to produce HTML table
-count.to_html <- function(res, entry){
-  if (!is.na(entry$disaggregate.variable)){
-    t <- data %>%
-      filter(!is.na(!!sym(entry$variable))) %>%
-      group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
-      ungroup()
-    n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
-      relocate("num_samples", .after=2)
-    if (nrow(res)!=n_rows) stop()
-  }
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
-}
-
 ###--------------------------------------------------------------------------------------------------------------
 ### COUNT _AA
 ###--------------------------------------------------------------------------------------------------------------
@@ -810,7 +792,7 @@ count.analysis_overall <- function(srv.design, entry){
 }
 
 # function to produce HTML table (overall)
-count.to_html <- function(res, entry){
+count.to_html.overall <- function(res, entry){
   if (is.na(entry$disaggregate.variable)){
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
