@@ -914,7 +914,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
       # actual translation:
       result_vec <- NULL
       result_vec <- translateR::translate(content.vec = responses[[values_from]],
-                          microsoft.api.key = source("resources/google.api.key_regional.R")$value,
+                          microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
                           source.lang = code, target.lang = target_lang)
       # checking the results
       info_df <- rbind(info_df, data.frame(
@@ -942,7 +942,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
     warning("Nothing to be translated")
   }
   # dump info about the results of translation
-  write.table(info_df, file = "translate_info.csv", append = T, row.names = F, col.names = F, sep = ',')
+  write.table(info_df, file = "translate_info.csv", append = T, row.names = F, col.names = T, sep = ',')
   return(responses)
 }
 
