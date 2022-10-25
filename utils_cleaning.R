@@ -915,6 +915,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
       result_vec <- NULL
       result_vec <- translateR::translate(content.vec = responses[[values_from]],
                           microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
+                          microsoft.api.region = "switzerlandnorth",
                           source.lang = code, target.lang = target_lang)
       # checking the results
       info_df <- rbind(info_df, data.frame(
