@@ -981,6 +981,10 @@ what.country <- function(id){
 # utility operators & other legacy functions
 #------------------------------------------------------------------------------------------------------------
 
+# IMPORTANT: THESE OPERATORS HAVE BEEN MOVED TO misc_utils.R
+# EVENTUALLY THEY WILL BE REMOVED FROM HERE
+# if you will continue using them in the future, add a `source("src/utils/misc_utils.R")` to your init script
+
 "%==%" <- function(a, b) ifelse(!is.na(a), a==b, F)
 "%!=%" <- function(a, b) ifelse(!is.na(a), a!=b, F)
 "%_<_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<b, F)
