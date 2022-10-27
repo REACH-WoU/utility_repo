@@ -835,49 +835,32 @@ create.deletion.log <- function(ids, reason){
   else return(data.frame())
 }
 
-create.deletion.log.minors <- function(data){
-  #' [obsolete] find all submissions run with minor age <18 and no legal guardian consent
-  #'
-  #' warning: Hardcoded column names for the purposes of PP.
-  #' creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
-  #'
-  #' @param data Raw data (`raw.main`)
-  #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if no surveys with minors found.
-  
-  ids <- data[data$a4_2_resp_age < 18,]
-  ids <- ids %>%
-    filter(!is.na(uuid)) %>%
-    mutate(delete = ifelse(is.na(Legal_guardian_consent),"yes",
-                           ifelse(Legal_guardian_consent == "yes","no","yes"))) %>%
-    select(uuid,delete) %>%
-    filter(delete=="yes")
-  
-  ids <- ids$uuid
-  return(create.deletion.log(ids=ids, reason="Survey done with a minor"))
-}
-
-create.deletion.log.too.fast <- function (data, ids){
-  #' [obsolete]
-  return(create.deletion.log(ids=ids, reason="Survey duration < 3 minutes"))
-}
-
-create.deletion.log.duplicates <- function(data, ids){
-  #' [obsolete] - TO BE USED ONLY FOR SOFT DUPLICATES (NOT REGULAR UUID DUPLICATES)
-  return(create.deletion.log(ids=ids, reason= "Surveys with only 10 or less diff columns"))
-}
 
 # ------------------------------------------------------------------------------------------
 
 find.responses <- function(data, questions.db, values_to="response.uk", is.loop = F){
-  #' looks up `data` using `questions.db` to find all responses
-  #'
-  #' response vector is stored in column specified by `values_to`
+  #' Look up a raw Kobo dataframe to find all responses to a given set of questions.
+  #' 
+  #' The dataframe `questions.db` needs to contain a column `name` (like a subset of `tool.survey`) which will be used to look up `data`.
+  #' The input `data` needs to contain a column "uuid", and all the columns specified in `questions.db`
+  #' The vector containing found responses is stored in column specified by parameter `values_to`.
+  #' 
+  #' Be warned: all responses will be converted to character.sou
+  #' @param values_to Name of the column in which found responses will be stored.
+  #' @returns A dataframe containing columns "uuid", "question.name", and the column specified by `values_to`. Additionally, "loop_index" if `is.loop` is TRUE.
+  #' @example 
+  #' q.db <- data.frame(name = c("age", "occupation"))
+  #' raw.data <- data.frame(age = c(21,32), occupation = c("cook", "train conductor"), uuid = c("abc","def"))
+  #' find.responses(raw.data, q.db, "responses")
+  
   if(!is.loop){
     data[["loop_index"]] <- NA
   }
   responses <- data %>%
       select(c("uuid", "loop_index", any_of(questions.db$name))) %>%
-      pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>%
+      pivot_longer(cols = any_of(questions.db$name), 
+                   names_to="question.name", values_to=values_to,
+                   values_transform = as.character) %>%
       filter(!is.na(!!sym(values_to))) %>%
       select(uuid, loop_index, question.name, !!sym(values_to))
 
@@ -888,7 +871,8 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
     } else {
     responses.j <- responses %>%
         left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
-        left_join(select(data, uuid), by="uuid")
+        left_join(select(data, uuid), by="uuid") %>% 
+        select(-loop_index)
     # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
     }
   return(responses.j)
