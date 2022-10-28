@@ -824,14 +824,14 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
 # DELETION LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
-create.deletion.log <- function(ids, reason){
+create.deletion.log <- function(data, col_enum, reason){
   #' Creates a deletion log for the provided ids and reason.
   #'
   #' @param ids This is a vector of uuids, obtained for example from follow-ups with FPs.
   #' @param reason This is a string describing the reason for removing a survey from data.
   #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if `ids` is empty.
-  if(length(ids) > 0)
-    return(data.frame("uuid" = ids, "reason" = reason))
+  if(nrow(data) > 0)
+    return(data %>% select(uuid, col_enum) %>% mutate(reason=reason))
   else return(data.frame())
 }
 
