@@ -280,16 +280,16 @@ create.follow.up.requests <- function(checks.df, wb_name){
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="explanation"))
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="new.value"))
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="invalid"))
-    
-    
+
+
     setColWidths(wb, "Follow-up", cols=1:ncol(cl), widths="auto")
     # setColWidths(wb, "Follow-up", cols=ncol(cl)-1, widths=50)
-    
+
     setColWidths(wb, "Follow-up", cols=which(colnames(cl)=="issue"), widths=50)
     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="issue"))
-    
+
     addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl))
-    
+
     col.id <- which(colnames(cl)=="old.value")
     if(nrow(cl) > 0){
       random.color <- ""
@@ -305,7 +305,7 @@ create.follow.up.requests <- function(checks.df, wb_name){
         } else random.color=""
       }
     }
-    
+
     filename <- paste0("output/checking/requests/", wb_name)
     saveWorkbook(wb, filename, overwrite = TRUE)
 }
@@ -328,7 +328,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
   #'
   #' @param sheet Optional parameter passed to `read_xlsx`, defaults to NULL (first sheet of an Excel workbook)
   #' @param validate Should the file be validated (make sure that only one of TEI columns is filled.)
-  
+
   file.type = str_squish(str_replace_all(filename.pattern, "[^a-zA-Z]+"," "))
   filenames <- list.files(dir, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
                           pattern=paste0("^",filename.pattern,".*\\.xlsx"))
@@ -345,12 +345,12 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
         if(ncol(res)!=ncol(other)) warning("Number of columns differs between files! Check them to make sure everything is correct, please!")
         res <- bind_rows(res, other)
       }
-      
+
     }
     # rename: TRUE -> true.v, EXISTING -> existing.v, INVALID -> invalid.v
     c_tei_cols <- c("true", "existing", "invalid")
     for(c in c_tei_cols) colnames(res)[str_starts(colnames(res), str_to_upper(c))] <- paste0(c,'.v')
-    
+
     if(validate){
       c_tei_cols <- paste0(c_tei_cols, ".v")
       if(all(c_tei_cols %in% colnames(res))){
@@ -382,13 +382,13 @@ load.edited <- function(dir.edited, file.type){
   #' Load logs from specified directory.
   #'
   #' This function is superceded by load.requests
-  
-  
+
+
   # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
   if(!(file.type %in% valid_types))
     warning("Unexpected file.type for load.edited")
-  
+
   filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
                           pattern=paste0(".*",file.type,"_((responses)|(requests))(_edited)?.*\\.xlsx$"))
   if (length(filenames) == 0){
@@ -403,7 +403,7 @@ load.edited <- function(dir.edited, file.type){
       else res <- rbind(res, other)
     }
     return(res)
-    
+
   }
 }
 
@@ -585,7 +585,7 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
     cl_cummulative <- select(data, uuid, variable) %>%
       rename(old.value = !!sym(variable)) %>%
       mutate(variable = variable, new.value = str_squish(str_remove(old.value, choice)), issue = issue)
-    
+
     cl_choice <- select(data, uuid) %>%
       mutate(variable = choice_column, old.value = "1", new.value = "0", issue = issue)
     return(rbind(cl_cummulative, cl_choice))
@@ -647,7 +647,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   #'
   #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
   #' This object can be later added to cleaning log.
-  
+
   res <- data.frame()
   for(q.n in question.names){
     new.entries <- check %>%
@@ -740,7 +740,7 @@ add.to.cleaning.log.other.recode.one <- function(data, x){
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
                    old.value=old.response, new.value=NA)
-  
+
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -837,28 +837,30 @@ create.deletion.log <- function(ids, reason){
 
 
 # ------------------------------------------------------------------------------------------
+# FIND & TRANSLATE RESPONSES
+# ------------------------------------------------------------------------------------------
 
 find.responses <- function(data, questions.db, values_to="response.uk", is.loop = F){
   #' Look up a raw Kobo dataframe to find all responses to a given set of questions.
-  #' 
+  #'
   #' The dataframe `questions.db` needs to contain a column `name` (like a subset of `tool.survey`) which will be used to look up `data`.
   #' The input `data` needs to contain a column "uuid", and all the columns specified in `questions.db`
   #' The vector containing found responses is stored in column specified by parameter `values_to`.
-  #' 
+  #'
   #' Be warned: all responses will be converted to character.sou
   #' @param values_to Name of the column in which found responses will be stored.
   #' @returns A dataframe containing columns "uuid", "question.name", and the column specified by `values_to`. Additionally, "loop_index" if `is.loop` is TRUE.
-  #' @example 
+  #' @example
   #' q.db <- data.frame(name = c("age", "occupation"))
   #' raw.data <- data.frame(age = c(21,32), occupation = c("cook", "train conductor"), uuid = c("abc","def"))
   #' find.responses(raw.data, q.db, "responses")
-  
+
   if(!is.loop){
     data[["loop_index"]] <- NA
   }
   responses <- data %>%
       select(c("uuid", "loop_index", any_of(questions.db$name))) %>%
-      pivot_longer(cols = any_of(questions.db$name), 
+      pivot_longer(cols = any_of(questions.db$name),
                    names_to="question.name", values_to=values_to,
                    values_transform = as.character) %>%
       filter(!is.na(!!sym(values_to))) %>%
@@ -871,7 +873,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
     } else {
     responses.j <- responses %>%
         left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
-        left_join(select(data, uuid), by="uuid") %>% 
+        left_join(select(data, uuid), by="uuid") %>%
         select(-loop_index)
     # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
     }
@@ -879,29 +881,29 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
 }
 
 translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F, target_lang = "en"){
-  
+
   #' Translate a vector from a given dataframe.
-  #' 
+  #'
   #' The provided dataframe `responses` must contain the column `values_from` which will be used as input vector for the translation.
   #' Also outputs informative logs to file named "translate_info.csv". Specify the target language using `target_lang` parameter
-  #' 
+  #'
   #' Warning: If more than one source language code is provided, the entire translation WILL BE REPEATED. You are advised against that,
   #' because we do not want to hit our monthly limits for the API.
-  #' 
+  #'
   #' @param respones Dataframe containing a column which shall be translated.
   #' @param values_from Name of the column from `responses` which shall be translated.
   #' @param language_codes Character vector of two-letter language codes. The input vector will be translated from both of these languages.
   #' @param is.loop Unused. Still here for backwards compatibility.
   #' @param target_lang Input vector will be translated into this language.
-  #' @returns The same dataframe as `responses`, but with a new column, containing the translation. 
+  #' @returns The same dataframe as `responses`, but with a new column, containing the translation.
   #' The column will be named according to the given source and target languages. By default, the output will be stored in column named 'response.en.from.uk'
 
   info_df <- data.frame()
   start_time <- Sys.time()
   relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
                          "choices.label", values_from)
-  
-  # extract unique responses from the source dataframe 
+
+  # extract unique responses from the source dataframe
   responses <- responses %>% mutate(resp_lower = str_to_lower(!!sym(values_from)))
   input_vec <- responses %>% distinct(resp_lower) %>% pull(resp_lower)
   # cleaning up html leftovers:
@@ -909,13 +911,13 @@ translate.responses <- function(responses, values_from = "response.uk", language
   # counts characters which will be translated
   char_counter <- sum(str_length(input_vec))
   # TODO: pause here, print the char_counter, and ask the user if the translation should go ahead
-  
+
   if(length(input_vec) > 0){
     for (code in language_codes) {
       cat(length(input_vec),"responses will be translated from",code,"to",target_lang, "\tThis means",char_counter,"utf-8 characters.\n")
       col_name <- paste0("response.",target_lang, ".from.",code)
       relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged??
-      
+
       temp_resp <- tibble(input_vec)
       temp_resp[[col_name]] <- NA
       # actual translation:
@@ -940,7 +942,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
         if(length(result_vec) == length(input_vec)){
           cat("\ntranslate.responses: finished - SUCCESS!\n")
           info_df$status <- "success"
-          
+
           # bind the translated and source dfs
           responses <- responses %>% left_join(temp_resp, by = c("resp_lower" = "input_vec"))
         }else{
@@ -956,7 +958,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
   log_filename <- "translate_info.csv"
   if(file.exists(log_filename)) write.table(info_df, file = log_filename, append = T, row.names = F, col.names = F, sep = ',')
   else write.table(info_df, file = log_filename, row.names = F, col.names = T, sep = ',')
-  
+
   responses <- responses %>% select(-resp_lower)
   return(responses)
 }
@@ -982,13 +984,31 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
     return(responses.j)
 }
 
-#------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# misc functions for pulling data
+#-------------------------------------------------------------------------------
+
 what.country <- function(id){
-  #' Looks up raw.main to find to which country an id belongs to.
+  #' [useless] Looks up raw.main to find to which country an id belongs to.
   #'
   #' @param id uuid to look up in `raw.main`
   #' @returns a string found in the `country` column of `raw.main`.
   return(raw.main %>% filter(uuid == id) %>% pull(country))
+}
+
+pull.raw <- function(uuids = NA, loop_indexes = NA){
+    #' Pull records from `raw.main` with the given uuids or loop_index.
+    #' @returns Dataframe: raw.main, or raw.loop1 or raw.loop2, depending on the provided arguments.
+
+    if(is.na(loop_indexes)) {
+        if(is.na(uuids)) stop("Need to provide either uuids, or loop_indexes!")
+        return(raw.main %>% filter(uuid %in% uuids))
+    }
+    else{
+        if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
+        else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
+        else stop("Referenced loop indexes belong to different loops!")
+    }
 }
 
 
