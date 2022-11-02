@@ -303,6 +303,10 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
   #'
   #' @returns Dataframe containing data with applied changes
+  #' 
+  
+  # TODO: fix this function to not produce so many unnecessary warnings
+
   if(nrow(clog) == 0){
     warning("No changes to be applied (cleaning log empty).")
     return(data)
