@@ -390,7 +390,7 @@ load.edited <- function(dir.edited, file.type){
     warning("Unexpected file.type for load.edited")
 
   filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
-                          pattern=paste0(".*",file.type,"_((responses)|(requests))(_edited)?.*\\.xlsx$"))
+                          pattern=paste0(".*",file.type,"((responses)|(requests))?(_edited)?.*\\.xlsx$"))
   if (length(filenames) == 0){
     warning(paste("Files with",file.type,"responses not found!"))
   } else {
