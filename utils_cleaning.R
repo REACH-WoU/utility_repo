@@ -856,6 +856,16 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   #' raw.data <- data.frame(age = c(21,32), occupation = c("cook", "train conductor"), uuid = c("abc","def"))
   #' find.responses(raw.data, q.db, "responses")
 
+  if(nrow(questions.db) == 0){
+      warning("questions.db is empty - returning an empty dataframe.")
+      return(data.frame())
+  }
+
+  if(nrow(data) == 0){
+      warning("data is empty - returning an empty dataframe.")
+      return(data.frame())
+  }
+
   if(!is.loop){
     data[["loop_index"]] <- NA
   }
@@ -1001,8 +1011,8 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
     #' Pull records from `raw.main` with the given uuids or loop_index.
     #' @returns Dataframe: raw.main, or raw.loop1 or raw.loop2, depending on the provided arguments.
 
-    if(is.na(loop_indexes)) {
-        if(is.na(uuids)) stop("Need to provide either uuids, or loop_indexes!")
+    if(all(is.na(loop_indexes))) {
+        if(all(is.na(uuids))) stop("Need to provide either uuids, or loop_indexes!")
         return(raw.main %>% filter(uuid %in% uuids))
     }
     else{
