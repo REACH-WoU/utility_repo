@@ -228,3 +228,61 @@ calculate.enumerator.similarity <- function(data, tool.survey, col_enum, col_adm
         return(r)}})
   return(do.call(rbind, res))
 }
+
+create.count_enu <- function(deletion.log, col_enum)  { 
+  
+  count_del <- deletion.log %>%
+    group_by(!!sym(col_enum)) %>% 
+    summarize(count = n())
+  
+  count_del_reas <- deletion.log %>%
+    group_by(!!sym(col_enum),reason) %>%  
+    summarize(count = n())  
+  
+  wb <- createWorkbook()
+  addWorksheet(wb, "Sheet1")
+  addWorksheet(wb, "Sheet2")
+  writeData(wb = wb, x = count_del, sheet = "Sheet1", startRow = 1)
+  writeData(wb = wb, x = count_del_reas, sheet = "Sheet2", startRow = 1)
+  filename <- paste0("output/enum_performance/", "count_enu", ".xlsx")
+  saveWorkbook(wb, filename, overwrite=TRUE)
+  
+  
+}
+
+
+create.count_collected_enu <- function(raw.main, col_enum)  { 
+  
+  count_del <- raw.main %>%
+    group_by(!!sym(col_enum)) %>% 
+    summarize(count = n())
+  
+  wb <- createWorkbook()
+  addWorksheet(wb, "Sheet1")
+  writeData(wb = wb, x = count_del, sheet = "Sheet1", startRow = 1)
+  filename <- paste0("output/enum_performance/", "count_collected_enu", ".xlsx")
+  saveWorkbook(wb, filename, overwrite=TRUE)
+  
+  
+}
+
+create.count_enu_cleaning <- function(cleaning.log, col_enum)  { 
+  
+  count_del <- cleaning.log %>%
+    group_by(!!sym(col_enum)) %>% 
+    summarize(count = n())
+  
+  count_del_reas <- cleaning.log %>%
+    group_by(!!sym(col_enum),reason) %>%  
+    summarize(count = n())  
+  
+  wb <- createWorkbook()
+  addWorksheet(wb, "Sheet1")
+  addWorksheet(wb, "Sheet2")
+  writeData(wb = wb, x = count_del, sheet = "Sheet1", startRow = 1)
+  writeData(wb = wb, x = count_del_reas, sheet = "Sheet2", startRow = 1)
+  filename <- paste0("output/enum_performance/", "count_enu_cleaning", ".xlsx")
+  saveWorkbook(wb, filename, overwrite=TRUE)
+  
+  
+}
