@@ -978,9 +978,9 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>%
           arrange(name)
-      if(!is.loop) {
-          responses.j <- responses.j %>% select(-loop_index)
-          }
+      # if(!is.loop) {
+      #     responses.j <- responses.j %>% select(-loop_index)
+      #     }
 
     return(responses.j)
 }
@@ -1003,9 +1003,11 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
 
     if(is.na(loop_indexes)) {
         if(is.na(uuids)) stop("Need to provide either uuids, or loop_indexes!")
+        uuids <- str_squish(uuids)
         return(raw.main %>% filter(uuid %in% uuids))
     }
     else{
+        loop_indexes <- str_squish(loop_indexes)
         if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
         else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
         else stop("Referenced loop indexes belong to different loops!")
