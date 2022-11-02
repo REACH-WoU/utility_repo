@@ -193,6 +193,12 @@ convert.cols.check.dap <- function(df, dap) {
 
     converted <- c()
 
+    # TODO: filter the dap using the data that was entered
+    #--------------------------------------
+    # loop_no  <- df$loop_index[1]
+    # dap <- dap %>% filter(...)
+    #--------------------------------------
+
     for(r in 1:nrow(dap)){
         entry <- load.entry(dap[r,])
         col <- entry$variable
