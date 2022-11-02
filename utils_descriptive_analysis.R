@@ -19,16 +19,16 @@ select_one.analysis <- function(srv.design, entry){
     res <- res %>% select(pct, ci, entry$variable)
   } else {
     # get proportions and confidence intervals (using svyby + svymean)
-    res.prop <- svyby(make.formula(entry$variable), make.formula(disaggregations), srv.design, svymean, 
+    res.prop <- svyby(make.formula(entry$variable), make.formula(disaggregations), srv.design, svymean,
                       drop.empty.groups=F, multicore=F, na.rm=T, keep.names=F)
     res.ci <- data.frame(confint(res.prop, level=0.90))
     res.ci[,1] <- pmax(res.ci[, 1], 0)
     res.ci[,2] <- pmin(res.ci[, 2], 1)
     # arrange output formatting
     res.ci$name <- as.character(lapply(rownames(res.ci), function(x) str_split(x, entry$variable)[[1]][2]))
-    res.ci <- res.ci %>% 
-      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-", 
-                       format(round(X95..*100, 1), scientific=F), "%")) %>% 
+    res.ci <- res.ci %>%
+      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
+                       format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
     res <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
     res <- mutate_if(res, is.numeric, ~round(.*100, 1))
@@ -58,7 +58,7 @@ select_one.analysis_overall <- function(srv.design, entry){
   if(length(disaggregations) >1){
     disaggregations[2] <- "overall"
   }
-  
+
   # get list of disaggregations to be done (disaggregate.variable + admin.level) and keep only those not NA
   if (length(disaggregations)==1) {
     # get proportions and confidence intervals (using svymean)
@@ -72,7 +72,7 @@ select_one.analysis_overall <- function(srv.design, entry){
     res.overall <- res.overall %>% select(pct, ci, entry$variable)
   } else {
     # get proportions and confidence intervals (using svyby + svymean)
-    res.prop <- svyby(make.formula(entry$variable), make.formula(disaggregations), srv.design, svymean, 
+    res.prop <- svyby(make.formula(entry$variable), make.formula(disaggregations), srv.design, svymean,
                       drop.empty.groups=F, multicore=F, na.rm=T, keep.names=F)
     write_xlsx(res.prop,paste0("res_prop/",entry$xlsx_name,".xlsx"))
     res.ci <- data.frame(confint(res.prop, level=0.90))
@@ -80,9 +80,9 @@ select_one.analysis_overall <- function(srv.design, entry){
     res.ci[,2] <- pmin(res.ci[, 2], 1)
     # arrange output formatting
     res.ci$name <- as.character(lapply(rownames(res.ci), function(x) str_split(x, entry$variable)[[1]][2]))
-    res.ci <- res.ci %>% 
-      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-", 
-                       format(round(X95..*100, 1), scientific=F), "%")) %>% 
+    res.ci <- res.ci %>%
+      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
+                       format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
     res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
     res.overall <- mutate_if(res.overall, is.numeric, ~round(.*100, 1))
@@ -111,12 +111,12 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
   choices <- (tool.choices %>% pull(label_colname))[tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
-  res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>% 
+  res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>%
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
   res.overall <- res.overall %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
-  res.overall <- res.overall %>% arrange(match(!!sym(entry$variable), choices)) %>% 
-    pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%")) %>% 
-    mutate(strata = "Overall") %>% 
+  res.overall <- res.overall %>% arrange(match(!!sym(entry$variable), choices)) %>%
+    pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%")) %>%
+    mutate(strata = "Overall") %>%
     relocate(strata, .before=1)
   colnames(res) <- as.character(lapply(colnames(res), function(x)
     if (str_starts(x, "pct.")) return(str_sub(x, 5, str_length(x)))
@@ -138,15 +138,15 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
     t.res_over<- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall) %>%
-      summarise(num_samples=n()) %>% 
-      rename(strata = "overall") %>% 
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
       mutate(strata = "Overall")
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t.res, by=set_names(entry$admin)) %>% 
+    res <- res %>%
+      left_join(t.res, by=set_names(entry$admin)) %>%
       relocate("num_samples", .after=1)
-    res.overall <- res.overall %>% 
-      left_join(t.res_over, by=("strata")) %>% 
+    res.overall <- res.overall %>%
+      left_join(t.res_over, by=("strata")) %>%
       relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
@@ -154,22 +154,22 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
-      rename(strata = "overall") %>% 
-      mutate(strata = "Overall") %>% 
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
+      mutate(strata = "Overall") %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
-    res.overall <- res.overall %>% 
-      left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>% 
-      relocate("num_samples", .after=2) %>% 
+    res.overall <- res.overall %>%
+      left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
+      relocate("num_samples", .after=2) %>%
       select(-overall)
     if (nrow(res)!=n_rows) stop()
   }
@@ -186,7 +186,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
   var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
   choices <- tool.choices[[label_colname]][tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
-  res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>% 
+  res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>%
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
   colnames(res) <- as.character(lapply(colnames(res), function(x)
     if (str_starts(x, "pct.")) return(str_sub(x, 5, str_length(x)))
@@ -199,8 +199,8 @@ select_one.to_html <- function(res, entry, include.CI=T){
       group_by(!!sym(entry$admin)) %>%
       summarise(num_samples=n())
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=set_names(entry$admin)) %>% 
+    res <- res %>%
+      left_join(t, by=set_names(entry$admin)) %>%
       relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
@@ -208,11 +208,11 @@ select_one.to_html <- function(res, entry, include.CI=T){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
@@ -226,12 +226,12 @@ select_one.to_html <- function(res, entry, include.CI=T){
 ###--------------------------------------------------------------------------------------------------------------
 # function to run the analysis
 select_multiple.analysis <- function(srv.design, entry){
-  # get list of columns for the selected question --> variables 
+  # get list of columns for the selected question --> variables
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
-  choices <- tool.choices %>% filter(list_name==q.list_name) %>% 
-    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>% 
+  choices <- tool.choices %>% filter(list_name==q.list_name) %>%
+    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>%
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
-  variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables), 
+  variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables),
                                                          paste0(entry$variable, "___"))]
   # get list of disaggregations to be done (disaggregate.variable + admin.level)
   disaggregations <- c(entry$disaggregate.variable, entry$admin)
@@ -242,23 +242,23 @@ select_multiple.analysis <- function(srv.design, entry){
     res.prop <- svymean(make.formula(variables), srv.design, na.rm=T)
     res.ci <- confint(res.prop, level=0.90)
     # arrange output formatting
-    res <- cbind(res.prop, res.ci) %>% data.frame() %>% mutate(name=rownames(.)) %>% 
-      filter(str_ends(name, "1")) %>% 
+    res <- cbind(res.prop, res.ci) %>% data.frame() %>% mutate(name=rownames(.)) %>%
+      filter(str_ends(name, "1")) %>%
       mutate(pct=round(res.prop*100, 1),
              ci=paste0(format(round(X5..*100, 1), scientific=F), "%-", format(round(X95..*100, 1), scientific=F), "%"),
              choice=str_sub(name, 1, str_length(name)-1)) %>% select(pct, ci, choice)
   } else{
     # get proportions and confidence intervals (using svyby + svymean)
-    res.prop <- svyby(make.formula(variables), make.formula(disaggregations), srv.design, svymean, 
+    res.prop <- svyby(make.formula(variables), make.formula(disaggregations), srv.design, svymean,
                       drop.empty.groups=F, multicore=F, na.rm=T)
     res.ci <- data.frame(confint(res.prop, level=0.9))
     res.ci[,1] <- pmax(res.ci[, 1], 0)
     res.ci[,2] <- pmin(res.ci[, 2], 1)
     # arrange output formatting
     res.ci$name <- as.character(lapply(rownames(res.ci), function(x) str_split(x, ":")[[1]][2]))
-    res.ci <- res.ci %>% 
-      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-", 
-                       format(round(X95..*100, 1), scientific=F), "%")) %>% 
+    res.ci <- res.ci %>%
+      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
+                       format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
     res <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
     res <- mutate_if(res, is.numeric, ~round(.*100, 1))
@@ -287,19 +287,19 @@ select_multiple.analysis <- function(srv.design, entry){
     }
   }
   # recode choice name -> label
-  res <- mutate(res, choice=str_sub(choice, str_length(entry$variable) + 4, str_length(choice))) %>% 
+  res <- mutate(res, choice=str_sub(choice, str_length(entry$variable) + 4, str_length(choice))) %>%
     left_join(choices, by=c("choice"="name")) %>% select(-choice)
   res <- res %>% arrange(label)
   return(res)
 }
 # function to run the analysis (res.overall)
 select_multiple.analysis_overall <- function(srv.design, entry){
-  # get list of columns for the selected question --> variables 
+  # get list of columns for the selected question --> variables
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
-  choices <- tool.choices %>% filter(list_name==q.list_name) %>% 
-    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>% 
+  choices <- tool.choices %>% filter(list_name==q.list_name) %>%
+    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>%
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
-  variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables), 
+  variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables),
                                                          paste0(entry$variable, "___"))]
   # get list of disaggregations to be done (disaggregate.variable + admin.level)
   disaggregations <- c(entry$disaggregate.variable, entry$admin)
@@ -312,14 +312,14 @@ select_multiple.analysis_overall <- function(srv.design, entry){
     res.prop <- svymean(make.formula(variables), srv.design, na.rm=T)
     res.ci <- confint(res.prop, level=0.90)
     # arrange output formatting
-    res.overall <- cbind(res.prop, res.ci) %>% data.frame() %>% mutate(name=rownames(.)) %>% 
-      filter(str_ends(name, "1")) %>% 
+    res.overall <- cbind(res.prop, res.ci) %>% data.frame() %>% mutate(name=rownames(.)) %>%
+      filter(str_ends(name, "1")) %>%
       mutate(pct=round(res.prop*100, 1),
              ci=paste0(format(round(X5..*100, 1), scientific=F), "%-", format(round(X95..*100, 1), scientific=F), "%"),
              choice=str_sub(name, 1, str_length(name)-1)) %>% select(pct, ci, choice)
   } else{
     # get proportions and confidence intervals (using svyby + svymean)
-    res.prop <- svyby(make.formula(variables), make.formula(disaggregations), srv.design, svymean, 
+    res.prop <- svyby(make.formula(variables), make.formula(disaggregations), srv.design, svymean,
                       drop.empty.groups=F, multicore=F, na.rm=T)
     write_xlsx(res.prop,paste0("res_prop/",entry$xlsx_name,".xlsx"))
     res.ci <- data.frame(confint(res.prop, level=0.9))
@@ -327,9 +327,9 @@ select_multiple.analysis_overall <- function(srv.design, entry){
     res.ci[,2] <- pmin(res.ci[, 2], 1)
     # arrange output formatting
     res.ci$name <- as.character(lapply(rownames(res.ci), function(x) str_split(x, ":")[[1]][2]))
-    res.ci <- res.ci %>% 
-      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-", 
-                       format(round(X95..*100, 1), scientific=F), "%")) %>% 
+    res.ci <- res.ci %>%
+      mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
+                       format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
     res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
     res.overall <- mutate_if(res.overall, is.numeric, ~round(.*100, 1))
@@ -358,11 +358,11 @@ select_multiple.analysis_overall <- function(srv.design, entry){
     }
   }
   # recode choice name -> label
-  res.overall <- mutate(res.overall, choice=str_sub(choice, str_length(entry$variable) + 4, str_length(choice))) %>% 
-    left_join(choices, by=c("choice"="name")) %>% select(-choice) %>% 
-    mutate(strata ="Overall") %>% 
+  res.overall <- mutate(res.overall, choice=str_sub(choice, str_length(entry$variable) + 4, str_length(choice))) %>%
+    left_join(choices, by=c("choice"="name")) %>% select(-choice) %>%
+    mutate(strata ="Overall") %>%
     relocate(strata, .before=1)
-  res.overall <- res.overall %>% arrange(label) 
+  res.overall <- res.overall %>% arrange(label)
   return(res.overall)
 }
 # function to produce HTML table
@@ -397,18 +397,18 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin)) %>%
       summarise(num_samples=n())
-    t.res_over <- data %>% 
+    t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall) %>%
-      summarise(num_samples=n()) %>% 
-      rename(strata = "overall") %>% 
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
       mutate(strata = "Overall")
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t.res, by=set_names(entry$admin)) %>% 
+    res <- res %>%
+      left_join(t.res, by=set_names(entry$admin)) %>%
       relocate("num_samples", .after=1)
-    res.overall <- res.overall %>% 
-      left_join(t.res_over, by=("strata")) %>% 
+    res.overall <- res.overall %>%
+      left_join(t.res_over, by=("strata")) %>%
       relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
@@ -418,22 +418,22 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
-      rename(strata = "overall") %>% 
-      mutate(strata = "Overall") %>% 
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
+      mutate(strata = "Overall") %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
-    res.overall <- res.overall %>% 
-      left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>% 
-      relocate("num_samples", .after=2) %>% 
+    res.overall <- res.overall %>%
+      left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
+      relocate("num_samples", .after=2) %>%
       select(-overall)
     if (nrow(res)!=n_rows) stop()
   }
@@ -466,8 +466,8 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
       group_by(!!sym(entry$admin)) %>%
       summarise(num_samples=n())
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=set_names(entry$admin)) %>% 
+    res <- res %>%
+      left_join(t, by=set_names(entry$admin)) %>%
       relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
@@ -476,11 +476,11 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
@@ -503,16 +503,16 @@ mean.analysis <- function(srv.design, entry){
   if (!is.na(entry$disaggregate.variable))
     srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
   if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
-  res <- srv.design.grouped %>% 
-    filter(!is.na(!!sym(entry$variable))) %>% 
+  res <- srv.design.grouped %>%
+    filter(!is.na(!!sym(entry$variable))) %>%
     summarise(mean = survey_mean(!!sym(entry$variable), vartype="ci", level=0.90))
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(mean=round(mean, 1),
-                          ci=paste0(format(round(mean_low, 1), scientific=F), "%-", 
+                          ci=paste0(format(round(mean_low, 1), scientific=F), "%-",
                                     format(round(mean_upp, 1), scientific=F), "%"))
   } else{
     res <- res %>% mutate(mean=round(mean, 2),
-                          ci=paste0(format(round(mean_low, 2), scientific=F), "-", 
+                          ci=paste0(format(round(mean_low, 2), scientific=F), "-",
                                     format(round(mean_upp, 2), scientific=F)))
   }
   res <- res %>% select(-c(mean_low, mean_upp))
@@ -529,19 +529,19 @@ mean.analysis_overall <- function(srv.design, entry){
   if (!is.na(entry$disaggregate.variable))
     srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
   if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
-  res.overall <- srv.design.grouped %>% 
-    filter(!is.na(!!sym(entry$variable))) %>% 
+  res.overall <- srv.design.grouped %>%
+    filter(!is.na(!!sym(entry$variable))) %>%
     summarise(mean = survey_mean(!!sym(entry$variable), vartype="ci", level=0.90))
   write_xlsx(res.overall,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   if (str_starts(entry$variable, "pct.")){
     res.overall <- res.overall %>% mutate(mean=round(mean, 1),
-                                          ci=paste0(format(round(mean_low, 1), scientific=F), "%-", 
+                                          ci=paste0(format(round(mean_low, 1), scientific=F), "%-",
                                                     format(round(mean_upp, 1), scientific=F), "%"))
-    
-    
+
+
   } else{
     res.overall <- res.overall %>% mutate(mean=round(mean, 2),
-                                          ci=paste0(format(round(mean_low, 2), scientific=F), "-", 
+                                          ci=paste0(format(round(mean_low, 2), scientific=F), "-",
                                                     format(round(mean_upp, 2), scientific=F)))
   }
   res.overall <- res.overall %>% select(-c(mean_low, mean_upp))
@@ -554,14 +554,14 @@ mean.analysis_overall <- function(srv.design, entry){
 mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
-    res.overall <- res.overall %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%"))) 
+    res.overall <- res.overall %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
   }
-  
+
   if (!include.CI) {
     res <- res %>% select(-ci)
     res.overall <- res.overall %>% select(-ci)
   }
-  
+
   if (is.na(entry$disaggregate.variable)){
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
@@ -570,20 +570,20 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
     t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall) %>%
-      summarise(num_samples=n()) %>% 
-      rename(strata = "overall") %>% 
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
       mutate(strata = "Overall")
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
       n_rows <- nrow(res)
-      res <- res %>% 
-        left_join(t.res, by=set_names(entry$admin)) %>% 
+      res <- res %>%
+        left_join(t.res, by=set_names(entry$admin)) %>%
         relocate("num_samples", .after=1)
-      res.overall <- res.overall %>% 
-        rename(strata ="overall") %>% 
-        mutate(strata = "Overall") %>% 
-        left_join(t.res_over, by=("strata")) %>% 
+      res.overall <- res.overall %>%
+        rename(strata ="overall") %>%
+        mutate(strata = "Overall") %>%
+        left_join(t.res_over, by=("strata")) %>%
         relocate("num_samples", .after=1)
       if (nrow(res)!=n_rows) stop()
     }
@@ -592,26 +592,26 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n())  %>% 
-      rename(strata = "overall") %>% 
-      mutate(strata = "Overall") %>% 
+      summarise(num_samples=n())  %>%
+      rename(strata = "overall") %>%
+      mutate(strata = "Overall") %>%
       ungroup()
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
       n_rows <- nrow(res)
-      res <- res %>% 
-        left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+      res <- res %>%
+        left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
         relocate("num_samples", .after=2)
-      res.overall <- res.overall %>% 
-        rename(strata ="overall") %>% 
-        mutate(strata = "Overall") %>% 
-        left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>% 
+      res.overall <- res.overall %>%
+        rename(strata ="overall") %>%
+        mutate(strata = "Overall") %>%
+        left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
         relocate("num_samples", .after=2)
       if (nrow(res)!=n_rows) stop()
     }
@@ -628,17 +628,17 @@ mean.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
   }
-  
+
   if (!include.CI) res <- res %>% select(-ci)
-  
+
   if (is.na(entry$disaggregate.variable)){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin)) %>%
       summarise(num_samples=n())
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=set_names(entry$admin)) %>% 
+    res <- res %>%
+      left_join(t, by=set_names(entry$admin)) %>%
       relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
@@ -646,11 +646,11 @@ mean.to_html <- function(res, entry, include.CI=T){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
@@ -669,16 +669,16 @@ median.analysis <- function(srv.design, entry){
   if (!is.na(entry$disaggregate.variable))
     srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
   if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
-  res <- srv.design.grouped %>% 
-    filter(!is.na(!!sym(entry$variable))) %>% 
+  res <- srv.design.grouped %>%
+    filter(!is.na(!!sym(entry$variable))) %>%
     summarise(median = survey_median(!!sym(entry$variable), vartype="ci", level=0.90))
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(median=round(median, 1),
-                          ci=paste0(format(round(median_low, 1), scientific=F), "%-", 
+                          ci=paste0(format(round(median_low, 1), scientific=F), "%-",
                                     format(round(median_upp, 1), scientific=F), "%"))
   } else{
     res <- res %>% mutate(median=round(median, 2),
-                          ci=paste0(format(round(median_low, 2), scientific=F), "-", 
+                          ci=paste0(format(round(median_low, 2), scientific=F), "-",
                                     format(round(median_upp, 2), scientific=F)))
   }
   res <- res %>% select(-c(median_low, median_upp))
@@ -691,17 +691,17 @@ median.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(median=ifelse(is.na(median), NA, paste0(median, "%")))
   }
-  
+
   if (!include.CI) res <- res %>% select(-ci)
-  
+
   if (is.na(entry$disaggregate.variable)){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin)) %>%
       summarise(num_samples=n())
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=set_names(entry$admin)) %>% 
+    res <- res %>%
+      left_join(t, by=set_names(entry$admin)) %>%
       relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
@@ -709,11 +709,11 @@ median.to_html <- function(res, entry, include.CI=T){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
@@ -732,8 +732,8 @@ count.analysis <- function(srv.design, entry){
   if (!is.na(entry$disaggregate.variable))
     srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
   if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
-  res <- srv.design.grouped %>% 
-    filter(!is.na(!!sym(entry$variable))) %>% 
+  res <- srv.design.grouped %>%
+    filter(!is.na(!!sym(entry$variable))) %>%
     survey_count(!!sym(entry$variable), sort = T)
   write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   res <- res %>% select(-n_se)
@@ -742,32 +742,6 @@ count.analysis <- function(srv.design, entry){
   return(res)
 }
 
-
-###--------------------------------------------------------------------------------------------------------------
-### COUNT _AA
-###--------------------------------------------------------------------------------------------------------------
-# function to run the analysis
-count.analysis <- function(srv.design, entry){
-  srv.design <- srvyr.design
-  srv.design.grouped <- srv.design
-  if (!is.na(entry$admin)){
-    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$admin), .add=T, .drop=T)
-  }
-  if (!is.na(entry$disaggregate.variable)){
-    
-    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
-  }
-  if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
-  res <- srv.design.grouped %>% 
-    filter(!is.na(!!sym(entry$variable))) %>% 
-    survey_count(!!sym(entry$variable), sort = T)
-  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
-  res <- res %>% select(-n_se)
-  if (!is.na(entry$disaggregate.variable)) {
-    res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
-  }
-  return(res)
-}
 
 # function to run the analysis (overall)
 count.analysis_overall <- function(srv.design, entry){
@@ -780,8 +754,8 @@ count.analysis_overall <- function(srv.design, entry){
     srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
   }
   if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
-  res.overall <- srv.design.grouped %>% 
-    filter(!is.na(!!sym(entry$variable))) %>% 
+  res.overall <- srv.design.grouped %>%
+    filter(!is.na(!!sym(entry$variable))) %>%
     survey_count(!!sym(entry$variable), sort = T)
   write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   res.overall <- res.overall %>% select(-n_se)
@@ -801,20 +775,20 @@ count.to_html.overall <- function(res, entry){
     t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall) %>%
-      summarise(num_samples=n()) %>% 
-      rename(strata = "overall") %>% 
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
       mutate(strata = "Overall")
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
       n_rows <- nrow(res)
-      res <- res %>% 
-        left_join(t.res, by=set_names(entry$admin)) %>% 
+      res <- res %>%
+        left_join(t.res, by=set_names(entry$admin)) %>%
         relocate("num_samples", .after=1)
-      res.overall <- res.overall %>% 
-        rename(strata ="overall") %>% 
-        mutate(strata = "Overall") %>% 
-        left_join(t.res_over, by=("strata")) %>% 
+      res.overall <- res.overall %>%
+        rename(strata ="overall") %>%
+        mutate(strata = "Overall") %>%
+        left_join(t.res_over, by=("strata")) %>%
         relocate("num_samples", .after=1)
       if (nrow(res)!=n_rows) stop()
     }
@@ -823,18 +797,18 @@ count.to_html.overall <- function(res, entry){
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     t.res_over <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n())  %>% 
-      rename(strata = "overall") %>% 
-      mutate(strata = "Overall") %>% 
+      summarise(num_samples=n())  %>%
+      rename(strata = "overall") %>%
+      mutate(strata = "Overall") %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
@@ -849,11 +823,11 @@ count.to_html <- function(res, entry){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
       group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
-      summarise(num_samples=n()) %>% 
+      summarise(num_samples=n()) %>%
       ungroup()
     n_rows <- nrow(res)
-    res <- res %>% 
-      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>% 
+    res <- res %>%
+      left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
@@ -867,7 +841,7 @@ count.to_html <- function(res, entry){
 # add table to HTML
 subch <- function(g) {
   g_deparsed <- paste0(deparse(function() {g}), collapse = '')
-  sub_chunk <- paste0("\n\n", "```{r sub_chunk_", floor(runif(1) * 10000), ", echo=FALSE}\n(", 
+  sub_chunk <- paste0("\n\n", "```{r sub_chunk_", floor(runif(1) * 10000), ", echo=FALSE}\n(",
                       g_deparsed, ")()\n```", "\n")
   cat(knitr::knit(text = knitr::knit_expand(text = sub_chunk), quiet = TRUE))
 }
@@ -904,9 +878,9 @@ load.entry <- function(analysis.plan.row){
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
-    disaggregate.variables <- c(str_split(disaggregate.variable, " ?;+ ?")[[1]])
+    disaggregate.variables <- c(str_split(str_remove_all(disaggregate.variable, " "), " ?;+ ?")[[1]])
   }
-  return(list(section=section, label=label, variable=variable, func=func, 
+  return(list(section=section, label=label, variable=variable, func=func,
               admin=admin, disaggregate.variables=disaggregate.variables, data=data,
               xlsx_name=xlsx_name, comments=comments, calculation=calculation, join = join))
 }
@@ -921,7 +895,7 @@ save.dfs <- function(df, dap){
   writeData(wb, sheet = "Table_of_content", x = "Table of Content", startCol = 1, startRow = 1)
   for (i in 1:length(df)){
     writeFormula(wb, "Table_of_content",
-                 startRow = count_sh1, 
+                 startRow = count_sh1,
                  x = makeHyperlinkString(
                    sheet = "Data", row = count_sh2, col = 1,
                    text = names(df[i])
