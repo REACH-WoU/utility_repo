@@ -29,7 +29,7 @@ get.label <- function(variable){
 }
 
 get.choice.label <- function(choice, list){
-  #' finds the label of choices in a list
+  #' Find the label of choices in a list
   #'
   #' Looks up the "name" and `label_colname` in tool.choices. Operates on single values and vectors.
   #'
