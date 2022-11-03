@@ -923,10 +923,16 @@ translate.responses <- function(responses, values_from = "response.uk", language
       temp_resp[[col_name]] <- NA
       # actual translation:
       result_vec <- NULL
+<<<<<<< HEAD
+      result_vec <- translateR::translate(content.vec = responses[[values_from]],
+                                          microsoft.api.key = source("resources/google.api.key_regional.R")$value,
+                                          source.lang = code, target.lang = "en")
+=======
       result_vec <- translateR::translate(content.vec = input_vec,
                           microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
                           microsoft.api.region = "switzerlandnorth",
                           source.lang = code, target.lang = target_lang)
+>>>>>>> 69f5ff7f687150ead9a41f1365adfc5c0373f56d
       # checking the results
       info_df <- rbind(info_df, data.frame(
         "input_responses_num" = length(input_vec),
@@ -978,9 +984,9 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>%
           arrange(name)
-      if(!is.loop) {
-          responses.j <- responses.j %>% select(-loop_index)
-          }
+      # if(!is.loop) {
+      #     responses.j <- responses.j %>% select(-loop_index)
+      #     }
 
     return(responses.j)
 }
@@ -1003,9 +1009,11 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
 
     if(is.na(loop_indexes)) {
         if(is.na(uuids)) stop("Need to provide either uuids, or loop_indexes!")
+        uuids <- str_squish(uuids)
         return(raw.main %>% filter(uuid %in% uuids))
     }
     else{
+        loop_indexes <- str_squish(loop_indexes)
         if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
         else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
         else stop("Referenced loop indexes belong to different loops!")

@@ -30,7 +30,7 @@ select_one.analysis <- function(srv.design, entry){
       mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
                        format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
-    res <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
+    res <- select(res.prop, -colnames(res.prop)[str_detect(colnames(res.prop), "^se\\.")])
     res <- mutate_if(res, is.numeric, ~round(.*100, 1))
     for (lev in unique(res.ci$name)){
       res.ci.sub <- res.ci[res.ci$name==lev,] %>% select(-name)
@@ -38,8 +38,8 @@ select_one.analysis <- function(srv.design, entry){
       res <- cbind(res, res.ci.sub)
     }
     colnames(res) <- str_remove(colnames(res), entry$variable)
-    cols1 <- colnames(res)[!(colnames(res) %in% disaggregations) & !str_starts(colnames(res), "ci.")]
-    cols2 <- colnames(res)[!(colnames(res) %in% disaggregations) & str_starts(colnames(res), "ci.")]
+    cols1 <- colnames(res)[!(colnames(res) %in% disaggregations) & !str_detect(colnames(res), "^ci\\.")]
+    cols2 <- colnames(res)[!(colnames(res) %in% disaggregations) & str_detect(colnames(res), "^ci\\.")]
     res1 <- pivot_longer(res %>% select(rev(disaggregations), all_of(cols1)), cols=all_of(cols1),
                          names_to = entry$variable, values_to = "pct")
     res2 <- pivot_longer(res %>% select(rev(disaggregations), all_of(cols2)), cols=all_of(cols2),
@@ -84,7 +84,7 @@ select_one.analysis_overall <- function(srv.design, entry){
       mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
                        format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
-    res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
+    res.overall <- select(res.prop, -colnames(res.prop)[str_detect(colnames(res.prop), "^se\\.")])
     res.overall <- mutate_if(res.overall, is.numeric, ~round(.*100, 1))
     for (lev in unique(res.ci$name)){
       res.ci.sub <- res.ci[res.ci$name==lev,] %>% select(-name)
@@ -92,8 +92,8 @@ select_one.analysis_overall <- function(srv.design, entry){
       res.overall <- cbind(res.overall, res.ci.sub)
     }
     colnames(res.overall) <- str_remove(colnames(res.overall), entry$variable)
-    cols1 <- colnames(res.overall)[!(colnames(res.overall) %in% disaggregations) & !str_starts(colnames(res.overall), "ci.")]
-    cols2 <- colnames(res.overall)[!(colnames(res.overall) %in% disaggregations) & str_starts(colnames(res.overall), "ci.")]
+    cols1 <- colnames(res.overall)[!(colnames(res.overall) %in% disaggregations) & !str_detect(colnames(res.overall), "^ci\\.")]
+    cols2 <- colnames(res.overall)[!(colnames(res.overall) %in% disaggregations) & str_detect(colnames(res.overall), "^ci\\.")]
     res1 <- pivot_longer(res.overall %>% select(rev(disaggregations), all_of(cols1)), cols=all_of(cols1),
                          names_to = entry$variable, values_to = "pct")
     res2 <- pivot_longer(res.overall %>% select(rev(disaggregations), all_of(cols2)), cols=all_of(cols2),
@@ -260,7 +260,7 @@ select_multiple.analysis <- function(srv.design, entry){
       mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
                        format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
-    res <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
+    res <- select(res.prop, -colnames(res.prop)[str_detect(colnames(res.prop), "^se\\.")])
     res <- mutate_if(res, is.numeric, ~round(.*100, 1))
     for (lev in unique(res.ci$name)){
       res.ci.sub <- res.ci[res.ci$name==lev,] %>% select(-name)
@@ -331,7 +331,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
       mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
                        format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
-    res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
+    res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "^se\\.")])
     res.overall <- mutate_if(res.overall, is.numeric, ~round(.*100, 1))
     for (lev in unique(res.ci$name)){
       res.ci.sub <- res.ci[res.ci$name==lev,] %>% select(-name)
@@ -341,7 +341,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
     cols <- colnames(res.overall)[str_ends(colnames(res.overall), "1") & !(colnames(res.overall) %in% disaggregations)]
     res.overall <- res.overall[c(rev(disaggregations), cols)]
     colnames(res.overall) <- c(rev(disaggregations), str_sub(cols, 1, str_length(cols)-1))
-    cols2 <- colnames(res.overall)[str_starts(colnames(res.overall), "ci.")]
+    cols2 <- colnames(res.overall)[str_detect(colnames(res.overall), "^ci\\.")]
     res1 <- pivot_longer(res.overall %>% select(rev(disaggregations), all_of(variables)), cols=all_of(variables),
                          names_to = "choice", values_to = "pct")
     res2 <- pivot_longer(res.overall %>% select(rev(disaggregations), all_of(cols2)), cols=all_of(cols2),
