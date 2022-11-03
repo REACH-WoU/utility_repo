@@ -15,6 +15,8 @@ style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", val
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
   # TODO: upgrade this function to work on changing df sizes
+  # this function is most likely superceded by save.other.requests and save.trans.requests
+
   style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
   style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
@@ -381,7 +383,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
 load.edited <- function(dir.edited, file.type){
   #' Load logs from specified directory.
   #'
-  #' This function is superceded by load.requests
+  #' [obsolete] This function is superceded by load.requests
 
 
   # file.type should be one of the following:
@@ -603,7 +605,7 @@ apply.changes <- function(data, clog, is.loop = F){
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
   #'
   #' @returns Dataframe containing data with applied changes
-  
+
   if(nrow(clog) == 0){
     warning("No changes to be applied (cleaning log empty).")
     return(data)
@@ -611,9 +613,9 @@ apply.changes <- function(data, clog, is.loop = F){
   else{
     if(!is.loop && ("loop_index" %in% colnames(clog))){
       clog <- filter(clog, is.na(loop_index))  # is this necessary?
-    }else(
+    }else if(is.loop)
       clog <- filter(clog, !is.na(loop_index))
-    )
+
     missinguuids <- c()
     missingloop_indexs <- c()
     missingvars <- c()
@@ -657,7 +659,7 @@ apply.changes <- function(data, clog, is.loop = F){
 }
 
 
-make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today")){
+make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today"), is.loop = F){
   #' Create a logical check DF
   #'
   #' this function replaces `add.to.cleaning.log`. The functionality is changed:
@@ -672,6 +674,9 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   #' This object can be later added to cleaning log.
 
   res <- data.frame()
+  if(is.loop) {
+      cols_to_keep <- append(cols_to_keep, "loop_index")
+  }
   for(q.n in question.names){
     new.entries <- check %>%
       mutate(variable = q.n, issue=issue,
@@ -684,6 +689,10 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
       mutate_all(as.character)
     res <- rbind(res, new.entries)
   }
+  if(is.loop & !("loop_index" %in% colnames(res))){
+      # res$loop_index <- NA
+      res <- res %>% mutate(loop_index = NA, .after = uuid)
+    }
   return(res %>% arrange(uuid))
 }
 
