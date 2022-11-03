@@ -594,40 +594,63 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
 }
 
 
-apply.changes <- function(data, clog){
+apply.changes <- function(data, clog, is.loop = F){
   #' Apply changes to main data basing on a cleaning log.
   #'
-  #' Outputs warnings if uuids or variables from `clog` are not found in `data`
+  #' Outputs warnings if uuids, loop indexes or variables from `clog` are not found in `data`.
+  #' Be aware: all values will be written to data as character.
   #' @param data Data (raw.main)
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
   #'
   #' @returns Dataframe containing data with applied changes
+  
   if(nrow(clog) == 0){
     warning("No changes to be applied (cleaning log empty).")
     return(data)
   }
   else{
+    if(!is.loop && ("loop_index" %in% colnames(clog))){
+      clog <- filter(clog, is.na(loop_index))  # is this necessary?
+    }else(
+      clog <- filter(clog, !is.na(loop_index))
+    )
     missinguuids <- c()
+    missingloop_indexs <- c()
     missingvars <- c()
     for (r in 1:nrow(clog)){
-      uuid <- as.character(clog$uuid[r])
-      if(!uuid %in% data$uuid) {
-        missinguuids <- append(missinguuids, uuid)
-        next
-      }
       variable <- as.character(clog$variable[r])
-      if(!variable %in% colnames(data)) {
-        missingvars <- append(missingvars, variable)
-        next
+        if(!variable %in% colnames(data)) {
+          missingvars <- append(missingvars, variable)
+          next
+        }
+      if(is.loop){
+        loop_index <- as.character(clog$loop_index[r])
+        if(!loop_index %in% data$loop_index){
+          missingloop_indexs <- append(missingloop_indexs, loop_index)
+          next
+        }
+        if(data[data$loop_index == loop_index, variable] %!=na% clog$old.value[r]){
+          warning(paste0("Value in data is different than old.value in Cleaning log!\nloop_index: ", loop_index,
+                         "\tExpected: ", clog$old.value[r], "\t found: ", data[data$loop_index == loop_index, variable],
+                         "\tReplacing with: ", clog$new.value[r]))
+        }
+        data[data$loop_index == loop_index, variable] <- as.character(clog$new.value[r])
+      }else {
+        uuid <- as.character(clog$uuid[r])
+        if(!uuid %in% data$uuid) {
+          missinguuids <- append(missinguuids, uuid)
+          next
+        }
+        if(data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
+          warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
+                        "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
+                        "\tReplacing with: ", clog$new.value[r]))
+        }
+        data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
       }
-      if(data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
-        warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
-                       "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
-                       "\tReplacing with: ", clog$new.value[r]))
-      }
-      data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
     }
     if(length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
+    if(length(missingloop_indexs) > 0) warning(paste0("loop_indexes from cleaning log not found in data:\n", paste0(missingloop_indexs, collapse = "\n")))
     if(length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n", paste0(missingvars, collapse = "\n")))
     return(data)
   }
