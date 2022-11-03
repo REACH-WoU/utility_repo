@@ -260,7 +260,7 @@ select_multiple.analysis <- function(srv.design, entry){
       mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
                        format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
-    res <- select(res.prop, -colnames(res.prop)[str_detect(colnames(res.prop), "^se.\\")])
+    res <- select(res.prop, -colnames(res.prop)[str_detect(colnames(res.prop), "^se\\.")])
     res <- mutate_if(res, is.numeric, ~round(.*100, 1))
     for (lev in unique(res.ci$name)){
       res.ci.sub <- res.ci[res.ci$name==lev,] %>% select(-name)
@@ -331,7 +331,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
       mutate(ci=paste0(format(round(X5..*100, 1), scientific=F), "%-",
                        format(round(X95..*100, 1), scientific=F), "%")) %>%
       select(-c(X5.., X95..))
-    res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "se")])
+    res.overall <- select(res.prop, -colnames(res.prop)[str_starts(colnames(res.prop), "^se\\.")])
     res.overall <- mutate_if(res.overall, is.numeric, ~round(.*100, 1))
     for (lev in unique(res.ci$name)){
       res.ci.sub <- res.ci[res.ci$name==lev,] %>% select(-name)
