@@ -923,10 +923,16 @@ translate.responses <- function(responses, values_from = "response.uk", language
       temp_resp[[col_name]] <- NA
       # actual translation:
       result_vec <- NULL
+<<<<<<< HEAD
+      result_vec <- translateR::translate(content.vec = responses[[values_from]],
+                                          microsoft.api.key = source("resources/google.api.key_regional.R")$value,
+                                          source.lang = code, target.lang = "en")
+=======
       result_vec <- translateR::translate(content.vec = input_vec,
                           microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
                           microsoft.api.region = "switzerlandnorth",
                           source.lang = code, target.lang = target_lang)
+>>>>>>> 69f5ff7f687150ead9a41f1365adfc5c0373f56d
       # checking the results
       info_df <- rbind(info_df, data.frame(
         "input_responses_num" = length(input_vec),
