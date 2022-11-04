@@ -16,7 +16,7 @@ add.to.cleaning.log.other.recode.LOOP <- function(data, x){
 add.to.cleaning.log.other.remove.LOOP <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$name, issue=issue, 
+  df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # remove relative entries
@@ -69,7 +69,7 @@ add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
                    old.value="1", new.value="0")
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices already selected
-  
+
   if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop1")){
     old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
   } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
@@ -118,7 +118,7 @@ add.to.cleaning.log.other.recode.one.LOOP <- function(x){
   # remove text of the response
   df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
-  
+
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -150,7 +150,7 @@ add.to.cleaning.log.other.recode.one.LOOP <- function(x){
 add.to.cleaning.log.LOOP <- function(checks, check.id, question.names=c(), issue="", is.Loop = F){
   for(q.n in question.names){
     if(!is.Loop){
-      new.entries <- checks %>% filter(flag) %>% 
+      new.entries <- checks %>% filter(flag) %>%
         mutate(uuid=uuid,
                loop_index = NA,
                variable = q.n,
@@ -160,7 +160,7 @@ add.to.cleaning.log.LOOP <- function(checks, check.id, question.names=c(), issue
                invalid =NA,
                explanation =NA)
     } else {
-      new.entries <- checks %>% filter(flag) %>% 
+      new.entries <- checks %>% filter(flag) %>%
         mutate(uuid=uuid,
                loop_index=loop_index,
                variable = q.n,
@@ -170,8 +170,8 @@ add.to.cleaning.log.LOOP <- function(checks, check.id, question.names=c(), issue
                invalid =NA,
                explanation =NA)
     }
-    new.entries[["check.id"]] <- check.id 
-    new.entries <- new.entries %>% select(uuid,loop_index, check.id, 
+    new.entries[["check.id"]] <- check.id
+    new.entries <- new.entries %>% select(uuid,loop_index, check.id,
                                           variable,issue, old.value, new.value,invalid, explanation)
     cleaning.log.checks <<- arrange(rbind(cleaning.log.checks, new.entries), uuid)
   }
@@ -182,7 +182,7 @@ add.to.cleaning.log.LOOP <- function(checks, check.id, question.names=c(), issue
 add.to.cleaning.log.trans.remove.LOOP <- function(data, x){
   issue <- "Invalid other response"
   # remove text of the response
-  df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$name, issue=issue, 
+  df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$name, issue=issue,
                    old.value=x$response.uk, new.value=NA)
   cleaning.log.trans <<- rbind(cleaning.log.trans, df)
 }
@@ -190,7 +190,7 @@ add.to.cleaning.log.trans.remove.LOOP <- function(data, x){
 # ------------------------------------------------------------------------------------------
 save.follow.up.requests.LOOP <- function(cleaning.log, data){
   use.color <- function(check.id){
-    return(str_starts(check.id, "0")) 
+    return(str_starts(check.id, "0"))
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
   }
   # define styles
@@ -200,46 +200,46 @@ save.follow.up.requests.LOOP <- function(cleaning.log, data){
   col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
                            border="TopBottomLeftRight", borderColour="#000000")
   # arrange cleaning.log so that colors are properly assigned later
-  cleaning.log <- cleaning.log %>% 
+  cleaning.log <- cleaning.log %>%
     group_modify(~ rbind(
       filter(.x, !use.color(check.id)) %>% arrange(check.id, uuid),
       filter(.x, use.color(check.id)) %>% arrange(check.id)))
   # add missing columns
-  cl <- cleaning.log %>% 
-    left_join(select(data, uuid, `_submission_time`), by="uuid") %>% 
-    rename(submission_time="_submission_time") %>% 
-    select(uuid, loop_index, submission_time, check.id, 
-           variable, issue, old.value, new.value) %>% 
+  cl <- cleaning.log %>%
+    left_join(select(data, uuid, `_submission_time`), by="uuid") %>%
+    rename(submission_time="_submission_time") %>%
+    select(uuid, loop_index, submission_time, check.id,
+           variable, issue, old.value, new.value) %>%
     mutate(explanation=NA)
   c <- cl %>% arrange(match(check.id, str_sort(unique(cl$check.id), numeric=T)))
   # save follow-up requests
   wb <- createWorkbook()
   addWorksheet(wb, "Follow-up")
   writeData(wb = wb, x = cl, sheet = "Follow-up", startRow = 1)
-  
+
   addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl)+1), cols=9)
   addStyle(wb, "Follow-up", style = style.col.color, rows = 1:(nrow(cl)+1), cols=10)
-  
+
   setColWidths(wb, "Follow-up", cols=1:ncol(cl), widths="auto")
   setColWidths(wb, "Follow-up", cols=7, widths=50)
   setColWidths(wb, "Follow-up", cols=8, widths=50)
-  
+
   addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl)+1), cols=7)
   addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl)+1), cols=8)
-  
+
   addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl))
-  
+
   col.id <- which(colnames(cl)=="old.value")
   if(nrow(cl) > 0){
     random.color <- ""
     for (r in 2:nrow(cl)){
-      if((!use.color(as.character(cl[r, "check.id"])) & 
+      if((!use.color(as.character(cl[r, "check.id"])) &
           as.character(cl[r, "uuid"])==as.character(cl[r-1, "uuid"]) &
           as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"])) |
-         (use.color(as.character(cl[r, "check.id"])) & 
+         (use.color(as.character(cl[r, "check.id"])) &
           as.character(cl[r, "check.id"])==as.character(cl[r-1, "check.id"]))){
         if (random.color == "") random.color <- randomColor(1, luminosity = "light")
-        addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T), 
+        addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
                  rows = r:(r+1), cols=col.id)
       } else random.color=""
     }
@@ -253,19 +253,19 @@ save.follow.up.requests.LOOP <- function(cleaning.log, data){
 
 
 recode.multiple.add.choice.LOOP <- function(data, variable, choice, issue, isLoop = F){
-  #' TODO add documentation
+    #' [obsolete]
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that already have choice selected
   if(!isLoop){
-    data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T)) %>% 
+    data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T)) %>%
       mutate(loop_index = NA)
   }
   if(nrow(data) > 0){
     cl_cummulative <- select(data, uuid, loop_index, variable) %>%
       rename(old.value = !!sym(variable)) %>%
       mutate(variable = variable, new.value = paste(old.value, choice), issue = issue)
-    
+
     cl_choice <- select(data, uuid, loop_index) %>%
       mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
     return(rbind(cl_cummulative, cl_choice))
@@ -274,19 +274,20 @@ recode.multiple.add.choice.LOOP <- function(data, variable, choice, issue, isLoo
 }
 
 recode.multiple.remove.choice.LOOP <- function(data, variable, choice, issue, isLoop = F){
-  #' TODO add documentation
+
+  #' [obsolete]
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that dont have the choice selected
   if(!isLoop){
-    data <- data %>% filter(str_detect(!!sym(variable), choice)) %>% 
+    data <- data %>% filter(str_detect(!!sym(variable), choice)) %>%
       mutate(loop_index = NA)
   }
   if(nrow(data) > 0){
     cl_cummulative <- select(data, uuid, loop_index, variable) %>%
       rename(old.value = !!sym(variable)) %>%
       mutate(variable = variable, new.value = str_squish(str_remove(old.value, choice)), issue = issue)
-    
+
     cl_choice <- select(data, uuid, loop_index) %>%
       mutate(variable = choice_column, old.value = "1", new.value = "0", issue = issue)
     return(rbind(cl_cummulative, cl_choice))
@@ -303,8 +304,8 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
   #'
   #' @returns Dataframe containing data with applied changes
-  #' 
-  
+  #'
+
   # TODO: fix this function to not produce so many unnecessary warnings
 
   if(nrow(clog) == 0){
@@ -313,7 +314,7 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
   }
   else{
     if(!isLoop && ("loop_index" %in% colnames(clog))){
-      clog <- filter(clog, is.na(loop_index))  
+      clog <- filter(clog, is.na(loop_index))
     }else(
       clog <- filter(clog, !is.na(loop_index))
     )
@@ -334,7 +335,7 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
       }
       if(!is.na(loop_index) & !loop_index %in% data$loop_index){
         missingloop_indexs <- append(missingloop_indexs,loop_index)
-      } 
+      }
       if(!isLoop){
         if(data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
           warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
