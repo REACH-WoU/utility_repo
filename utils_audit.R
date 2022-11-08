@@ -233,7 +233,8 @@ calculate.enumerator.similarity <- function(data, tool.survey, col_enum, col_adm
 # FUNCTIONS FOR OUTPUTTING ENUM PERFORMANCE ANALYSES
 #-------------------------------------------------------------------------------
 
-create.count_enu <- function(deletion.log, col_enum)  {
+create.count_deleted_enu <- function(deletion.log, col_enum)  {
+    #' was previously named create.count_enu
 
   count_del <- deletion.log %>%
     group_by(!!sym(col_enum)) %>%
@@ -248,7 +249,7 @@ create.count_enu <- function(deletion.log, col_enum)  {
   addWorksheet(wb, "Sheet2")
   writeData(wb = wb, x = count_del, sheet = "Sheet1", startRow = 1)
   writeData(wb = wb, x = count_del_reas, sheet = "Sheet2", startRow = 1)
-  filename <- paste0("output/enum_performance/", "count_enu", ".xlsx")
+  filename <- paste0("output/enum_performance/", "count_deleted_enu", ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
 
@@ -264,7 +265,8 @@ create.count_collected_enu <- function(kobo.raw, col_enum)  {
 
   count_del <- kobo.raw %>%
     group_by(!!sym(col_enum)) %>%
-    summarize(count = n())
+    summarize(count = n()) %>%
+      arrange(col_enum)
 
   wb <- createWorkbook()
   addWorksheet(wb, "Sheet1")
@@ -281,7 +283,7 @@ create.count_enu_cleaning <- function(cleaning.log, col_enum)  {
     summarize(count = n())
 
   count_del_reas <- cleaning.log %>%
-    group_by(!!sym(col_enum),reason) %>%
+    group_by(!!sym(col_enum), issue) %>%
     summarize(count = n())
 
   wb <- createWorkbook()
@@ -291,6 +293,5 @@ create.count_enu_cleaning <- function(cleaning.log, col_enum)  {
   writeData(wb = wb, x = count_del_reas, sheet = "Sheet2", startRow = 1)
   filename <- paste0("output/enum_performance/", "count_enu_cleaning", ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
-
 
 }
