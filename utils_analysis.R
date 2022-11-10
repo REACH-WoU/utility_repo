@@ -193,11 +193,16 @@ convert.cols.check.dap <- function(df, dap) {
 
     converted <- c()
 
-    # TODO: filter the dap using the data that was entered
-    #--------------------------------------
-    # loop_no  <- df$loop_index[1]
-    # dap <- dap %>% filter(...)
-    #--------------------------------------
+    # the loop_index must be in the standard format: loop#_xxx
+    # loop_no  <- str_extract(str_split(df$loop_index[1], "_", simplify = T)[1], "\\d+")
+    
+    # filter the dap using the data that was entered 
+    dap <- dap %>% filter(variable %in% colnames(df))
+    
+    if(nrow(dap) == 0){
+      cat("\nThere was nothing to convert - no questions from data are found in DAP.")
+      return(df)
+    }
 
     for(r in 1:nrow(dap)){
         entry <- load.entry(dap[r,])
@@ -205,12 +210,16 @@ convert.cols.check.dap <- function(df, dap) {
 
         cat("Converting",col," ")
         # check if variables exist in data
-        if(!col %in% colnames(df)) warning(paste("Variable", col, "not found in data!"))
+        if(!col %in% colnames(df)) 
+          stop(paste("Variable", col, "not found in data!"))
+          
         if(!col %in% tool.survey$name){
-            warning(paste("Variable", col, "not found in tool.survey! Skipping conversion."))
-            next
+            warning(paste("Variable", col, "not found in tool.survey!\n"))
         }
-        # todo: check if func is correct?
+        if(is.na(entry$func)){
+          warning("Missing parameter func in row ", r, " (variable ",entry$variable,")\n")
+          next
+        }
 
         q <- tool.survey[tool.survey$name == col,]
         if(!is.na(entry$calculation)){
@@ -223,9 +232,12 @@ convert.cols.check.dap <- function(df, dap) {
         # check and convert disagg variable :)
         if(!all(is.na(entry$disaggregate.variables))){
             for(disagg.var in entry$disaggregate.variables){
-                if(!disagg.var %in% colnames(df))        warning(paste("Disaggregation variable", disagg.var, "not found in data!"))
-                else if(!disagg.var %in% tool.survey$name) warning(paste("Disaggregation variable", disagg.var, "not found in tool.survey!"))
-                else if(!disagg.var %in% converted){
+                if(!disagg.var %in% colnames(df)){          
+                  warning(paste("Disaggregation variable", disagg.var, "not found in data! Skipping.\n"))
+                  next
+                  }
+                if(!disagg.var %in% tool.survey$name) warning(paste("Disaggregation variable", disagg.var, "not found in tool.survey!"))
+                if(!disagg.var %in% converted){
                     df[[disagg.var]] <- convert.col.type(df, disagg.var)
                     converted <- append(converted, disagg.var)
                 }
@@ -234,25 +246,28 @@ convert.cols.check.dap <- function(df, dap) {
 
         if(col %in% converted) next
 
-        omit_na <- is.na(entry$calculation) | entry$calculation == "omit_na"
         if(entry$func == "select_multiple"){
             if(get.type(col) != "select_multiple")
                 stop(paste0("Issue with entry #", r, " (", col,"): func is 'select_multiple', but question type is ", get.type(col)))
 
             choice_cols <- colnames(df)[str_starts(colnames(df), paste0(col, "/"))]
             for(ccol in choice_cols){
-                df[[ccol]] <- convert.col.type(df, ccol, omit_na)
+                df[[ccol]] <- convert.col.type(df, ccol, entry$omit_na)
                 df <- df %>% rename_with(~str_replace(ccol, "/", "___"), ccol)
                 converted <- append(converted, ccol)
             }
-            if(!omit_na){
+            if(!entry$omit_na){
                 # create a new NA column
                 na_colname <- paste0(col,"___NA")
                 df[[na_colname]] <- factor(ifelse(is.na(df[[col]]), 1, 0))
                 df <- df %>% relocate(na_colname, .after = !!sym(col))
             }
         }else {
-            df[[col]] <- convert.col.type(df, col, omit_na)
+          if(!col %in% tool.survey$name){
+            if(entry$func == "select_one") df[[col]] <- factor(df[[col]])
+            else if(entry$func == "mean") df[[col]] <- as.numeric(df[[col]])
+            }
+            df[[col]] <- convert.col.type(df, col, entry$omit_na)
             converted <- append(converted, col)
         }
         cat("... done.\n")

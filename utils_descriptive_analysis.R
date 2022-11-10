@@ -74,7 +74,7 @@ select_one.analysis_overall <- function(srv.design, entry){
     # get proportions and confidence intervals (using svyby + svymean)
     res.prop <- svyby(make.formula(entry$variable), make.formula(disaggregations), srv.design, svymean,
                       drop.empty.groups=F, multicore=F, na.rm=T, keep.names=F)
-    write_xlsx(res.prop,paste0("res_prop/",entry$xlsx_name,".xlsx"))
+    # write_xlsx(res.prop,paste0("res_prop/",entry$xlsx_name,".xlsx"))
     res.ci <- data.frame(confint(res.prop, level=0.90))
     res.ci[,1] <- pmax(res.ci[, 1], 0)
     res.ci[,2] <- pmin(res.ci[, 2], 1)
@@ -176,7 +176,7 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
   res <- res %>% filter(!is.na(num_samples))
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -217,7 +217,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -229,7 +229,7 @@ select_multiple.analysis <- function(srv.design, entry){
   # get list of columns for the selected question --> variables
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
   choices <- tool.choices %>% filter(list_name==q.list_name) %>%
-    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>%
+    select(name, !!sym(label_colname)) %>% rename(label=!!sym(label_colname)) %>%
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
   variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables),
                                                          paste0(entry$variable, "___"))]
@@ -297,7 +297,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
   # get list of columns for the selected question --> variables
   q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
   choices <- tool.choices %>% filter(list_name==q.list_name) %>%
-    select(name, label_colname) %>% rename(label=!!sym(label_colname)) %>%
+    select(name, !!sym(label_colname)) %>% rename(label=!!sym(label_colname)) %>%
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
   variables <- colnames(srv.design$variables)[str_starts(colnames(srv.design$variables),
                                                          paste0(entry$variable, "___"))]
@@ -321,7 +321,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
     # get proportions and confidence intervals (using svyby + svymean)
     res.prop <- svyby(make.formula(variables), make.formula(disaggregations), srv.design, svymean,
                       drop.empty.groups=F, multicore=F, na.rm=T)
-    write_xlsx(res.prop,paste0("res_prop/",entry$xlsx_name,".xlsx"))
+    # write_xlsx(res.prop,paste0("res_prop/",entry$xlsx_name,".xlsx"))
     res.ci <- data.frame(confint(res.prop, level=0.9))
     res.ci[,1] <- pmax(res.ci[, 1], 0)
     res.ci[,2] <- pmin(res.ci[, 2], 1)
@@ -440,7 +440,7 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
   res <- res %>% filter(!is.na(num_samples))
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -488,7 +488,7 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
   if(!entry$omit_na){
     res$num_samples <- nrow(data) # spit and fix
   }
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -532,7 +532,7 @@ mean.analysis_overall <- function(srv.design, entry){
   res.overall <- srv.design.grouped %>%
     filter(!is.na(!!sym(entry$variable))) %>%
     summarise(mean = survey_mean(!!sym(entry$variable), vartype="ci", level=0.90))
-  write_xlsx(res.overall,paste0("res_prop/",entry$xlsx_name,".xlsx"))
+  # write_xlsx(res.overall,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   if (str_starts(entry$variable, "pct.")){
     res.overall <- res.overall %>% mutate(mean=round(mean, 1),
                                           ci=paste0(format(round(mean_low, 1), scientific=F), "%-",
@@ -619,7 +619,7 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
   res <- res %>% filter(!is.na(num_samples))
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -655,7 +655,7 @@ mean.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 ###--------------------------------------------------------------------------------------------------------------
@@ -686,6 +686,35 @@ median.analysis <- function(srv.design, entry){
     res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
   return(res)
 }
+
+median.analysis_overall <- function(srv.design, entry){
+  srv.design.grouped <- srv.design
+  entry$admin <- "overall"
+  if (!is.na(entry$admin))
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$admin), .add=T, .drop=T)
+  if (!is.na(entry$disaggregate.variable))
+    srv.design.grouped <- srv.design.grouped %>% group_by(!!sym(entry$disaggregate.variable), .add=T, .drop=T)
+  if (all(is.na(srv.design.grouped$variables[[entry$variable]]))) return(data.frame())
+  res <- srv.design.grouped %>%
+    filter(!is.na(!!sym(entry$variable))) %>%
+    summarise(median = survey_median(!!sym(entry$variable), vartype="ci", level=0.90))
+  if (str_starts(entry$variable, "pct.")){
+    res <- res %>% mutate(median=round(median, 1),
+                          ci=paste0(format(round(median_low, 1), scientific=F), "%-",
+                                    format(round(median_upp, 1), scientific=F), "%"))
+  } else{
+    res <- res %>% mutate(median=round(median, 2),
+                          ci=paste0(format(round(median_low, 2), scientific=F), "-",
+                                    format(round(median_upp, 2), scientific=F)))
+  }
+  res <- res %>% select(-c(median_low, median_upp))
+  if (!is.na(entry$disaggregate.variable))
+    res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
+  return(res)
+}
+
+
+
 # function to produce HTML table
 median.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
@@ -718,9 +747,85 @@ median.to_html <- function(res, entry, include.CI=T){
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
+
+# function to produce HTML table
+median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
+  if (str_starts(entry$variable, "pct.")){
+    res <- res %>% mutate(median=ifelse(is.na(median), NA, paste0(median, "%")))
+    res.overall <- res.overall %>% mutate(median=ifelse(is.na(median), NA, paste0(median, "%")))
+  }
+  
+  if (!include.CI) {
+    res <- res %>% select(-ci)
+    res.overall <- res.overall %>% select(-ci)
+  }
+  
+  if (is.na(entry$disaggregate.variable)){
+    t.res <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin)) %>%
+      summarise(num_samples=n())
+    t.res_over <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(overall) %>%
+      summarise(num_samples=n()) %>%
+      rename(strata = "overall") %>%
+      mutate(strata = "Overall")
+    if (nrow(t.res) == 0){
+      return(data.frame())
+    } else{
+      n_rows <- nrow(res)
+      res <- res %>%
+        left_join(t.res, by=set_names(entry$admin)) %>%
+        relocate("num_samples", .after=1)
+      res.overall <- res.overall %>%
+        rename(strata ="overall") %>%
+        mutate(strata = "Overall") %>%
+        left_join(t.res_over, by=("strata")) %>%
+        relocate("num_samples", .after=1)
+      if (nrow(res)!=n_rows) stop()
+    }
+  }
+  if (!is.na(entry$disaggregate.variable)){
+    t.res <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n()) %>%
+      ungroup()
+    t.res_over <- data %>%
+      filter(!is.na(!!sym(entry$variable))) %>%
+      group_by(overall, !!sym(entry$disaggregate.variable)) %>%
+      summarise(num_samples=n())  %>%
+      rename(strata = "overall") %>%
+      mutate(strata = "Overall") %>%
+      ungroup()
+    if (nrow(t.res) == 0){
+      return(data.frame())
+    } else{
+      n_rows <- nrow(res)
+      res <- res %>%
+        left_join(t.res, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
+        relocate("num_samples", .after=2)
+      res.overall <- res.overall %>%
+        rename(strata ="overall") %>%
+        mutate(strata = "Overall") %>%
+        left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
+        relocate("num_samples", .after=2)
+      if (nrow(res)!=n_rows) stop()
+    }
+  }
+  res <- res %>% filter(!is.na(num_samples))
+  res.overall <- res.overall %>% filter(!is.na(num_samples))
+  res <- rbind(res,res.overall)
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
+  return(subch(datatable(res)))
+}
+
+
+
 ###--------------------------------------------------------------------------------------------------------------
 ### COUNT _KJ
 ###--------------------------------------------------------------------------------------------------------------
@@ -735,7 +840,6 @@ count.analysis <- function(srv.design, entry){
   res <- srv.design.grouped %>%
     filter(!is.na(!!sym(entry$variable))) %>%
     survey_count(!!sym(entry$variable), sort = T)
-  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   res <- res %>% select(-n_se)
   if (!is.na(entry$disaggregate.variable))
     res <- filter(res, !is.na(!!sym(entry$disaggregate.variable)))
@@ -757,7 +861,6 @@ count.analysis_overall <- function(srv.design, entry){
   res.overall <- srv.design.grouped %>%
     filter(!is.na(!!sym(entry$variable))) %>%
     survey_count(!!sym(entry$variable), sort = T)
-  write_xlsx(res,paste0("res_prop/",entry$xlsx_name,".xlsx"))
   res.overall <- res.overall %>% select(-n_se)
   if (!is.na(entry$disaggregate.variable)){
     res.overall <- filter(res.overall, !is.na(!!sym(entry$disaggregate.variable)))
@@ -812,7 +915,7 @@ count.to_html.overall <- function(res, entry){
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -831,7 +934,7 @@ count.to_html <- function(res, entry){
       relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
-  write_xlsx(res,paste0("combine/",entry$xlsx_name,".xlsx"))
+  write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res)))
 }
 
@@ -875,6 +978,7 @@ load.entry <- function(analysis.plan.row){
   calculation <- as.character(analysis.plan.row$calculation)
   join <- !is.na(analysis.plan.row$join)
   comments <- as.character(analysis.plan.row$comments)
+  omit_na <- is.na(analysis.plan.row$calculation) | analysis.plan.row$calculation == "omit_na"
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
@@ -882,11 +986,12 @@ load.entry <- function(analysis.plan.row){
   }
   return(list(section=section, label=label, variable=variable, func=func,
               admin=admin, disaggregate.variables=disaggregate.variables, data=data,
-              xlsx_name=xlsx_name, comments=comments, calculation=calculation, join = join))
+              xlsx_name=xlsx_name, comments=comments, calculation=calculation, 
+              join = join, omit_na = omit_na))
 }
 
 # load all DFs to one sheet
-save.dfs <- function(df, dap){
+save.dfs <- function(df, filename){
   wb <- createWorkbook()
   addWorksheet(wb, "Table_of_content")
   addWorksheet(wb, "Data")
@@ -908,6 +1013,5 @@ save.dfs <- function(df, dap){
     writeData(wb = wb, sheet= "Data", x = NULL, startRow = count_sh2)
     count_sh2 <- count_sh2 + 1
   }
-  filename <- paste0("output/combined_df.xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
 }
