@@ -238,17 +238,19 @@ create.count_deleted_enu <- function(deletion.log, col_enum)  {
 
   count_del <- deletion.log %>%
     group_by(!!sym(col_enum)) %>%
-    summarize(count = n())
+    summarize(count = n()) %>%
+      arrange(col_enum)
 
   count_del_reas <- deletion.log %>%
     group_by(!!sym(col_enum),reason) %>%
-    summarize(count = n())
+    summarize(count = n()) %>%
+      arrange(col_enum)
 
   wb <- createWorkbook()
-  addWorksheet(wb, "Sheet1")
-  addWorksheet(wb, "Sheet2")
-  writeData(wb = wb, x = count_del, sheet = "Sheet1", startRow = 1)
-  writeData(wb = wb, x = count_del_reas, sheet = "Sheet2", startRow = 1)
+  addWorksheet(wb, "dlog entries")
+  addWorksheet(wb, "dlog reasons")
+  writeData(wb = wb, x = count_del, sheet = "dlog entries", startRow = 1)
+  writeData(wb = wb, x = count_del_reas, sheet = "dlog reasons", startRow = 1)
   filename <- paste0("output/enum_performance/", "count_deleted_enu", ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
@@ -277,20 +279,30 @@ create.count_collected_enu <- function(kobo.raw, col_enum)  {
 }
 
 create.count_enu_cleaning <- function(cleaning.log, col_enum)  {
-
-  count_del <- cleaning.log %>%
+    #' Create an analysis of the numbers of cleaning log entries per enumerator.
+    #'
+    #' The output spreadsheet is saved to a file named 'count_enu_cleaning.xlsx in directory 'output/enum_performance'
+    #' The first sheet named "clog entries" has the numbers of entires per enumerator
+    #' The second sheet named "clog reasons" includes grouping by reason too.
+    #'
+    #' @param cleaning.log The entire cleaning.log, containing the column `col_enum`
+    #' @param col_enum The name of the column which contains the enumerator's ID.
+    #'
+  count_cl_entries <- cleaning.log %>%
     group_by(!!sym(col_enum)) %>%
-    summarize(count = n())
+    summarize(count = n()) %>%
+      arrange(col_enum)
 
-  count_del_reas <- cleaning.log %>%
+  count_cl_entries_reas <- cleaning.log %>%
     group_by(!!sym(col_enum), issue) %>%
-    summarize(count = n())
+    summarize(count = n()) %>%
+      arrange(col_enum)
 
   wb <- createWorkbook()
-  addWorksheet(wb, "Sheet1")
-  addWorksheet(wb, "Sheet2")
-  writeData(wb = wb, x = count_del, sheet = "Sheet1", startRow = 1)
-  writeData(wb = wb, x = count_del_reas, sheet = "Sheet2", startRow = 1)
+  addWorksheet(wb, "clog entries")
+  addWorksheet(wb, "clog reasons")
+  writeData(wb = wb, x = count_cl_entries, sheet = "clog entries", startRow = 1)
+  writeData(wb = wb, x = count_cl_entries_reas, sheet = "clog reasons", startRow = 1)
   filename <- paste0("output/enum_performance/", "count_enu_cleaning", ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
