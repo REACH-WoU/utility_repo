@@ -503,10 +503,12 @@ recode.multiple.set.NA <- function(data, variable, issue){
                 cl_choices <- rbind(cl_choices, cl)
                 # remove text from text other response
                 if(str_ends(col, "/other")){
-                    cl_choices <- rbind(cl_choices, df %>% mutate(
-                        variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
-                                                                                 new.value = NA, issue = issue) %>%
-                            select(any_of(CL_COLS)))
+                    cl_other_text <- df %>% filter(!is.na(!!sym(paste0(variable, "_other")))) %>% 
+                      mutate(variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
+                      new.value = NA, issue = issue) %>%
+                      select(any_of(CL_COLS))
+                    
+                    cl_choices <- rbind(cl_choices, cl_other_text) 
                 }
             }
         }
@@ -601,7 +603,8 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
 }
 
 recode.multiple.add.choice <- function(data, variable, choice, issue){
-  #' TODO add documentation
+  #' [obsolete] use `recode.multiple.add.choices` instead
+  
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that already have choice selected
