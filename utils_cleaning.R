@@ -15,6 +15,8 @@ style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", val
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
   # TODO: upgrade this function to work on changing df sizes
+  # this function is most likely superceded by save.other.requests and save.trans.requests
+
   style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
   style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
@@ -280,16 +282,16 @@ create.follow.up.requests <- function(checks.df, wb_name){
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="explanation"))
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="new.value"))
     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=which(colnames(cl)=="invalid"))
-    
-    
+
+
     setColWidths(wb, "Follow-up", cols=1:ncol(cl), widths="auto")
     # setColWidths(wb, "Follow-up", cols=ncol(cl)-1, widths=50)
-    
+
     setColWidths(wb, "Follow-up", cols=which(colnames(cl)=="issue"), widths=50)
     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl)+1), cols=which(colnames(cl)=="issue"))
-    
+
     addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl))
-    
+
     col.id <- which(colnames(cl)=="old.value")
     if(nrow(cl) > 0){
       random.color <- ""
@@ -305,7 +307,7 @@ create.follow.up.requests <- function(checks.df, wb_name){
         } else random.color=""
       }
     }
-    
+
     filename <- paste0("output/checking/requests/", wb_name)
     saveWorkbook(wb, filename, overwrite = TRUE)
 }
@@ -328,7 +330,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
   #'
   #' @param sheet Optional parameter passed to `read_xlsx`, defaults to NULL (first sheet of an Excel workbook)
   #' @param validate Should the file be validated (make sure that only one of TEI columns is filled.)
-  
+
   file.type = str_squish(str_replace_all(filename.pattern, "[^a-zA-Z]+"," "))
   filenames <- list.files(dir, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
                           pattern=paste0("^",filename.pattern,".*\\.xlsx"))
@@ -345,12 +347,12 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
         if(ncol(res)!=ncol(other)) warning("Number of columns differs between files! Check them to make sure everything is correct, please!")
         res <- bind_rows(res, other)
       }
-      
+
     }
     # rename: TRUE -> true.v, EXISTING -> existing.v, INVALID -> invalid.v
     c_tei_cols <- c("true", "existing", "invalid")
     for(c in c_tei_cols) colnames(res)[str_starts(colnames(res), str_to_upper(c))] <- paste0(c,'.v')
-    
+
     if(validate){
       c_tei_cols <- paste0(c_tei_cols, ".v")
       if(all(c_tei_cols %in% colnames(res))){
@@ -381,16 +383,16 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
 load.edited <- function(dir.edited, file.type){
   #' Load logs from specified directory.
   #'
-  #' This function is superceded by load.requests
-  
-  
+  #' [obsolete] This function is superceded by load.requests
+
+
   # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
   if(!(file.type %in% valid_types))
     warning("Unexpected file.type for load.edited")
-  
+
   filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
-                          pattern=paste0(".*",file.type,"_((responses)|(requests))(_edited)?.*\\.xlsx$"))
+                          pattern=paste0(".*",file.type,"((responses)|(requests))?(_edited)?.*\\.xlsx$"))
   if (length(filenames) == 0){
     warning(paste("Files with",file.type,"responses not found!"))
   } else {
@@ -403,7 +405,7 @@ load.edited <- function(dir.edited, file.type){
       else res <- rbind(res, other)
     }
     return(res)
-    
+
   }
 }
 
@@ -440,6 +442,34 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
+# recoding select_multiples:
+# ------------------------------------------------------------------------------
+CL_COLS <- c("uuid", "loop_index", "variable", "old.value", "new.value", "issue")
+
+recode.set.NA.if <- function(data, variables, code, issue){
+    #' Recode a question by setting variables to NA if they are equal to a given value (code).
+    #'
+    #' @param data Dataframe containing records which will be affected.
+    #' @param variables Vector of strings (or a single string) containing the names of the variables.
+    #' @param code Vector of strings (or a single string) which will be changed to NA.
+    #' @param issue String with explanation used for the cleaning log entry.
+    #'
+    #' @returns Dataframe containing cleaning log entries constructed from `data`.
+    #'
+    #' @usage `recode.set.NA.if(data = filter(raw.main, condition),
+    #'  variables = c("question1", "question2"),
+    #'   code = "999", issue = "explanation")`
+    #'
+    clog <- tibble()
+    for(variable in variables){
+        data1 <- data %>% filter(!!sym(variable) %in% code)
+        cl <- data1 %>% mutate(variable = variable, old.value = !!sym(variable), new.value = NA,
+                              issue = issue) %>% select(any_of(CL_COLS))
+        clog <- rbind(clog, cl)
+    }
+    return(clog)
+}
+
 recode.multiple.set.NA <- function(data, variable, issue){
     #' Recode select_multiple responses: set to NA.
     #'
@@ -458,16 +488,17 @@ recode.multiple.set.NA <- function(data, variable, issue){
     # filter out cases that already are NA
     data <- data %>% filter(!if_all(all_of(ccols), ~is.na(.)))
     if(nrow(data)>0){
-        cl_cummulative <- select(data, uuid, variable) %>%
+        cl_cummulative <- data %>% select(any_of(c("uuid", "loop_index", variable))) %>%
             mutate(variable = variable, old.value = !!sym(variable), new.value = NA, issue = issue) %>%
-            select(uuid, variable, old.value, new.value, issue)
+            select(any_of(CL_COLS))
+
         cl_choices <- data.frame()
         for(col in ccols){
             df <- data %>% filter(!is.na(!!sym(col)))
             if(nrow(df)>0){
                 cl <- df %>%
                     mutate(variable = col, old.value = !!sym(col), new.value = NA, issue = issue) %>%
-                    select(uuid, variable, old.value, new.value, issue)
+                    select(any_of(CL_COLS))
 
                 cl_choices <- rbind(cl_choices, cl)
                 # remove text from text other response
@@ -475,7 +506,7 @@ recode.multiple.set.NA <- function(data, variable, issue){
                     cl_choices <- rbind(cl_choices, df %>% mutate(
                         variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
                                                                                  new.value = NA, issue = issue) %>%
-                            select(uuid, variable, old.value, new.value, issue))
+                            select(any_of(CL_COLS)))
                 }
             }
         }
@@ -487,34 +518,46 @@ recode.multiple.set.NA <- function(data, variable, issue){
 }
 
 recode.multiple.set.choice <- function(data, variable, choice, issue){
-    #' TODO add documentation
+    #' Recode select_multiple responses: set answer to one particular choice.
+    #'
+    #' Changes all 1s to 0 in choice columns (except for `choice`) and sets cumulative variable to be equal to `choice`.
+    #' Additionally, all NAs will be changed too.
+    #'
+    #' @param data Dataframe containing records which will be affected.
+    #' @param variable String containing the name of the select_multiple variable.
+    #' @param choice String containing the choice that must be a valid option for this variable.
+    #' @param issue String with explanation used for the cleaning log entry.
+    #'
+    #' @returns Dataframe containing cleaning log entries constructed from `data`.
+    #'
+    #' @usage `recode.multiple.set.choice(data = filter(raw.main, condition), variable = "question_name", choice = "option", issue = "explanation")`
+    #'
     choice_column <- paste0(variable,"/",choice)
     if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
-    # filter out cases that already have choice selected
-    data <- data %>% filter(str_detect(variable, choice, negate = T))
+    # filter out cases that already have only this choice selected
+    data <- data %>% filter(!!sym(variable) %!=na% choice)
     if(nrow(data) > 0){
-        cl_cummulative <- select(data, uuid, variable) %>%
+        cl_cummulative <- data %>% select(any_of(c("uuid", "loop_index", variable))) %>%
             rename(old.value = !!sym(variable)) %>%
             mutate(variable = variable, new.value = choice, issue = issue)
 
         cl_choices <- data %>%
             mutate(variable = choice_column, old.value = !!sym(choice_column), new.value = "1", issue = issue) %>%
-            select(uuid, variable, old.value, new.value, issue)
+            select(any_of(CL_COLS))
 
         # set all other choices columns to 0
         cols <- colnames(data)[str_starts(colnames(data), paste0(variable, "/")) &
                                    !(str_ends(colnames(data), choice))]
         for(col in cols){
-            df <- data %>% filter(!!sym(col) != "0")
+            df <- data %>% filter(!!sym(col) %!=na% "0")
             if(nrow(df>0)){
                 cl <- df %>%
                     mutate(variable = col, old.value = !!sym(col), new.value = "0", issue = issue) %>%
-                    select(uuid, variable, old.value, new.value, issue)
+                    select(any_of(CL_COLS))
 
                 cl_choices <- rbind(cl_choices, cl)
             }
         }
-
         return(rbind(cl_cummulative, cl_choices))
 
     }
@@ -532,22 +575,22 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
     choices_len <- str_length(paste0(choices, collapse = "")) + length(choices)
     # filter out cases that already have all choices selected
     data <- data %>%
-      select(uuid, variable, all_of(choice_columns)) %>% filter(!is.na(!!sym(variable))) %>%
+      select(any_of(c("uuid", "loop_index", variable)), all_of(choice_columns)) %>% filter(!is.na(!!sym(variable))) %>%
         mutate(variable2 = str_squish(str_remove_all(!!sym(variable), choices_pattern))) %>%
         mutate(len_diff = str_length(!!sym(variable)) - str_length(variable2)) %>%
         filter(str_length(!!sym(variable)) - str_length(variable2) != choices_len)
     if(nrow(data) > 0){
-      cl_cummulative <- select(data, uuid, variable, variable2) %>%
+      cl_cummulative <- data %>% select(any_of(c("uuid", "loop_index", variable, "variable2"))) %>%
           rename(old.value = !!sym(variable)) %>%
           mutate(variable = variable, new.value = str_squish(paste(variable2, paste0(choices, collapse = " "))), issue = issue) %>%
           select(-variable2)
-      if(cl_cummulative$new.value %==na% cl_cummulative$old.value) cl_cummulative <- data.frame()
+      if(all(cl_cummulative$new.value %==na% cl_cummulative$old.value)) cl_cummulative <- data.frame()
       cl_choices <- data.frame()
       for(choice in choices){
           choice_column <- paste0(variable,"/",choice)
-          data1 <- data %>% filter(!!sym(choice_column) == "0")
+          data1 <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
           if(nrow(data1) > 0){
-            cl_choice <- select(data1, uuid) %>%
+            cl_choice <- data1 %>% select(any_of(c("uuid","loop_index"))) %>%
                 mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
             cl_choices <- rbind(cl_choices, cl_choice)
           }
@@ -564,11 +607,11 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
   # filter out cases that already have choice selected
   data <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
   if(nrow(data) > 0){
-    cl_cummulative <- select(data, uuid, variable) %>%
+    cl_cummulative <- data %>% select(any_of(c("uuid", "loop_index", variable))) %>%
       rename(old.value = !!sym(variable)) %>%
       mutate(variable = variable, new.value = str_squish(paste(old.value, choice)), issue = issue)
 
-    cl_choice <- select(data, uuid) %>%
+    cl_choice <- data %>% select(any_of(c("uuid", "loop_index"))) %>%
       mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
     return(rbind(cl_cummulative, cl_choice))
   }
@@ -582,11 +625,11 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
   # filter out cases that dont have the choice selected
   data <- data %>% filter(str_detect(!!sym(variable), choice))
   if(nrow(data) > 0){
-    cl_cummulative <- select(data, uuid, variable) %>%
+    cl_cummulative <- data %>% select(any_of(c("uuid", "loop_index", variable))) %>%
       rename(old.value = !!sym(variable)) %>%
       mutate(variable = variable, new.value = str_squish(str_remove(old.value, choice)), issue = issue)
-    
-    cl_choice <- select(data, uuid) %>%
+
+    cl_choice <- data %>% select(any_of(c("uuid", "loop_index"))) %>%
       mutate(variable = choice_column, old.value = "1", new.value = "0", issue = issue)
     return(rbind(cl_cummulative, cl_choice))
   }
@@ -594,47 +637,70 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
 }
 
 
-apply.changes <- function(data, clog){
+apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
   #' Apply changes to main data basing on a cleaning log.
   #'
-  #' Outputs warnings if uuids or variables from `clog` are not found in `data`
-  #' @param data Data (raw.main)
+  #' Outputs warnings if uuids, loop indexes or variables from `clog` are not found in `data`.
+  #' Be aware: all values will be written to data as character.
+  #' @param data Data (raw.main or raw.loop#)
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
+  #' @param is.loop Set to True if the provided dataframe is a loop.
+  #' @param suppress.diff.warnings Set to True if you want to omit warnings related to value mismatches. Default False.
   #'
   #' @returns Dataframe containing data with applied changes
-  if(nrow(clog) == 0){
-    warning("No changes to be applied (cleaning log empty).")
-    return(data)
-  }
-  else{
-    missinguuids <- c()
-    missingvars <- c()
-    for (r in 1:nrow(clog)){
-      uuid <- as.character(clog$uuid[r])
-      if(!uuid %in% data$uuid) {
-        missinguuids <- append(missinguuids, uuid)
-        next
-      }
-      variable <- as.character(clog$variable[r])
-      if(!variable %in% colnames(data)) {
-        missingvars <- append(missingvars, variable)
-        next
-      }
-      if(data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
-        warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
-                       "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
-                       "\tReplacing with: ", clog$new.value[r]))
-      }
-      data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
+
+    if(!is.loop && ("loop_index" %in% colnames(clog))){
+      clog <- filter(clog, is.na(loop_index))
+    }else if(is.loop)
+      clog <- filter(clog, !is.na(loop_index))
+    if(nrow(clog) == 0){
+        warning("No changes to be applied (cleaning log empty).")
     }
-    if(length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
-    if(length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n", paste0(missingvars, collapse = "\n")))
+    else{
+        missinguuids <- c()
+        missingloop_indexs <- c()
+        missingvars <- c()
+        for (r in 1:nrow(clog)){
+          variable <- as.character(clog$variable[r])
+            if(!variable %in% colnames(data)) {
+              missingvars <- append(missingvars, variable)
+              next
+            }
+          if(is.loop){
+            loop_index <- as.character(clog$loop_index[r])
+            if(!loop_index %in% data$loop_index){
+              missingloop_indexs <- append(missingloop_indexs, loop_index)
+              next
+            }
+            if(!suppress.diff.warnings && data[data$loop_index == loop_index, variable] %!=na% clog$old.value[r]){
+              warning(paste0("Value in data is different than old.value in Cleaning log!\nloop_index: ", loop_index,
+                             "\tExpected: ", clog$old.value[r], "\t found: ", data[data$loop_index == loop_index, variable],
+                             "\tReplacing with: ", clog$new.value[r]))
+            }
+            data[data$loop_index == loop_index, variable] <- as.character(clog$new.value[r])
+          }else {
+            uuid <- as.character(clog$uuid[r])
+            if(!uuid %in% data$uuid) {
+              missinguuids <- append(missinguuids, uuid)
+              next
+            }
+            if(!suppress.diff.warnings && data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
+              warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
+                            "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
+                            "\tReplacing with: ", clog$new.value[r]))
+            }
+            data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
+          }
+        }
+        if(length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
+        if(length(missingloop_indexs) > 0) warning(paste0("loop_indexes from cleaning log not found in data:\n", paste0(missingloop_indexs, collapse = "\n")))
+        if(length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n", paste0(missingvars, collapse = "\n")))
+    }
     return(data)
-  }
 }
 
 
-make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today")){
+make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today"), is.loop = F){
   #' Create a logical check DF
   #'
   #' this function replaces `add.to.cleaning.log`. The functionality is changed:
@@ -647,8 +713,11 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   #'
   #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
   #' This object can be later added to cleaning log.
-  
+
   res <- data.frame()
+  if(is.loop) {
+      cols_to_keep <- append(cols_to_keep, "loop_index")
+  }
   for(q.n in question.names){
     new.entries <- check %>%
       mutate(variable = q.n, issue=issue,
@@ -661,6 +730,10 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
       mutate_all(as.character)
     res <- rbind(res, new.entries)
   }
+  if(is.loop & !("loop_index" %in% colnames(res))){
+      # res$loop_index <- NA
+      res <- res %>% mutate(loop_index = NA, .after = uuid)
+    }
   return(res %>% arrange(uuid))
 }
 
@@ -740,7 +813,7 @@ add.to.cleaning.log.other.recode.one <- function(data, x){
   # remove text of the response
   df <- data.frame(uuid=x$uuid, variable=x$name, issue=issue,
                    old.value=old.response, new.value=NA)
-  
+
   cleaning.log.other <<- rbind(cleaning.log.other, df)
   # get list of choices from other response
   if (str_detect(x$existing.other, ";")) {
@@ -827,57 +900,53 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
 create.deletion.log <- function(data, col_enum, reason){
   #' Creates a deletion log for the provided ids and reason.
   #'
-  #' @param ids This is a vector of uuids, obtained for example from follow-ups with FPs.
+  #' @param data Dataframe containing columns 'uuid' and `col_enum`. For example, this could be a subset of `raw.main`, filtered.
+  #' @param col_enum Name of the column which contains the enumerator's id.
   #' @param reason This is a string describing the reason for removing a survey from data.
-  #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if `ids` is empty.
+  #' @returns A dataframe containing a deletion log with columns `uuid`, `col_enum`, `reason`, OR an empty dataframe if `data` has 0 rows.
   if(nrow(data) > 0)
     return(data %>% select(uuid, col_enum) %>% mutate(reason=reason))
   else return(data.frame())
 }
 
-create.deletion.log.minors <- function(data){
-  #' [obsolete] find all submissions run with minor age <18 and no legal guardian consent
-  #'
-  #' warning: Hardcoded column names for the purposes of PP.
-  #' creates a deletion log AND DOES NOT DELETE THESE ROWS FROM DATA
-  #'
-  #' @param data Raw data (`raw.main`)
-  #' @returns A dataframe containing a deletion log with columns `uuid` and `reason`, OR an empty dataframe if no surveys with minors found.
-  
-  ids <- data[data$a4_2_resp_age < 18,]
-  ids <- ids %>%
-    filter(!is.na(uuid)) %>%
-    mutate(delete = ifelse(is.na(Legal_guardian_consent),"yes",
-                           ifelse(Legal_guardian_consent == "yes","no","yes"))) %>%
-    select(uuid,delete) %>%
-    filter(delete=="yes")
-  
-  ids <- ids$uuid
-  return(create.deletion.log(ids=ids, reason="Survey done with a minor"))
-}
 
-create.deletion.log.too.fast <- function (data, ids){
-  #' [obsolete]
-  return(create.deletion.log(ids=ids, reason="Survey duration < 3 minutes"))
-}
-
-create.deletion.log.duplicates <- function(data, ids){
-  #' [obsolete] - TO BE USED ONLY FOR SOFT DUPLICATES (NOT REGULAR UUID DUPLICATES)
-  return(create.deletion.log(ids=ids, reason= "Surveys with only 10 or less diff columns"))
-}
-
+# ------------------------------------------------------------------------------------------
+# FIND & TRANSLATE RESPONSES
 # ------------------------------------------------------------------------------------------
 
 find.responses <- function(data, questions.db, values_to="response.uk", is.loop = F){
-  #' looks up `data` using `questions.db` to find all responses
+  #' Look up a raw Kobo dataframe to find all responses to a given set of questions.
   #'
-  #' response vector is stored in column specified by `values_to`
+  #' The dataframe `questions.db` needs to contain a column `name` (like a subset of `tool.survey`) which will be used to look up `data`.
+  #' The input `data` needs to contain a column "uuid", and all the columns specified in `questions.db`
+  #' The vector containing found responses is stored in column specified by parameter `values_to`.
+  #'
+  #' Be warned: all responses will be converted to character.sou
+  #' @param values_to Name of the column in which found responses will be stored.
+  #' @returns A dataframe containing columns "uuid", "question.name", and the column specified by `values_to`. Additionally, "loop_index" if `is.loop` is TRUE.
+  #' @example
+  #' q.db <- data.frame(name = c("age", "occupation"))
+  #' raw.data <- data.frame(age = c(21,32), occupation = c("cook", "train conductor"), uuid = c("abc","def"))
+  #' find.responses(raw.data, q.db, "responses")
+
+  if(nrow(questions.db) == 0){
+      warning("questions.db is empty - returning an empty dataframe.")
+      return(data.frame())
+  }
+
+  if(nrow(data) == 0){
+      warning("data is empty - returning an empty dataframe.")
+      return(data.frame())
+  }
+
   if(!is.loop){
     data[["loop_index"]] <- NA
   }
   responses <- data %>%
       select(c("uuid", "loop_index", any_of(questions.db$name))) %>%
-      pivot_longer(cols = any_of(questions.db$name), names_to="question.name", values_to=values_to) %>%
+      pivot_longer(cols = any_of(questions.db$name),
+                   names_to="question.name", values_to=values_to,
+                   values_transform = as.character) %>%
       filter(!is.na(!!sym(values_to))) %>%
       select(uuid, loop_index, question.name, !!sym(values_to))
 
@@ -888,91 +957,119 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
     } else {
     responses.j <- responses %>%
         left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
-        left_join(select(data, uuid), by="uuid")
+        left_join(select(data, uuid), by="uuid") %>%
+        select(-loop_index)
     # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
     }
   return(responses.j)
 }
 
 translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F, target_lang = "en"){
-  
+
   #' Translate a vector from a given dataframe.
-  #' 
+  #'
   #' The provided dataframe `responses` must contain the column `values_from` which will be used as input vector for the translation.
   #' Also outputs informative logs to file named "translate_info.csv". Specify the target language using `target_lang` parameter
-  #' 
+  #'
   #' Warning: If more than one source language code is provided, the entire translation WILL BE REPEATED. You are advised against that,
   #' because we do not want to hit our monthly limits for the API.
-  #' 
+  #'
   #' @param respones Dataframe containing a column which shall be translated.
   #' @param values_from Name of the column from `responses` which shall be translated.
   #' @param language_codes Character vector of two-letter language codes. The input vector will be translated from both of these languages.
   #' @param is.loop Unused. Still here for backwards compatibility.
   #' @param target_lang Input vector will be translated into this language.
-  #' @returns The same dataframe as `responses`, but with a new column, containing the translation. 
+  #' @returns The same dataframe as `responses`, but with a new column, containing the translation.
   #' The column will be named according to the given source and target languages. By default, the output will be stored in column named 'response.en.from.uk'
 
   info_df <- data.frame()
+  responses_batch <- data.frame()
+  temp_resp_whole <- data.frame()
   start_time <- Sys.time()
   relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
                          "choices.label", values_from)
-  
-  # extract unique responses from the source dataframe 
+
+  # extract unique responses from the source dataframe
   responses <- responses %>% mutate(resp_lower = str_to_lower(!!sym(values_from)))
+   
   input_vec <- responses %>% distinct(resp_lower) %>% pull(resp_lower)
   # cleaning up html leftovers:
   input_vec <- gsub("&#39;", "'", input_vec)
   # counts characters which will be translated
   char_counter <- sum(str_length(input_vec))
   # TODO: pause here, print the char_counter, and ask the user if the translation should go ahead
-  
-  if(length(input_vec) > 0){
-    for (code in language_codes) {
-      cat(length(input_vec),"responses will be translated from",code,"to",target_lang, "\tThis means",char_counter,"utf-8 characters.\n")
-      col_name <- paste0("response.",target_lang, ".from.",code)
-      relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged??
-      
-      temp_resp <- tibble(input_vec)
-      temp_resp[[col_name]] <- NA
-      # actual translation:
-      result_vec <- NULL
-      result_vec <- translateR::translate(content.vec = input_vec,
-                          microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
-                          microsoft.api.region = "switzerlandnorth",
-                          source.lang = code, target.lang = target_lang)
-      # checking the results
-      info_df <- rbind(info_df, data.frame(
-        "input_responses_num" = length(input_vec),
-        "translated_characters_num" = char_counter,
-        "language_from" = code,
-        "result_num" = length(result_vec),
-        "time_elapsed" = as.numeric(Sys.time() - start_time),
-        "date"=Sys.Date()))
-      if(is.null(result_vec)){
-        warning("Error while translating responses: result_vec is NULL\n")
-        info_df$status <- "error"
-      }else{
-        temp_resp[[col_name]] <- gsub("&#39;", "'", result_vec)
-        if(length(result_vec) == length(input_vec)){
-          cat("\ntranslate.responses: finished - SUCCESS!\n")
-          info_df$status <- "success"
-          
-          # bind the translated and source dfs
-          responses <- responses %>% left_join(temp_resp, by = c("resp_lower" = "input_vec"))
-        }else{
-          cat("\ntranslate.responses: finished - PARTIAL SUCCESS?\n")
-          info_df$status <- "partial success"
+  if (char_counter > 200000){
+    yes_no <- svDialogs::dlgInput("The number of characters exceeds 500,000. Please enter [YES] if you would like to proceed or [NO] to kill:", "YES or NO")$res
+  } else{
+    yes_no <- "YES"
+  }
+  batching <- svDialogs::dlgInput(paste0("How many batches would you like to split your translation (",char_counter," characters)? (please only integer)"), 0)$res
+  batching <- as.numeric(batching)
+  if(yes_no == "YES"){
+    if(length(input_vec) > 0){
+      for (code in language_codes) {
+        col_name <- paste0("response.",target_lang, ".from.",code)
+        relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged??
+        
+        temp_resp <- tibble(input_vec)
+        temp_resp[[col_name]] <- NA
+        temp_resp <-  temp_resp[sample(1:nrow(temp_resp)),]
+        ## create batches
+        temp_resp_batches <- split(temp_resp, factor(sort(rank(row.names(temp_resp))%%batching)))
+        progress.bar.title <- as.character(Sys.time())
+        pb <- tcltk::tkProgressBar(progress.bar.title, "Number of batches executed", 0, batching, 0, width = 600)
+        prog <- 1
+        for (temp_resp_batch in temp_resp_batches){
+          tcltk::setTkProgressBar(pb, prog, progress.bar.title, paste0("Number of batches executed: ", prog, " of ", batching,"\n",length(temp_resp_batch$input_vec)," responses will be translated from ",code," to ",target_lang, "\nThis means ",sum(str_length(temp_resp_batch$input_vec))," utf-8 characters."))
+          prog <- prog + 1
+          # cat(length(temp_resp_batch$input_vec),"responses will be translated from",code,"to",target_lang, "\tThis means",sum(str_length(temp_resp_batch$input_vec)),"utf-8 characters.\n")
+          # actual translation:
+          result_vec <- NULL
+          result_vec <- try(translateR::translate(content.vec = temp_resp_batch$input_vec,
+                              microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
+                              microsoft.api.region = "switzerlandnorth",
+                              source.lang = code, target.lang = target_lang))
+          if(inherits(result_vec,"try-error")) break
+          # checking the results
+          info_df <- rbind(info_df, data.frame(## DEBUGG IT HERE
+            "input_responses_num" = length(temp_resp_batch$input_vec),
+            "translated_characters_num" = sum(str_length(temp_resp_batch$input_vec)),
+            "language_from" = code,
+            "result_num" = length(result_vec),
+            "time_elapsed" = as.numeric(Sys.time() - start_time),
+            "date"=Sys.Date(),
+            "status"=NA))
+          if(is.null(result_vec)){
+            warning("Error while translating responses: result_vec is NULL\n")
+            info_df$status <- "error"
+          }else{
+            temp_resp_batch[[col_name]] <- gsub("&#39;", "'", result_vec)
+            if(length(result_vec) == length(temp_resp_batch$input_vec)){ 
+              info_df$status <- "success"
+              # bind the translated and source dfs
+              temp_resp_whole <- rbind(temp_resp_whole,temp_resp_batch)
+            }else{
+              info_df$status <- "partial success"
+            }
+          }
         }
+        close(pb)
+        if("partial success" %in% info_df$status){
+          svDialogs::msgBox("translate.responses: finished - PARTIAL SUCCESS?")
+        } else{
+          svDialogs::msgBox("translate.responses: finished - SUCCESS")
+        }
+        responses <- responses %>% left_join(temp_resp_whole, by = c("resp_lower" = "input_vec")) 
       }
+    }else{
+      warning("Nothing to be translated")
     }
-  }else{
-    warning("Nothing to be translated")
   }
   # dump info about the results of translation
   log_filename <- "translate_info.csv"
   if(file.exists(log_filename)) write.table(info_df, file = log_filename, append = T, row.names = F, col.names = F, sep = ',')
   else write.table(info_df, file = log_filename, row.names = F, col.names = T, sep = ',')
-  
+
   responses <- responses %>% select(-resp_lower)
   return(responses)
 }
@@ -991,26 +1088,50 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
                  "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                  "INVALID other (insert yes or leave blank)"=NA) %>%
           arrange(name)
-      if(!is.loop) {
-          responses.j <- responses.j %>% select(-loop_index)
-          }
+      # if(!is.loop) {
+      #     responses.j <- responses.j %>% select(-loop_index)
+      #     }
 
     return(responses.j)
 }
 
-#------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# misc functions for pulling data
+#-------------------------------------------------------------------------------
+
 what.country <- function(id){
-  #' Looks up raw.main to find to which country an id belongs to.
+  #' [useless] Looks up raw.main to find to which country an id belongs to.
   #'
   #' @param id uuid to look up in `raw.main`
   #' @returns a string found in the `country` column of `raw.main`.
   return(raw.main %>% filter(uuid == id) %>% pull(country))
 }
 
+pull.raw <- function(uuids = NA, loop_indexes = NA){
+    #' Pull records from `raw.main` with the given uuids or loop_index.
+    #' @returns Dataframe: raw.main, or raw.loop1 or raw.loop2, depending on the provided arguments.
+
+    if(all(is.na(loop_indexes))) {
+        if(all(is.na(uuids))) stop("Need to provide either uuids, or loop_indexes!")
+        uuids <- str_squish(uuids)
+        return(raw.main %>% filter(uuid %in% uuids))
+    }
+    else{
+        loop_indexes <- str_squish(loop_indexes)
+        if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
+        else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
+        else stop("Referenced loop indexes belong to different loops!")
+    }
+}
+
 
 #------------------------------------------------------------------------------------------------------------
 # utility operators & other legacy functions
 #------------------------------------------------------------------------------------------------------------
+
+# IMPORTANT: THESE OPERATORS HAVE BEEN MOVED TO misc_utils.R
+# EVENTUALLY THEY WILL BE REMOVED FROM HERE
+# if you will continue using them in the future, add a `source("src/utils/misc_utils.R")` to your init script
 
 "%==%" <- function(a, b) ifelse(!is.na(a), a==b, F)
 "%!=%" <- function(a, b) ifelse(!is.na(a), a!=b, F)

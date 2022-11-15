@@ -115,12 +115,12 @@ create.newsite.requests <- function(data, cols_to_keep){
 
 save.newsite.requests <- function(df, wb_name, blue_cols = NULL){
 
-  style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
-                                 valign="top", wrapText=T)
-  style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
-                                       border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  style.col.blue <- createStyle(fgFill="#CCE5FF", valign="top",
-                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+  # style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+  #                                valign="top", wrapText=T)
+  # style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+  #                                      border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+  # style.col.blue <- createStyle(fgFill="#CCE5FF", valign="top",
+  #                                       border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
 
   wb <- loadWorkbook("resources/newsite_requests_template.xlsx")
   addWorksheet(wb, "Sheet2")
@@ -149,4 +149,32 @@ save.newsite.requests <- function(df, wb_name, blue_cols = NULL){
 
   filename <- paste0("output/checking/requests/", wb_name, ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
+}
+
+#-------------------------------------------------------------------------------
+save.pduplicates.requests <- function(df, wb_name, pcode_col = "site_pCode"){
+  
+  use_color <- function(vec, i){
+    return(vec[i]==vec[i-1])
+  }
+  wb <- createWorkbook(creator = "reach")
+  addWorksheet(wb, "Sheet1", zoom = 90)
+  writeDataTable(wb, "Sheet1", df)
+  
+  setColWidths(wb, "Sheet1", cols=1:ncol(df), widths="auto")
+  for(r in 2:nrow(df)){
+    random_color <- ""
+    if(use_color(df[[pcode_col]], r)){
+      if (random_color == "") {
+        random_color <- randomColor(1, luminosity = "light")
+        for(i in 1:ncol(df)){
+          addStyle(wb, "Sheet1", style = createStyle(fgFill=random_color, wrapText=T),
+                 rows = r:(r+1), cols = i)}
+        
+      }
+  } else random_color=""
+  }
+  filename <- paste0("output/checking/requests/", wb_name)
+  saveWorkbook(wb, filename, overwrite = TRUE)
+  
 }
