@@ -957,8 +957,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
     } else {
     responses.j <- responses %>%
         left_join(questions.db, by=c("question.name"="name")) %>% dplyr::rename(name="question.name") %>%
-        left_join(select(data, uuid), by="uuid") %>%
-        select(-loop_index)
+        left_join(select(data, uuid), by="uuid") 
     # relevant_colnames <- relevant_colnames[!relevant_colnames %in% c("loop_index")]
     }
   return(responses.j)
