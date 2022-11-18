@@ -446,13 +446,14 @@ load.outlier.edited <- function(dir.outlier.edited){
 # ------------------------------------------------------------------------------
 CL_COLS <- c("uuid", "loop_index", "variable", "old.value", "new.value", "issue")
 
-recode.set.NA.if <- function(data, variables, code, issue){
+recode.set.NA.if <- function(data, variables, code, issue, ignore_case = T){
     #' Recode a question by setting variables to NA if they are equal to a given value (code).
     #'
     #' @param data Dataframe containing records which will be affected.
     #' @param variables Vector of strings (or a single string) containing the names of the variables.
     #' @param code Vector of strings (or a single string) which will be changed to NA.
     #' @param issue String with explanation used for the cleaning log entry.
+    #' @param ignore_case Whether `code` should be matched case-insensitively. Defaults to True.
     #'
     #' @returns Dataframe containing cleaning log entries constructed from `data`.
     #'
@@ -460,9 +461,13 @@ recode.set.NA.if <- function(data, variables, code, issue){
     #'  variables = c("question1", "question2"),
     #'   code = "999", issue = "explanation")`
     #'
+    
+  # TODO filter variables to only include those in data (and produce warnings)
+  
     clog <- tibble()
     for(variable in variables){
-        data1 <- data %>% filter(!!sym(variable) %in% code)
+        if(ignore_case) data1 <- data %>% filter(str_to_lower(!!sym(variable)) %in% str_to_lower(code))
+        else data1 <- data %>% filter(!!sym(variable) %in% code)
         cl <- data1 %>% mutate(variable = variable, old.value = !!sym(variable), new.value = NA,
                               issue = issue) %>% select(any_of(CL_COLS))
         clog <- rbind(clog, cl)
