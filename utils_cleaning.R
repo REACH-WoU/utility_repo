@@ -494,6 +494,29 @@ recode.set.NA.regex <- function(data, variables, pattern, issue){
   return(clog)
 }
 
+recode.set.value.regex <- function(data, variables, pattern, new.value, issue){
+  #' Recode a question by setting variables to NA if they are equal to a given value (code).
+  #'
+  #' @param data Dataframe containing records which will be affected.
+  #' @param variables Vector of strings (or a single string) containing the names of the variables.
+  #' @param code Vector of strings (or a single string) which will be changed to NA.
+  #' @param issue String with explanation used for the cleaning log entry.
+  #'
+  #' @returns Dataframe containing cleaning log entries constructed from `data`.
+  #'
+  #' @usage `recode.set.NA.if(data = filter(raw.main, condition),
+  #'  variables = c("question1", "question2"),
+  #'   code = "999", issue = "explanation")`
+  #'
+  clog <- tibble()
+  for(variable in variables){
+    data1 <- data %>% filter(str_detect(!!sym(variable), pattern = pattern))
+    cl <- data1 %>% mutate(variable = variable, old.value = !!sym(variable), new.value = new.value,
+                           issue = issue) %>% select(any_of(CL_COLS))
+    clog <- rbind(clog, cl)
+  }
+  return(clog)
+}
 
 recode.multiple.set.NA <- function(data, variable, issue){
     #' Recode select_multiple responses: set to NA.
