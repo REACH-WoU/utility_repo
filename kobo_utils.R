@@ -15,7 +15,7 @@ load.tool.survey <- function(filename_tool, keep_cols = F){
   #' @param keep_cols Whether all columns from the original tool should be kept. Defaults to False, meaning that only the relevant labels, hints, etc are kept.
   #' @returns A dataframe: tool.survey, it's almost the same as the 'survey' tab from the tool, with new columns added: `datasheet`, `q.type`, `list_name`
   
-  tool.survey <- read_xlsx(filepath, sheet = "survey", col_types = "text") %>% 
+  tool.survey <- read_xlsx(filename_tool, sheet = "survey", col_types = "text") %>% 
     filter(!is.na(type)) %>%
     mutate(q.type=as.character(lapply(type, function(x) str_split(x, " ")[[1]][1])),
            list_name=as.character(lapply(type, function(x) str_split(x, " ")[[1]][2])),
