@@ -174,7 +174,7 @@ save.pduplicates.requests <- function(df, wb_name, pcode_col = "site_pCode"){
       }
   } else random_color=""
   }
-  filename <- paste0("output/checking/requests/", wb_name)
+  filename <- paste0("output/checking/requests/MSL_pduplicates/", wb_name)
   saveWorkbook(wb, filename, overwrite = TRUE)
   
 }

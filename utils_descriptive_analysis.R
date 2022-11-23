@@ -978,7 +978,7 @@ load.entry <- function(analysis.plan.row){
   calculation <- as.character(analysis.plan.row$calculation)
   join <- !is.na(analysis.plan.row$join)
   comments <- as.character(analysis.plan.row$comments)
-  omit_na <- is.na(analysis.plan.row$calculation) | analysis.plan.row$calculation == "omit_na"
+  omit_na <- is.na(analysis.plan.row$calculation) | (!is.na(calculation) & str_detect(analysis.plan.row$calculation, "omit_na", T))
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
