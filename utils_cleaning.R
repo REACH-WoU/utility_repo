@@ -748,7 +748,7 @@ apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
 }
 
 
-make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today"), is.loop = F){
+make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("date_survey"), is.loop = F){
   #' Create a logical check DF
   #'
   #' this function replaces `add.to.cleaning.log`. The functionality is changed:
@@ -774,7 +774,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
     new.entries <- new.entries %>%
       select(any_of(c(cols_to_keep, "uuid", "check.id", "variable", "issue",
                       "old.value", "new.value", "invalid", "explanation"))) %>%
-      rename(survey.date=today) %>% relocate(uuid) %>%
+      relocate(uuid) %>%
       mutate_all(as.character)
     res <- rbind(res, new.entries)
   }
