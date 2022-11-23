@@ -913,7 +913,7 @@ create.deletion.log <- function(data, col_enum, reason){
   #' @param reason This is a string describing the reason for removing a survey from data.
   #' @returns A dataframe containing a deletion log with columns `uuid`, `col_enum`, `reason`, OR an empty dataframe if `data` has 0 rows.
   if(nrow(data) > 0)
-    return(data %>% select(uuid, col_enum) %>% mutate(reason=reason))
+    return(data %>% select(uuid, any_of(col_enum)) %>% mutate(reason=reason))
   else return(data.frame())
 }
 
@@ -1090,6 +1090,15 @@ what.country <- function(id){
 
 pull.raw <- function(uuids = NA, loop_indexes = NA){
     #' Pull records from `raw.main` with the given uuids or loop_index.
+    #' 
+    #' Either `uuids` or `loop_indexes` must be provided. If pulling by uuid, the dataframe used is `raw.main`.
+    #' Otherwise, all of the loop_indexes must belong to the same loop (so all must start with the same string "loop#"),
+    #' and the data is pulled from dataframe `raw.loop1`, or `raw.loop2`, etc...
+    #' 
+    #' @note If both uuids and loop_indexes are provided, only loop indexes will be used! (data is not filtered by the provided uuids)
+    #' 
+    #' @param uuids Character vector of 
+    #' @param loop_indexes Character vector of 
     #' @returns Dataframe: raw.main, or raw.loop1 or raw.loop2, depending on the provided arguments.
 
     if(all(is.na(loop_indexes))) {
@@ -1101,6 +1110,7 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
         loop_indexes <- str_squish(loop_indexes)
         if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
         else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
+        # TODO: add additional loops if necessary
         else stop("Referenced loop indexes belong to different loops!")
     }
 }
