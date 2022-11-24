@@ -54,7 +54,7 @@ load.tool.choices <- function(filename_tool){
   
   read_xlsx(filename_tool, sheet = "choices", col_types = "text") %>% 
     filter(!is.na(list_name)) %>% 
-    select(all_of(c("list_name", "name", label_colname))) %>% distinct()
+    select(all_of(c("list_name", "name")), !!sym(label_colname)) %>% distinct()
 }
 
 # ------------------------------------------------------------------------------
