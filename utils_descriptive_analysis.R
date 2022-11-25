@@ -282,7 +282,7 @@ select_multiple.analysis <- function(srv.design, entry){
         group_by(!!sym(entry$admin), !!sym(entry$disaggregate.variable)) %>%
         mutate(sum.pct=sum(pct)) %>%
         ungroup() %>%
-        filter(pct>0) %>%
+        # filter(pct>0) %>% ## TO DEBUG MORE AND CHECK IF ROUNDING CAN BE ADJUSTED
         select(-sum.pct)
     }
   }
@@ -353,7 +353,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
         group_by(overall, !!sym(entry$disaggregate.variable)) %>%
         mutate(sum.pct=sum(pct)) %>%
         ungroup() %>%
-        filter(pct>0) %>%
+        # filter(pct>0) %>% ## TO DEBUG MORE AND CHECK IF ROUNDING CAN BE ADJUSTED
         select(-sum.pct)
     }
   }
@@ -425,7 +425,7 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
       summarise(num_samples=n()) %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall") %>%
+      mutate(strata = "Overall") %>% 
       ungroup()
     n_rows <- nrow(res)
     res <- res %>%
@@ -433,8 +433,7 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
       relocate("num_samples", .after=2)
     res.overall <- res.overall %>%
       left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
-      relocate("num_samples", .after=2) %>%
-      select(-overall)
+      relocate("num_samples", .after=2) 
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
@@ -582,7 +581,7 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
         relocate("num_samples", .after=1)
       res.overall <- res.overall %>%
         rename(strata ="overall") %>%
-        mutate(strata = "Overall") %>%
+        mutate(strata = "Overall")  %>% 
         left_join(t.res_over, by=("strata")) %>%
         relocate("num_samples", .after=1)
       if (nrow(res)!=n_rows) stop()
@@ -599,7 +598,7 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
       summarise(num_samples=n())  %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall") %>%
+      mutate(strata = "Overall")  %>% 
       ungroup()
     if (nrow(t.res) == 0){
       return(data.frame())
@@ -610,7 +609,7 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
         relocate("num_samples", .after=2)
       res.overall <- res.overall %>%
         rename(strata ="overall") %>%
-        mutate(strata = "Overall") %>%
+        mutate(strata = "Overall")  %>% 
         left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
         relocate("num_samples", .after=2)
       if (nrow(res)!=n_rows) stop()
@@ -773,7 +772,7 @@ median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
       group_by(overall) %>%
       summarise(num_samples=n()) %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall")
+      mutate(strata = "Overall") %>% 
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
@@ -783,7 +782,7 @@ median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
         relocate("num_samples", .after=1)
       res.overall <- res.overall %>%
         rename(strata ="overall") %>%
-        mutate(strata = "Overall") %>%
+        mutate(strata = "Overall")  %>% 
         left_join(t.res_over, by=("strata")) %>%
         relocate("num_samples", .after=1)
       if (nrow(res)!=n_rows) stop()
@@ -800,7 +799,7 @@ median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
       summarise(num_samples=n())  %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall") %>%
+      mutate(strata = "Overall")  %>% 
       ungroup()
     if (nrow(t.res) == 0){
       return(data.frame())
@@ -811,7 +810,7 @@ median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
         relocate("num_samples", .after=2)
       res.overall <- res.overall %>%
         rename(strata ="overall") %>%
-        mutate(strata = "Overall") %>%
+        mutate(strata = "Overall")  %>% 
         left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
         relocate("num_samples", .after=2)
       if (nrow(res)!=n_rows) stop()
@@ -880,7 +879,8 @@ count.to_html.overall <- function(res, entry){
       group_by(overall) %>%
       summarise(num_samples=n()) %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall")
+      mutate(strata = "Overall") %>% 
+      select(-overall)
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
@@ -890,7 +890,7 @@ count.to_html.overall <- function(res, entry){
         relocate("num_samples", .after=1)
       res.overall <- res.overall %>%
         rename(strata ="overall") %>%
-        mutate(strata = "Overall") %>%
+        mutate(strata = "Overall")  %>% 
         left_join(t.res_over, by=("strata")) %>%
         relocate("num_samples", .after=1)
       if (nrow(res)!=n_rows) stop()
@@ -907,7 +907,7 @@ count.to_html.overall <- function(res, entry){
       group_by(overall, !!sym(entry$disaggregate.variable)) %>%
       summarise(num_samples=n())  %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall") %>%
+      mutate(strata = "Overall")  %>% 
       ungroup()
     n_rows <- nrow(res)
     res <- res %>%
