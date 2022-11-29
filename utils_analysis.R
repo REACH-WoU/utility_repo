@@ -158,7 +158,6 @@ convert.col.type <- function(df, col, omit_na = T){
   #' @param omit_na This flag should be set if NA values should be skipped (not included as level).
   #' Otherwise NA values are included as levels and will be used for calculating num_samples.
   #' @returns a vector containing the converted values of column `col`.
-
   if((col %in% tool.survey$name)){
     if(get.type(col) == "select_one"){
       choices <- tool.choices %>% filter(list_name==get.choice.list.from.name(col)) %>%
@@ -166,8 +165,11 @@ convert.col.type <- function(df, col, omit_na = T){
                                   rename(label = `label_colname`)
       d <- data.frame(col = as.character(df[[col]])) %>%
                       left_join(choices, by=c("col"="name"))
-      if(omit_na) return(factor(d$label, levels = choices$label, exclude = NA))
-      else        return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      if(omit_na){
+        return(factor(d$label, levels = choices$label, exclude = NA))
+      } else  {
+        return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      }      
     }
     else if (get.type(col)=="integer" | get.type(col)=="decimal") return(as.numeric(df[[col]]))
     else if (get.type(col)=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
@@ -197,6 +199,7 @@ convert.cols.check.dap <- function(df, dap) {
     # loop_no  <- str_extract(str_split(df$loop_index[1], "_", simplify = T)[1], "\\d+")
     
     # filter the dap using the data that was entered 
+
     dap <- dap %>% filter(variable %in% colnames(df))
     
     if(nrow(dap) == 0){
@@ -210,8 +213,9 @@ convert.cols.check.dap <- function(df, dap) {
 
         cat("Converting",col," ")
         # check if variables exist in data
-        if(!col %in% colnames(df)) 
+        if(!col %in% colnames(df)) {
           stop(paste("Variable", col, "not found in data!"))
+        }
           
         if(!col %in% tool.survey$name){
             warning(paste("Variable", col, "not found in tool.survey!\n"))
