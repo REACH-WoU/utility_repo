@@ -89,6 +89,14 @@ save.trans.requests <- function(df, wb_name, blue_cols = NULL, use_template = F)
 
     if(use_template) wb <- loadWorkbook("resources/trans_requests_template.xlsx")
     else wb <- createWorkbook()
+    
+    # remove the useless "EXISTING" column, and the word 'other':
+    if(length(df %>% select(starts_with("EXISTING")) %>% names) > 0){
+      df <- df %>% select(-starts_with("EXISTING"))
+      colnames(df) <- gsub("other ", "", colnames(df))
+    }
+    df <- df %>% select(-starts_with("ref")) %>% select(-starts_with("choices"))
+    
     addWorksheet(wb, "Sheet2")
     writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1)
 
@@ -960,9 +968,16 @@ create.deletion.log <- function(data, col_enum, reason){
   #' @param col_enum Name of the column which contains the enumerator's id.
   #' @param reason This is a string describing the reason for removing a survey from data.
   #' @returns A dataframe containing a deletion log with columns `uuid`, `col_enum`, `reason`, OR an empty dataframe if `data` has 0 rows.
-  if(nrow(data) > 0)
-    return(data %>% select(uuid, any_of(col_enum)) %>% mutate(reason=reason))
-  else return(data.frame())
+  
+  if(nrow(data) > 0){
+    # if it's a loop, then include the loop_index in the deletion log
+    if("loop_index" %in% colnames(data))
+      data <- data %>% select(uuid, loop_index, any_of(col_enum))
+    else
+      data <- data %>% select(uuid, any_of(col_enum))
+    
+    return(data %>% mutate(reason=reason))
+  }else return(data.frame())
 }
 
 
@@ -1054,7 +1069,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
   char_counter <- sum(str_length(input_vec))
   # TODO: pause here, print the char_counter, and ask the user if the translation should go ahead
   if (char_counter > 200000){
-    yes_no <- svDialogs::dlgInput("The number of characters exceeds 500,000. Please enter [YES] if you would like to proceed or [NO] to kill:", "YES or NO")$res
+    yes_no <- svDialogs::dlgInput("The number of characters exceeds 200,000. Please enter [YES] if you would like to proceed or [NO] to kill:", "YES or NO")$res
   } else{
     yes_no <- "YES"
   }

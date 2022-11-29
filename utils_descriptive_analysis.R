@@ -948,14 +948,17 @@ subch <- function(g) {
                       g_deparsed, ")()\n```", "\n")
   cat(knitr::knit(text = knitr::knit_expand(text = sub_chunk), quiet = TRUE))
 }
+
 # add section to HTML
 add_to_html.section <- function(name) cat(paste0(paste0(rep("\n",2), collapse=""), "# ", name))
+
 # add title to HTML
 add_to_html.title <- function(entry){
   # title <- ifelse(is.na(entry$variable), entry$name, entry$variable)
   # cat(paste0(paste0(rep("\n",2), collapse=""), paste0(rep("#",3), collapse=""), " ", title))
   cat(paste0(paste0(rep("\n",2), collapse=""), paste0(rep("#",3), collapse=""), " ", entry$label))
 }
+
 # add subtitle to HTML
 add_to_html.sub_title <- function(disaggregate.variable){
   if (is.na(disaggregate.variable)) {
@@ -967,13 +970,14 @@ add_to_html.sub_title <- function(disaggregate.variable){
 }
 # load entry from analysis plan
 load.entry <- function(analysis.plan.row){
+#' [obsolete!!!!] please use the load_entry function in utils_analysis.R
   section <- as.character(analysis.plan.row$section)
   label <- as.character(analysis.plan.row$label)
   variable <- as.character(analysis.plan.row$variable)
   func <- as.character(analysis.plan.row$func)
   admin <- as.character(analysis.plan.row$admin)
   disaggregate.variable <- as.character(analysis.plan.row$disaggregate.variable)
-  data <- as.character(analysis.plan.row$data)
+  # data <- as.character(analysis.plan.row$data)
   xlsx_name <- as.character(analysis.plan.row$xlsx_name)
   calculation <- as.character(analysis.plan.row$calculation)
   join <- !is.na(analysis.plan.row$join)
@@ -985,7 +989,8 @@ load.entry <- function(analysis.plan.row){
     disaggregate.variables <- c(str_split(str_remove_all(disaggregate.variable, " "), " ?;+ ?")[[1]])
   }
   return(list(section=section, label=label, variable=variable, func=func,
-              admin=admin, disaggregate.variables=disaggregate.variables, data=data,
+              admin=admin, disaggregate.variables=disaggregate.variables,
+              # data=data,
               xlsx_name=xlsx_name, comments=comments, calculation=calculation, 
               join = join, omit_na = omit_na))
 }

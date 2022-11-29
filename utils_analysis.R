@@ -124,9 +124,36 @@ remove_choice <- function(concat_value, choice){
 }
 
 ###-----------------------------------------------------------------------------
-### DAP FUNCTIONS
+### DAF FUNCTIONS
 ###-----------------------------------------------------------------------------
 
+load_entry <- function(daf_row){
+  #' Load an entry from the DAF.
+  #' 
+  #' This function replaces load.entry (from descriptive_analysis)
+  #' 
+  
+  entry <- as.list(daf_row)
+  # load disaggregate variables as vector:
+  entry$disaggregate.variables <- c(str_split(sub(" ", "", entry$disaggregations), ";", simplify = T))
+  # omit_na is True by default (calculation empty):
+  entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
+  # comments - add two lines to them if necessary
+  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
+  
+  entry$join <- !is.na(entry$join)
+  
+  return(entry)
+}
+
+convert_cols_with_daf <- function(df, omit_na = T){
+  #' brand new function for conversions...
+  
+  converted <- c()
+  # filter the daf using the data that was entered 
+  daf <- daf %>% filter(variable %in% colnames(df))
+  return(df)
+}
 
 ###-----------------------------------------------------------------------------
 ### ANALYSIS
@@ -205,7 +232,7 @@ convert.cols.check.dap <- function(df, dap) {
     }
 
     for(r in 1:nrow(dap)){
-        entry <- load.entry(dap[r,])
+        entry <- load_entry(dap[r,])
         col <- entry$variable
 
         cat("Converting",col," ")
@@ -213,13 +240,13 @@ convert.cols.check.dap <- function(df, dap) {
         if(!col %in% colnames(df)) 
           stop(paste("Variable", col, "not found in data!"))
           
-        if(!col %in% tool.survey$name){
-            warning(paste("Variable", col, "not found in tool.survey!\n"))
-        }
-        if(is.na(entry$func)){
-          warning("Missing parameter func in row ", r, " (variable ",entry$variable,")\n")
-          next
-        }
+        # if(!col %in% tool.survey$name){
+        #     warning(paste("Variable", col, "not found in tool.survey!\n"))
+        # }
+        # if(is.na(entry$func)){
+        #   warning("Missing parameter func in row ", r, " (variable ",entry$variable,")\n")
+        #   next
+        # }
 
         q <- tool.survey[tool.survey$name == col,]
         if(!is.na(entry$calculation)){
