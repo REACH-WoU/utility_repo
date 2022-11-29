@@ -115,7 +115,7 @@ select_one.analysis_overall <- function(srv.design, entry){
 # function to produce HTML table (binded)
 select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=T){
   var.full <- entry$variable
-  var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
+  var_list_name <- get.choice.list.from.name(entry$variable)
   choices <- (tool.choices %>% pull(label_colname))[tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>%
@@ -190,7 +190,7 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
 # function to produce HTML table
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
-  var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
+  var_list_name <- get.choice.list.from.name(entry$variable)
   choices <- tool.choices[[label_colname]][tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>%
@@ -234,7 +234,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
 # function to run the analysis
 select_multiple.analysis <- function(srv.design, entry){
   # get list of columns for the selected question --> variables
-  q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
+  q.list_name <- get.choice.list.from.name(entry$variable)
   choices <- tool.choices %>% filter(list_name==q.list_name) %>%
     select(name, !!sym(label_colname)) %>% rename(label=!!sym(label_colname)) %>%
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
@@ -302,7 +302,7 @@ select_multiple.analysis <- function(srv.design, entry){
 # function to run the analysis (res.overall)
 select_multiple.analysis_overall <- function(srv.design, entry){
   # get list of columns for the selected question --> variables
-  q.list_name <- str_split(tool.survey[tool.survey$name==entry$variable, "type"], " ")[[1]][2]
+  q.list_name <- get.choice.list.from.name(entry$variable)
   choices <- tool.choices %>% filter(list_name==q.list_name) %>%
     select(name, !!sym(label_colname)) %>% rename(label=!!sym(label_colname)) %>%
     mutate(label=ifelse(name %in% c("other", "Other"), "Other", label))
@@ -375,7 +375,7 @@ select_multiple.analysis_overall <- function(srv.design, entry){
 # function to produce HTML table
 select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include.CI=T){
   var.full <- entry$variable
-  var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
+  var_list_name <- get.choice.list.from.name(entry$variable)
   choices <- (tool.choices %>% pull (label_colname))[tool.choices$list_name==var_list_name]
   res <- arrange(res, match(label, choices))
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
@@ -454,7 +454,7 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
 # function to produce HTML table
 select_multiple.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
-  var_list_name <- tool.survey$list_name[tool.survey$name==var.full]
+  var_list_name <- get.choice.list.from.name(entry$variable)
   choices <- tool.choices[tool.choices$list_name==var_list_name, label_colname]
   res <- arrange(res, match(label, choices))
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))

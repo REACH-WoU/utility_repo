@@ -446,13 +446,14 @@ load.outlier.edited <- function(dir.outlier.edited){
 # ------------------------------------------------------------------------------
 CL_COLS <- c("uuid", "loop_index", "variable", "old.value", "new.value", "issue")
 
-recode.set.NA.if <- function(data, variables, code, issue){
+recode.set.NA.if <- function(data, variables, code, issue, ignore_case = T){
     #' Recode a question by setting variables to NA if they are equal to a given value (code).
     #'
     #' @param data Dataframe containing records which will be affected.
     #' @param variables Vector of strings (or a single string) containing the names of the variables.
     #' @param code Vector of strings (or a single string) which will be changed to NA.
     #' @param issue String with explanation used for the cleaning log entry.
+    #' @param ignore_case Whether `code` should be matched case-insensitively. Defaults to True.
     #'
     #' @returns Dataframe containing cleaning log entries constructed from `data`.
     #'
@@ -460,9 +461,13 @@ recode.set.NA.if <- function(data, variables, code, issue){
     #'  variables = c("question1", "question2"),
     #'   code = "999", issue = "explanation")`
     #'
+    
+  # TODO filter variables to only include those in data (and produce warnings)
+  
     clog <- tibble()
     for(variable in variables){
-        data1 <- data %>% filter(!!sym(variable) %in% code)
+        if(ignore_case) data1 <- data %>% filter(str_to_lower(!!sym(variable)) %in% str_to_lower(code))
+        else data1 <- data %>% filter(!!sym(variable) %in% code)
         cl <- data1 %>% mutate(variable = variable, old.value = !!sym(variable), new.value = NA,
                               issue = issue) %>% select(any_of(CL_COLS))
         clog <- rbind(clog, cl)
@@ -551,10 +556,12 @@ recode.multiple.set.NA <- function(data, variable, issue){
                 cl_choices <- rbind(cl_choices, cl)
                 # remove text from text other response
                 if(str_ends(col, "/other")){
-                    cl_choices <- rbind(cl_choices, df %>% mutate(
-                        variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
-                                                                                 new.value = NA, issue = issue) %>%
-                            select(any_of(CL_COLS)))
+                    cl_other_text <- df %>% filter(!is.na(!!sym(paste0(variable, "_other")))) %>% 
+                      mutate(variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
+                      new.value = NA, issue = issue) %>%
+                      select(any_of(CL_COLS))
+                    
+                    cl_choices <- rbind(cl_choices, cl_other_text) 
                 }
             }
         }
@@ -649,7 +656,8 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
 }
 
 recode.multiple.add.choice <- function(data, variable, choice, issue){
-  #' TODO add documentation
+  #' [obsolete] use `recode.multiple.add.choices` instead
+  
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that already have choice selected
@@ -748,7 +756,7 @@ apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
 }
 
 
-make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("date_survey"), is.loop = F){
+make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today"), is.loop = F){
   #' Create a logical check DF
   #'
   #' this function replaces `add.to.cleaning.log`. The functionality is changed:
@@ -774,7 +782,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
     new.entries <- new.entries %>%
       select(any_of(c(cols_to_keep, "uuid", "check.id", "variable", "issue",
                       "old.value", "new.value", "invalid", "explanation"))) %>%
-      relocate(uuid) %>%
+      rename(survey.date=today) %>% relocate(uuid) %>%
       mutate_all(as.character)
     res <- rbind(res, new.entries)
   }
@@ -953,7 +961,7 @@ create.deletion.log <- function(data, col_enum, reason){
   #' @param reason This is a string describing the reason for removing a survey from data.
   #' @returns A dataframe containing a deletion log with columns `uuid`, `col_enum`, `reason`, OR an empty dataframe if `data` has 0 rows.
   if(nrow(data) > 0)
-    return(data %>% select(uuid, col_enum) %>% mutate(reason=reason))
+    return(data %>% select(uuid, any_of(col_enum)) %>% mutate(reason=reason))
   else return(data.frame())
 }
 
@@ -1154,6 +1162,15 @@ what.country <- function(id){
 
 pull.raw <- function(uuids = NA, loop_indexes = NA){
     #' Pull records from `raw.main` with the given uuids or loop_index.
+    #' 
+    #' Either `uuids` or `loop_indexes` must be provided. If pulling by uuid, the dataframe used is `raw.main`.
+    #' Otherwise, all of the loop_indexes must belong to the same loop (so all must start with the same string "loop#"),
+    #' and the data is pulled from dataframe `raw.loop1`, or `raw.loop2`, etc...
+    #' 
+    #' @note If both uuids and loop_indexes are provided, only loop indexes will be used! (data is not filtered by the provided uuids)
+    #' 
+    #' @param uuids Character vector of 
+    #' @param loop_indexes Character vector of 
     #' @returns Dataframe: raw.main, or raw.loop1 or raw.loop2, depending on the provided arguments.
 
     if(all(is.na(loop_indexes))) {
@@ -1165,6 +1182,7 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
         loop_indexes <- str_squish(loop_indexes)
         if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
         else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
+        # TODO: add additional loops if necessary
         else stop("Referenced loop indexes belong to different loops!")
     }
 }

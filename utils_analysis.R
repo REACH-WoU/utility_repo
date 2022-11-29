@@ -223,10 +223,10 @@ convert.cols.check.dap <- function(df, dap) {
 
         q <- tool.survey[tool.survey$name == col,]
         if(!is.na(entry$calculation)){
-            if(entry$calculation == "include_na"){
+            if(str_detect(entry$calculation, "include_na")){
                 if(!is.na(q$relevant))   stop(paste0("Issue with entry #", r, " (", col,"): flag include_na cannot be set if question has relevancy!"))
                 if(entry$func == "mean") stop(paste0("Issue with entry #", r, " (", col,"): flag include_na cannot be set if func == mean!"))
-            }else if(entry$calculation != "omit_na") stop(paste0("Issue with entry #", r, " (", col,"): unexpected calculation flag: ", entry$calculation))
+            }
         }
 
         # check and convert disagg variable :)
@@ -236,7 +236,7 @@ convert.cols.check.dap <- function(df, dap) {
                   warning(paste("Disaggregation variable", disagg.var, "not found in data! Skipping.\n"))
                   next
                   }
-                if(!disagg.var %in% tool.survey$name) warning(paste("Disaggregation variable", disagg.var, "not found in tool.survey!"))
+                if(!disagg.var %in% tool.survey$name) warning(paste("Disaggregation variable", disagg.var, "not found in tool.survey!\n"))
                 if(!disagg.var %in% converted){
                     df[[disagg.var]] <- convert.col.type(df, disagg.var)
                     converted <- append(converted, disagg.var)
@@ -264,8 +264,8 @@ convert.cols.check.dap <- function(df, dap) {
             }
         }else {
           if(!col %in% tool.survey$name){
-            if(entry$func == "select_one") df[[col]] <- factor(df[[col]])
-            else if(entry$func == "mean") df[[col]] <- as.numeric(df[[col]])
+              if(entry$func == "select_one") df[[col]] <- as.factor(df[[col]])
+              else if(entry$func == "mean") df[[col]] <- as.numeric(df[[col]])
             }
             df[[col]] <- convert.col.type(df, col, entry$omit_na)
             converted <- append(converted, col)
