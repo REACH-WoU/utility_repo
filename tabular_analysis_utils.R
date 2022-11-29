@@ -33,4 +33,3 @@ add_to_html.sub_title <- function(disaggregate.variable){
 tableFormat <-list(
   dom = 'T<"clear">lfrtip',
   scrollX = TRUE)
-

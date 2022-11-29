@@ -184,9 +184,34 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res, options = tableFormat)))
+  return(subch(datatable(res, options = tableFormat) %>% 
+                 formatStyle(colnames(res),
+                             backgroundColor = styleEqual(
+                               levels = list(one_50,fifty_100),
+                               values = c('green','red')
+                             ))))
 }
-
+# jsFunc <- "(function(value){
+#   // find a number preceeded by an open parenthesis with an optional minus sign
+#   var matches = value.replace('%','');
+#   // ignore values which do not match our pattern, returning white as the background color
+#   if(!matches || matches.length < 2) { 
+#     return 'white'; 
+#   }
+#   // attempt to convert the match we found into a number
+#   var int = parseInt(matches[1]); 
+#   // if we can't ignore it and return a white color
+#   if(isNaN(int)) { 
+#     return 'white';
+#   } 
+#   // if the value is negative, return red
+#   if(int < 50) { 
+#     return 'red' 
+#   }
+#   // otherwise, by default, return green
+#   return 'green';
+# })(value)"
+#TO DEBUGGG
 # function to produce HTML table
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
@@ -225,7 +250,9 @@ select_one.to_html <- function(res, entry, include.CI=T){
   }
   res <- res %>% filter(!is.na(num_samples))
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res, options = tableFormat)))
+  return(subch(datatable(res, options = tableFormat) %>% 
+           formatStyle(colnames(res),
+                       backgroundColor = JS(jsFunc))))
 }
 
 ###--------------------------------------------------------------------------------------------------------------
