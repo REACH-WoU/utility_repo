@@ -1208,54 +1208,56 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
 #------------------------------------------------------------------------------------------------------------
 
 # IMPORTANT: THESE OPERATORS HAVE BEEN MOVED TO misc_utils.R
-# EVENTUALLY THEY WILL BE REMOVED FROM HERE
 # if you will continue using them in the future, add a `source("src/utils/misc_utils.R")` to your init script
 
-"%==%" <- function(a, b) ifelse(!is.na(a), a==b, F)
-"%!=%" <- function(a, b) ifelse(!is.na(a), a!=b, F)
-"%_<_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<b, F)
-"%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
-"%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
-"%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
-"%_+_%" <- function(a,b) as.numeric(a) + as.numeric(b)
-"%==na%" <- function(e1, e2) (e1 == e2 | (is.na(e1) & is.na(e2)))
-"%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
+# "%==%" <- function(a, b) ifelse(!is.na(a), a==b, F)
+# "%!=%" <- function(a, b) ifelse(!is.na(a), a!=b, F)
+# "%_<_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<b, F)
+# "%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
+# "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
+# "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
+# "%_+_%" <- function(a,b) as.numeric(a) + as.numeric(b)
+# "%==na%" <- function(e1, e2) (e1 == e2 | (is.na(e1) & is.na(e2)))
+# "%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
 
+# DO NOT UNCOMMENT THESE LINES: 
 
-# ------------------------------------------------------------------------------------------
-is_all_numeric <- function(x) {
-  !any(is.na(suppressWarnings(as.numeric(na.omit(x))))) & is.character(x)
-}
+# # ------------------------------------------------------------------------------------------
+# is_all_numeric <- function(x) {
+#   !any(is.na(suppressWarnings(as.numeric(na.omit(x))))) & is.character(x)
+# }
 
-# ------------------------------------------------------------------------------------------
-add.to.fu.requests <- function(checks, check.id){
-  new.entries <- filter(checks, flag) %>% mutate(check.id=check.id) %>% select(uuid, check.id)
-  fu.requests <<- arrange(rbind(fu.requests, new.entries), uuid)
-}
+# # ------------------------------------------------------------------------------------------
+# add.to.fu.requests <- function(checks, check.id){
+#   new.entries <- filter(checks, flag) %>% mutate(check.id=check.id) %>% select(uuid, check.id)
+#   fu.requests <<- arrange(rbind(fu.requests, new.entries), uuid)
+# }
 
-# ------------------------------------------------------------------------------------------
-write_excel_pwd <- function(df, file, password){
-  xlsx::write.xlsx2(df, file, row.names=F, password=password)
-}
+# # ------------------------------------------------------------------------------------------
+# write_excel_pwd <- function(df, file, password){
+#   xlsx::write.xlsx2(df, file, row.names=F, password=password)
+# }
 
-# ------------------------------------------------------------------------------------------
-name2label_question <- function(col){
-  if (str_detect(col, "/")) {
-    q.name <- str_split(col, "/")[[1]][1]
-    c.name <- paste0(tail(str_split(col, "/")[[1]], -1), collapse="/")
-  } else {
-    q.name <- col
-    c.name <- NA
-  }
-  if (q.name %in% tool.survey$name){
-    q <- tool.survey[tool.survey$name==q.name,]
-    q.label <- q[label_colname]
-    if (is.na(q.label) | q$q.type %in% c("note")) q.label <- q.name
-    if (!is.na(c.name)){
-      q.list_name=ifelse(q$list_name=="NA", NA, q$list_name)
-      c.label <- tool.choices[tool.choices$list_name==q.list_name & tool.choices$name==c.name, label_colname]
-    } else c.label <- NA
-    label <- ifelse(is.na(c.label), q.label, paste0(q.label, "/", c.label))
-  } else label <- q.name
-  return(label)
-}
+# # ------------------------------------------------------------------------------------------
+# name2label_question <- function(col){
+#   if (str_detect(col, "/")) {
+#     q.name <- str_split(col, "/")[[1]][1]
+#     c.name <- paste0(tail(str_split(col, "/")[[1]], -1), collapse="/")
+#   } else {
+#     q.name <- col
+#     c.name <- NA
+#   }
+#   if (q.name %in% tool.survey$name){
+#     q <- tool.survey[tool.survey$name==q.name,]
+#     q.label <- q[label_colname]
+#     if (is.na(q.label) | q$q.type %in% c("note")) q.label <- q.name
+#     if (!is.na(c.name)){
+#       q.list_name=ifelse(q$list_name=="NA", NA, q$list_name)
+#       c.label <- tool.choices[tool.choices$list_name==q.list_name & tool.choices$name==c.name, label_colname]
+#     } else c.label <- NA
+#     label <- ifelse(is.na(c.label), q.label, paste0(q.label, "/", c.label))
+#   } else label <- q.name
+#   return(label)
+# }
+
+# ^DELETE THESE LINES BEFORE CHRISTMAS
