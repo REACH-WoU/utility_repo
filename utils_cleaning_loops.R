@@ -30,6 +30,10 @@ add.to.cleaning.log.other.remove.LOOP <- function(data, x){
       old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
     } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
       old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
+    } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop3")) {
+      old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
+    } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop4")) {
+      old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
     } else {
       old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
     }
@@ -74,6 +78,10 @@ add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
     old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
   } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")) {
     old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
+  } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop3")) {
+    old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
+  } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop4")) {
+    old.value <- as.character(data[data$loop_index==x$loop_index[1], x$ref.name])
   } else {
     old.value <- as.character(data[data$uuid==x$uuid[1], x$ref.name])
   }
@@ -94,11 +102,15 @@ add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
         old.boolean <- data[[variable.name]][data$loop_index==x$loop_index[1]]
       } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop2")){
         old.boolean <- data[[variable.name]][data$loop_index==x$loop_index[1]]
+      } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop3")){
+        old.boolean <- data[[variable.name]][data$loop_index==x$loop_index[1]]
+      } else if (!is.na(x$loop_index) & str_starts(x$loop_index[1],"loop4")){
+        old.boolean <- data[[variable.name]][data$loop_index==x$loop_index[1]]
       } else {
         old.boolean <- data[[variable.name]][data$uuid==x$uuid[1]]
       }
     } else stop("Column not found")
-    if (!is.na(old.boolean) & old.boolean=="0"){
+    if (!is.na(old.boolean) && old.boolean=="0"){
       df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=variable.name, issue=issue,
                        old.value=old.boolean, new.value="1")
       cleaning.log.other <<- rbind(cleaning.log.other, df)

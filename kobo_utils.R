@@ -217,19 +217,13 @@ get.other.db <- function(){
 }
 
 # ------------------------------------------------------------------------------------------
-get.trans.db <- function(){
+get.trans.db <- function(include.all=c()){
   #' finds all questions which should be translated (meaning all 'text'-type question that are not 'other's)
   #' somewhat obsolete because it searches for ref questions too which are unnecesary
   select.questions <- get.select.db()
 
-  df1 <- tool.survey %>% filter(type == "text" & !(str_ends(name, "_other"))) %>%
+  df1 <- tool.survey %>% filter(type == "text" & (!(str_ends(name, "_other")) | name %in% include.all)) %>%
     rename(label=label_colname) %>%
-    select("name", "label", "relevant") %>%
-    mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>%
-    left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
-              by=c("ref.name"="name")) %>%
-    rename(ref.label=q.label, ref.type=q.type) %>%
-    mutate(full.label=paste0(ref.label, " - ", label)) %>%
-    select(name, ref.name, full.label, ref.type, choices, choices.label)
+    select("name", "label")
   return(df1)
 }
