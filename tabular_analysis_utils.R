@@ -12,7 +12,7 @@ subch <- function(g, fig_height=7, fig_width=5) {
 }
 
 # add section to HTML
-add_to_html.section <- function(name) cat(paste0("\n\n## ", name, " {.tabset}"))
+add_to_html.section <- function(name) cat(paste0("\n\n## ", name," {.tabset}"))
 
 # add title to HTML
 add_to_html.title <- function(entry){
