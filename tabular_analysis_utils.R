@@ -3,7 +3,7 @@
 ###--------------------------------------------------------------------------------------------------------------
 
 # add table to HTML
-subch <- function(g) {
+subch <- function(g, fig_height=7, fig_width=5) {
   g_deparsed <- paste0(deparse(function() {g}), collapse = '')
   sub_chunk <- paste0("\n\n<center>\n", "```{r sub_chunk_", as.numeric(Sys.time())*1000, 
                       ", fig.height=", fig_height, ", fig.width=", fig_width, ", echo=FALSE}\n(", 
@@ -16,7 +16,7 @@ add_to_html.section <- function(name) cat(paste0("\n\n## ", name, " {.tabset}"))
 
 # add title to HTML
 add_to_html.title <- function(entry){
-  cat(paste0(paste0(rep("\n",2), collapse=""), paste0(rep("#",3), collapse=""), " ", entry$label))
+  cat(paste0(paste0(rep("\n",2), collapse=""), paste0(rep("#",4), collapse=""), " ", "<strong>",entry$label,"</strong>"))
 }
 
 # add subtitle to HTML
