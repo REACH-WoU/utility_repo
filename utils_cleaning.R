@@ -1011,7 +1011,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   return(responses.j)
 }
 
-translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', is.loop = F, target_lang = "en"){
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en"){
 
   #' Translate a vector from a given dataframe.
   #'
@@ -1024,17 +1024,15 @@ translate.responses <- function(responses, values_from = "response.uk", language
   #' @param respones Dataframe containing a column which shall be translated.
   #' @param values_from Name of the column from `responses` which shall be translated.
   #' @param language_codes Character vector of two-letter language codes. The input vector will be translated from both of these languages.
-  #' @param is.loop Unused. Still here for backwards compatibility.
   #' @param target_lang Input vector will be translated into this language.
   #' @returns The same dataframe as `responses`, but with a new column, containing the translation.
   #' The column will be named according to the given source and target languages. By default, the output will be stored in column named 'response.en.from.uk'
-
   info_df <- data.frame()
   responses_batch <- data.frame()
   temp_resp_whole <- data.frame()
   start_time <- Sys.time()
-  relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
-                         "choices.label", values_from)
+  # relevant_colnames <- c("uuid","loop_index","name", "ref.name","full.label","ref.type",
+                         # "choices.label", values_from)
 
   # extract unique responses from the source dataframe
   responses <- responses %>% mutate(resp_lower = str_to_lower(!!sym(values_from)))
@@ -1056,7 +1054,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
     if(length(input_vec) > 0){
       for (code in language_codes) {
         col_name <- paste0("response.",target_lang, ".from.",code)
-        relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged??
+        # relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged??
         
         temp_resp <- tibble(input_vec)
         temp_resp[[col_name]] <- NA

@@ -1,3 +1,10 @@
+#--------------------------------------------------------------------------------------------------------------
+# LISTS
+tableFormat <-list(
+  dom = 'T<"clear">lfrtip',
+  scrollX = TRUE)
+
+
 ###--------------------------------------------------------------------------------------------------------------
 ### SELECT_ONE
 ###--------------------------------------------------------------------------------------------------------------
@@ -58,7 +65,7 @@ select_one.analysis_overall <- function(srv.design, entry){
   if(length(disaggregations) >1){
     disaggregations[2] <- "overall"
   }
-
+  
   # get list of disaggregations to be done (disaggregate.variable + admin.level) and keep only those not NA
   if (length(disaggregations)==1) {
     # get proportions and confidence intervals (using svymean)
@@ -177,7 +184,7 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 # function to produce HTML table
@@ -218,7 +225,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
   }
   res <- res %>% filter(!is.na(num_samples))
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 ###--------------------------------------------------------------------------------------------------------------
@@ -441,7 +448,7 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 # function to produce HTML table
@@ -489,7 +496,7 @@ select_multiple.to_html <- function(res, entry, include.CI=T){
     res$num_samples <- nrow(data) # spit and fix
   }
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 ###--------------------------------------------------------------------------------------------------------------
@@ -537,8 +544,8 @@ mean.analysis_overall <- function(srv.design, entry){
     res.overall <- res.overall %>% mutate(mean=round(mean, 1),
                                           ci=paste0(format(round(mean_low, 1), scientific=F), "%-",
                                                     format(round(mean_upp, 1), scientific=F), "%"))
-
-
+    
+    
   } else{
     res.overall <- res.overall %>% mutate(mean=round(mean, 2),
                                           ci=paste0(format(round(mean_low, 2), scientific=F), "-",
@@ -556,12 +563,12 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
     res <- res %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
     res.overall <- res.overall %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
   }
-
+  
   if (!include.CI) {
     res <- res %>% select(-ci)
     res.overall <- res.overall %>% select(-ci)
   }
-
+  
   if (is.na(entry$disaggregate.variable)){
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
@@ -620,7 +627,7 @@ mean.to_html_overall <- function(res,res.overall, entry, include.CI=T){
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 # function to produce HTML table
@@ -628,9 +635,9 @@ mean.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(mean=ifelse(is.na(mean), NA, paste0(mean, "%")))
   }
-
+  
   if (!include.CI) res <- res %>% select(-ci)
-
+  
   if (is.na(entry$disaggregate.variable)){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
@@ -656,7 +663,7 @@ mean.to_html <- function(res, entry, include.CI=T){
   }
   res <- res %>% filter(!is.na(num_samples))
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 ###--------------------------------------------------------------------------------------------------------------
 ### MEDIAN
@@ -720,9 +727,9 @@ median.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
     res <- res %>% mutate(median=ifelse(is.na(median), NA, paste0(median, "%")))
   }
-
+  
   if (!include.CI) res <- res %>% select(-ci)
-
+  
   if (is.na(entry$disaggregate.variable)){
     t <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
@@ -748,7 +755,7 @@ median.to_html <- function(res, entry, include.CI=T){
   }
   res <- res %>% filter(!is.na(num_samples))
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 # function to produce HTML table
@@ -821,7 +828,7 @@ median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
   res.overall <- res.overall %>% filter(!is.na(num_samples))
   res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 
@@ -916,7 +923,7 @@ count.to_html.overall <- function(res, entry){
     if (nrow(res)!=n_rows) stop()
   }
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 
@@ -935,7 +942,7 @@ count.to_html <- function(res, entry){
     if (nrow(res)!=n_rows) stop()
   }
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
-  return(subch(datatable(res)))
+  return(subch(datatable(res, options = tableFormat)))
 }
 
 ###--------------------------------------------------------------------------------------------------------------
@@ -978,7 +985,7 @@ load.entry <- function(analysis.plan.row){
   calculation <- as.character(analysis.plan.row$calculation)
   join <- !is.na(analysis.plan.row$join)
   comments <- as.character(analysis.plan.row$comments)
-  omit_na <- is.na(analysis.plan.row$calculation) | analysis.plan.row$calculation == "omit_na"
+  omit_na <- is.na(analysis.plan.row$calculation) | (!is.na(calculation) & str_detect(analysis.plan.row$calculation, "omit_na", T))
   if (is.na(disaggregate.variable)) {
     disaggregate.variables <- c(NA)
   } else{
