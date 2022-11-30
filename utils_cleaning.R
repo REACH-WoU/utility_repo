@@ -14,8 +14,7 @@ style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", val
 
 # ------------------------------------------------------------------------------------------
 save.responses <- function(df, wb_name, or.submission=""){
-  # TODO: upgrade this function to work on changing df sizes
-  # this function is most likely superceded by save.other.requests and save.trans.requests
+  #' [obsolete] superceded by save.other.requests and save.trans.requests
 
   style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
@@ -193,6 +192,8 @@ save.outlier.responses_msna <- function(df, or.submission=""){
 
 save.follow.up.requests <- function(cleaning.log, data){
     #' [obsolete] - replaced by `create.follow.up.requests`
+    #' 
+  warning("save.follow.up.requests is obsolete! Please use create.follow.up.requests instead.")
   use.color <- function(check.id){
     return(str_starts(check.id, "0"))
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
@@ -392,7 +393,8 @@ load.edited <- function(dir.edited, file.type){
   #' Load logs from specified directory.
   #'
   #' [obsolete] This function is superceded by load.requests
-
+  
+  warning("load.edited is obsolete! Please use load.requests instead.")
 
   # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
@@ -418,6 +420,9 @@ load.edited <- function(dir.edited, file.type){
 }
 
 load.logic.request <- function(dir.requests){
+  #' [obsolete] remove before christmas
+  
+  warning("load.logic.request is obsolete! Please use load.requests instead.")
   logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
                                 recursive=FALSE, full.names=TRUE)
   cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
@@ -432,6 +437,9 @@ load.logic.request <- function(dir.requests){
 }
 
 load.outlier.edited <- function(dir.outlier.edited){
+  #' [obsolete] remove before christmas
+  
+  warning("load.outlier.edited is obsolete! Please use load.requests instead.")
   logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
                                 recursive=TRUE, full.names=TRUE)
   cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
@@ -450,12 +458,14 @@ load.outlier.edited <- function(dir.outlier.edited){
 # CLEANING LOG FUNCTIONS
 # ------------------------------------------------------------------------------------------
 
-# recoding select_multiples:
-# ------------------------------------------------------------------------------
 CL_COLS <- c("uuid", "loop_index", "variable", "old.value", "new.value", "issue")
+
+# ------------------------------------------------------------------------------
 
 recode.set.NA.if <- function(data, variables, code, issue, ignore_case = T){
     #' Recode a question by setting variables to NA if they are equal to a given value (code).
+    #'
+    #' @note DO NOT use this function for select_multiple questions. Instead use `recode.multiple.set.NA`
     #'
     #' @param data Dataframe containing records which will be affected.
     #' @param variables Vector of strings (or a single string) containing the names of the variables.
@@ -484,18 +494,23 @@ recode.set.NA.if <- function(data, variables, code, issue, ignore_case = T){
 }
 
 recode.set.NA.regex <- function(data, variables, pattern, issue){
-  #' Recode a question by setting variables to NA if they are equal to a given value (code).
+  #' Recode a question by setting variables to NA if they are matching a regex pattern.
+  #' 
+  #' A more powerful version of the function `recode.set.NA.if`.
+  #' This function is also useful also if you need to simply set some variables to NA - you can put ".*" as the `pattern`.
+  #'
+  #' @note DO NOT use this function for select_multiple questions. Instead use `recode.multiple.set.NA`
   #'
   #' @param data Dataframe containing records which will be affected.
   #' @param variables Vector of strings (or a single string) containing the names of the variables.
-  #' @param code Vector of strings (or a single string) which will be changed to NA.
+  #' @param pattern Regex pattern which will be used to find entries that will be turned to NA.
   #' @param issue String with explanation used for the cleaning log entry.
   #'
   #' @returns Dataframe containing cleaning log entries constructed from `data`.
   #'
-  #' @usage `recode.set.NA.if(data = filter(raw.main, condition),
+  #' @usage `recode.set.NA.regex(data = filter(raw.main, condition),
   #'  variables = c("question1", "question2"),
-  #'   code = "999", issue = "explanation")`
+  #'   pattern = "birth_certificates?", issue = "explanation")`
   #'
   clog <- tibble()
   for(variable in variables){
@@ -508,18 +523,20 @@ recode.set.NA.regex <- function(data, variables, pattern, issue){
 }
 
 recode.set.value.regex <- function(data, variables, pattern, new.value, issue){
-  #' Recode a question by setting variables to NA if they are equal to a given value (code).
-  #'
+  #' Recode a question by setting variables to some new value if they are matching a regex pattern.
+  #' 
+  #' @note DO NOT use this function for select_multiple questions. Instead use `recode.multiple.set.choice`
+  #' 
   #' @param data Dataframe containing records which will be affected.
   #' @param variables Vector of strings (or a single string) containing the names of the variables.
-  #' @param code Vector of strings (or a single string) which will be changed to NA.
+  #' @param pattern Regex pattern which will be used to match entries.
   #' @param issue String with explanation used for the cleaning log entry.
   #'
   #' @returns Dataframe containing cleaning log entries constructed from `data`.
   #'
-  #' @usage `recode.set.NA.if(data = filter(raw.main, condition),
+  #' @usage `recode.set.value.regex(data = filter(raw.main, condition),
   #'  variables = c("question1", "question2"),
-  #'   code = "999", issue = "explanation")`
+  #'   pattern = "birth_certificates?", issue = "explanation")`
   #'
   clog <- tibble()
   for(variable in variables){
@@ -530,6 +547,9 @@ recode.set.value.regex <- function(data, variables, pattern, new.value, issue){
   }
   return(clog)
 }
+
+# RECODING SELECT_MULTIPLES
+# ------------------------------------------------------------------------------
 
 recode.multiple.set.NA <- function(data, variable, issue){
     #' Recode select_multiple responses: set to NA.
@@ -595,7 +615,8 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
     #'
     #' @usage `recode.multiple.set.choice(data = filter(raw.main, condition), variable = "question_name", choice = "option", issue = "explanation")`
     #'
-    choice_column <- paste0(variable,"/",choice)
+    
+  choice_column <- paste0(variable,"/",choice)
     if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
     # filter out cases that already have only this choice selected
     data <- data %>% filter(!!sym(variable) %!=na% choice)
@@ -648,16 +669,19 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
           mutate(variable = variable, new.value = str_squish(paste(variable2, paste0(choices, collapse = " "))), issue = issue) %>%
           select(-variable2)
       if(all(cl_cummulative$new.value %==na% cl_cummulative$old.value)) cl_cummulative <- data.frame()
-      cl_choices <- data.frame()
-      for(choice in choices){
-          choice_column <- paste0(variable,"/",choice)
-          data1 <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
-          if(nrow(data1) > 0){
-            cl_choice <- data1 %>% select(any_of(c("uuid","loop_index"))) %>%
-                mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
-            cl_choices <- rbind(cl_choices, cl_choice)
-          }
-      }
+      
+      choice_columns <- paste0(variable,"/",choices)
+      cl_choices <- recode.set.value.regex(data, choice_columns, "0", "1", issue)
+      # cl_choices <- data.frame()
+      # for(choice in choices){
+      #     choice_column <- paste0(variable,"/",choice)
+      #     data1 <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
+      #     if(nrow(data1) > 0){
+      #       cl_choice <- data1 %>% select(any_of(c("uuid","loop_index"))) %>%
+      #           mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
+      #       cl_choices <- rbind(cl_choices, cl_choice)
+      #     }
+      # }
       return(rbind(cl_cummulative, cl_choices))
     }
     return(data.frame())
@@ -665,6 +689,9 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
 
 recode.multiple.add.choice <- function(data, variable, choice, issue){
   #' [obsolete] use `recode.multiple.add.choices` instead
+  #' 
+  
+  warning("recode.multiple.add.choice is obsolete! Please use recode.multiple.add.choices instead.")
   
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
@@ -683,7 +710,11 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
 }
 
 recode.multiple.remove.choice <- function(data, variable, choice, issue){
-  #' TODO add documentation
+  #' [obsolete] use `recode.multiple.remove.choices` instead
+  #' 
+  
+  warning("recode.multiple.remove.choice is obsolete! Please use recode.multiple.remove.choices instead.")
+  
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that dont have the choice selected
@@ -700,6 +731,51 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
   return(data.frame())
 }
 
+recode.multiple.remove.choices <- function(data, variable, choices, issue){
+  #' Recode select_multiple responses: remove particular choices.
+  #'
+  #' Removes the relevant text from the cummulative column. Changes all 1s to 0 in choice columns specified by `choices`.
+  #' Also, if one of the `choices` is "other", then the text variable (_other) will be changed to NA.
+  #' 
+  #' @note This function does not affect entries that have NA in `variable`.
+  #'
+  #' @param data Dataframe containing records which will be affected.
+  #' @param variable String containing the name of the select_multiple variable.
+  #' @param choices Vector of strings (or a single string) containing the choices that will be removed. They must be valid options for this variable.
+  #' @param issue String with explanation used for the cleaning log entry.
+  #'
+  #' @returns Dataframe containing cleaning log entries constructed from `data`.
+  #'
+  #' @usage `recode.multiple.remove.choices(data = filter(raw.main, condition), variable = "question_name", choices = c("option1", "option2"), issue = "explanation")`
+  #'
+  
+  choice_columns <- paste0(variable,"/",choices)
+  if(any(!choice_columns %in% colnames(data))) stop(paste("Column",choice_columns[!choice_columns %in% colnames(data)],"were not found in data!"))
+  
+  # filter to include only rows that are not NA, and that have at least one of the choices selected
+  anychoice_pattern <- paste0("(",choices,")", collapse = "|")
+  data <- data %>% filter(!is.na(!!sym(variable)) & str_detect(!!sym(variable), anychoice_pattern))
+  
+  if(nrow(data) > 0){
+    # remove the choices from cumulative column using a combined regex pattern
+    cl_cummulative <- data %>% select(any_of(CL_COLS), all_of(variable)) %>% 
+      rename(old.value = !!sym(variable)) %>% 
+      mutate(variable = variable, new.value = str_squish(str_remove_all(old.value, anychoice_pattern)), issue = issue)
+    
+    cl_choices <- recode.set.value.regex(data, choice_columns, "1", "0", issue)
+    
+    if(!"other" %in% choices) {
+      return(rbind(cl_cummulative, cl_choices))
+    } else{
+      cl_other <- recode.set.NA.regex(data, paste0(variable, "_other"), ".*", issue)
+      return(rbind(cl_cummulative, cl_choices, cl_other))
+    }
+  }
+  return(data.frame())
+  
+}
+
+# ------------------------------------------------------------------------------
 
 apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
   #' Apply changes to main data basing on a cleaning log.
@@ -811,7 +887,9 @@ add.to.cleaning.log.other.recode <- function(data, x){
 }
 
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
-  #' [obsolete]
+  #' [obsolete] replaced by make.logical.check.entry
+  #' 
+  warning("add.to.cleaning.log is obsolete! Please use make.logical.check.entry instead.")
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>%
       mutate(variable = q.n,
@@ -1144,6 +1222,13 @@ translate.responses <- function(responses, values_from = "response.uk", language
 
 
 create.translate.requests <- function(questions.db, responses.j, is.loop = F){
+  #' Format a dataframe containing responses to prepare for other/translate requests
+  #' 
+  #' Relocates columns and adds the TEI columns.
+  #' 
+  #' @param questions.db Dataframe containing questions (e.g. other.db or trans.db)
+  #' @param responses.j Dataframe containing responses to any questions from `questions.db`
+  #' @param is.loop unused
 
     relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","full.label","ref.type", "choices.label", "today")
 
