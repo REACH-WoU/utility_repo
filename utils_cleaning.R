@@ -522,7 +522,7 @@ recode.set.NA.regex <- function(data, variables, pattern, issue){
   return(clog)
 }
 
-recode.set.value.regex <- function(data, variables, pattern, new.value, issue){
+recode.set.value.regex <- function(data, variables, pattern, new.value, issue, affect_na = FALSE){
   #' Recode a question by setting variables to some new value if they are matching a regex pattern.
   #' 
   #' @note DO NOT use this function for select_multiple questions. Instead use `recode.multiple.set.choice`
@@ -531,6 +531,7 @@ recode.set.value.regex <- function(data, variables, pattern, new.value, issue){
   #' @param variables Vector of strings (or a single string) containing the names of the variables.
   #' @param pattern Regex pattern which will be used to match entries.
   #' @param issue String with explanation used for the cleaning log entry.
+  #' @param affect_na Whether this function should also change NA values to `new.value`. Defaults to False (NA entries will be skipped)
   #'
   #' @returns Dataframe containing cleaning log entries constructed from `data`.
   #'
@@ -540,7 +541,9 @@ recode.set.value.regex <- function(data, variables, pattern, new.value, issue){
   #'
   clog <- tibble()
   for(variable in variables){
-    data1 <- data %>% filter(str_detect(!!sym(variable), pattern = pattern))
+    if(affect_na) data1 <- data %>% filter(str_detect(!!sym(variable), pattern = pattern) | is.na(!!sym(variable)))
+    else data1 <- data %>% filter(str_detect(!!sym(variable), pattern = pattern))
+    data1 <- data1 %>% filter(!!sym(variable) %!=na% new.value)
     cl <- data1 %>% mutate(variable = variable, old.value = !!sym(variable), new.value = new.value,
                            issue = issue) %>% select(any_of(CL_COLS))
     clog <- rbind(clog, cl)
@@ -648,9 +651,26 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
     return(data.frame())
 }
 
+recode.multiple.set.choices <- function(data, variable, choices, issue){
+  # TODO
+}
+
 recode.multiple.add.choices <- function(data, variable, choices, issue){
-    #' TODO add documentation
-    #'
+  #' Recode select_multiple responses: add particular choices.
+  #'
+  #' Changes all 0s to 1s in choice columns specified by `choices`. Modifies cumulative variable too.
+  #' 
+  #' @note This function does not affect entries that have NA in `variable`.
+  #'
+  #' @param data Dataframe containing records which will be affected.
+  #' @param variable String containing the name of the select_multiple variable.
+  #' @param choices Vector of strings (or a single string) containing the choices that will be added. They must be valid options for this variable.
+  #' @param issue String with explanation used for the cleaning log entry.
+  #'
+  #' @returns Dataframe containing cleaning log entries constructed from `data`.
+  #'
+  #' @usage `recode.multiple.add.choices(data = filter(raw.main, condition), variable = "question_name", choices = c("option1", "option2"), issue = "explanation")`
+    
     choice_columns <- paste0(variable,"/",choices)
     if(any(!choice_columns %in% colnames(data))){
       stop(paste("\nColumn",choice_columns[!choice_columns %in% colnames(data)],"not present in data!"))
