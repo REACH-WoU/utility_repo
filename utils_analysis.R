@@ -152,13 +152,13 @@ convert_cols_with_daf <- function(df, omit_na = T){
   
   converted <- c()
   # filter the daf using the data that was entered 
-  daf <- daf %>% filter(variable %in% colnames(df))
-  if(nrow(daf) == 0){
+  dafp <- daf %>% filter(variable %in% colnames(df))
+  if(nrow(dafp) == 0){
       cat("\nThere was nothing to convert - no questions from data are found in DAF.")
       return(df)
     }
-  for(r in 1:nrow(daf)){
-    entry <- load_entry(daf[r,])
+  for(r in 1:nrow(dafp)){
+    entry <- load_entry(dafp[r,])
     col <- entry$variable
 
     cat("Converting",col," ")
