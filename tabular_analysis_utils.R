@@ -33,3 +33,26 @@ add_to_html.sub_title <- function(disaggregate.variable){
 tableFormat <-list(
   dom = 'T<"clear">lfrtip',
   scrollX = TRUE)
+
+# jsFunc <- "(function(value){
+#   // find a number preceeded by an open parenthesis with an optional minus sign
+#   var matches = value.replace('%','');
+#   // ignore values which do not match our pattern, returning white as the background color
+#   if(!matches || matches.length < 2) { 
+#     return 'white'; 
+#   }
+#   // attempt to convert the match we found into a number
+#   var int = parseInt(matches[1]); 
+#   // if we can't ignore it and return a white color
+#   if(isNaN(int)) { 
+#     return 'white';
+#   } 
+#   // if the value is negative, return red
+#   if(int < 50) { 
+#     return 'red' 
+#   }
+#   // otherwise, by default, return green
+#   return 'green';
+# })(value)"
+#TO DEBUGGG
+# function to produce HTML table
