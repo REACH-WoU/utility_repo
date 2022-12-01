@@ -969,6 +969,9 @@ create.deletion.log <- function(data, col_enum, reason){
   #' @param reason This is a string describing the reason for removing a survey from data.
   #' @returns A dataframe containing a deletion log with columns `uuid`, `col_enum`, `reason`, OR an empty dataframe if `data` has 0 rows.
   
+  if(!col_enum %in% colnames(data))
+    stop(paste0("Enumerator column (", col_enum, ") not found in the data!\nDid you mean ", colnames(data)[agrep(col_enum, colnames(data))], "?"))
+  
   if(nrow(data) > 0){
     # if it's a loop, then include the loop_index in the deletion log
     if("loop_index" %in% colnames(data))
