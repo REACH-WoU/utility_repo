@@ -85,7 +85,7 @@ get.label <- function(variable){
   #' @param variable This is the name of the header from raw data.
   
   not_in_tool <- variable[!variable %in% tool.survey$name]
-  if(length(variable) > 0){
+  if(length(not_in_tool) > 0){
     warning(paste("Variables not found in tool.survey:", paste0(not_in_tool, collapse = ", ")))
   }
   if (any(str_detect(variable, "/"))) variable <- str_split(variable, "/", 2, T)[,1]
@@ -120,10 +120,19 @@ get.choice.label <- function(choice, list){
 # ------------------------------------------------------------------------------
 
 get.choice.list.from.name <- function(variable){
-  #' find the choices list name
+  #' Find the choices list name of a variable
+  #' 
+  #' Looks up the list_name" in tool.survey. Operates on single values and vectors
+  #' For column named after select_multiple choices (i.e containing a slash in the name),
+  #' the returned list_name will be the one for the base question itself (e.g. if variable == "pytanie/choice", the result is the label of "pytanie")
   #' @param variable This is the name of the header from raw data.
-  if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
-  return(tool.survey %>% filter(name == variable) %>% pull(list_name))
+  variable <- ifelse(str_detect(variable, "/"), str_split(variable, "/", simplify = T)[1], variable)
+  not_in_tool <- variable[!variable %in% tool.survey$name]
+  if(length(not_in_tool) > 0){
+    warning(paste("Variables not found in tool.survey:", paste0(not_in_tool, collapse = ", ")))
+  }
+  res <- tibble(name = variable) %>% left_join(select(tool.survey, name, list_name), by = "name", na_matches = "never")
+  return(pull(res, list_name))
 }
 
 get.choice.list.from.type <- function(q_type){
