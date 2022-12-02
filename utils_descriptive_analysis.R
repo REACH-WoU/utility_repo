@@ -235,6 +235,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
 ###--------------------------------------------------------------------------------------------------------------
 # function to run the analysis
 select_multiple.analysis <- function(srv.design, entry){
+  srv.design <- survey.design
   # get list of columns for the selected question --> variables
   q.list_name <- get.choice.list.from.name(entry$variable)
   choices <- tool.choices %>% filter(list_name==q.list_name) %>%
