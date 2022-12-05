@@ -346,7 +346,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
   if (length(filenames) == 0){
     warning(paste("Files with",file.type,"requests not found!"))
   } else {
-    cat(paste("Loading",length(filenames),file.type,"requests files:\n"),paste(filenames, collapse = "\n "),"\n")
+    cat(paste("Loading",length(filenames),file.type,"files:\n"),paste(filenames, collapse = "\n "),"\n")
     res <- data.frame()
     for (filename in filenames){
       # load file
@@ -520,6 +520,13 @@ recode.set.NA.regex <- function(data, variables, pattern, issue){
     clog <- rbind(clog, cl)
   }
   return(clog)
+}
+
+recode.set.NA <- function(data, variables, issue){
+  #' Set the given variables for the given entries to NA.
+  #'
+  #' Small utility function that calls `recode.set.value.regex` with parameter `pattern = ".*"`
+  recode.set.NA.regex(data, variables, ".*", issue)
 }
 
 recode.set.value.regex <- function(data, variables, pattern, new.value, issue, affect_na = FALSE){
