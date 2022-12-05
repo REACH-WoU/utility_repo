@@ -106,7 +106,7 @@ get.choice.label <- function(choice, list){
   if(!list %in% tool.choices$list_name) stop(paste("list",list, "not found in tool.choices!"))
   
   res <- data.frame(name = unlist(choice)) %>%
-      left_join(select(tool.choices, name, list_name, label_colname) %>% filter(list_name == list),
+      left_join(select(tool.choices, name, list_name, all_of(label_colname)) %>% filter(list_name == list),
                 by = "name", na_matches = "never")
   if(any(is.na(res[[label_colname]]))){
     culprits <- paste0(filter(res, is.na(!!sym(label_colname))) %>%
