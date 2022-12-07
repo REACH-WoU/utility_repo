@@ -193,7 +193,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
 save.follow.up.requests <- function(cleaning.log, data){
     #' [obsolete] - replaced by `create.follow.up.requests`
     #' 
-  warning("save.follow.up.requests is obsolete! Please use create.follow.up.requests instead.")
+  warning(" save.follow.up.requests is obsolete! Please use create.follow.up.requests instead.")
   use.color <- function(check.id){
     return(str_starts(check.id, "0"))
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
@@ -394,7 +394,7 @@ load.edited <- function(dir.edited, file.type){
   #'
   #' [obsolete] This function is superceded by load.requests
   
-  warning("load.edited is obsolete! Please use load.requests instead.")
+  warning(" load.edited is obsolete! Please use load.requests instead.")
 
   # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
@@ -422,7 +422,7 @@ load.edited <- function(dir.edited, file.type){
 load.logic.request <- function(dir.requests){
   #' [obsolete] remove before christmas
   
-  warning("load.logic.request is obsolete! Please use load.requests instead.")
+  warning(" load.logic.request is obsolete! Please use load.requests instead.")
   logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
                                 recursive=FALSE, full.names=TRUE)
   cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
@@ -439,7 +439,7 @@ load.logic.request <- function(dir.requests){
 load.outlier.edited <- function(dir.outlier.edited){
   #' [obsolete] remove before christmas
   
-  warning("load.outlier.edited is obsolete! Please use load.requests instead.")
+  warning(" load.outlier.edited is obsolete! Please use load.requests instead.")
   logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
                                 recursive=TRUE, full.names=TRUE)
   cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
@@ -631,7 +631,7 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
     #'
     #' @usage `recode.multiple.set.choice(data = filter(raw.main, condition), variable = "question_name", choice = "option", issue = "explanation")`
     #'
-  warning("recode.multiple.set.choice is obsolete! Please use recode.multiple.set.choices instead!")
+  warning(" recode.multiple.set.choice is obsolete! Please use recode.multiple.set.choices instead!\n\t...unless you are trying to change some NA values - in this case I hope you know what you're doing :)")
   choice_column <- paste0(variable,"/",choice)
     if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
     # filter out cases that already have only this choice selected
@@ -676,7 +676,8 @@ recode.multiple.set.choices <- function(data, variable, choices, issue){
   #' @param choices Vector of strings (or a single string) containing the choices that will be added. They must be valid options for this variable.
   #' @param issue String with explanation used for the cleaning log entry.
   #' 
-  #' @note THIS FUNCTION DOES NOT CHANGE ENTRIES WHERE VARIABLE WAS PREVOIUSLY NA
+  #' @note this function does not change entries where variable was prevoiusly NA
+  #' # TODO: allow for this^
   #'
   #' @returns Dataframe containing cleaning log entries constructed from `data`.
   #'
@@ -773,7 +774,7 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
   #' [obsolete] use `recode.multiple.add.choices` instead
   #' 
   
-  warning("recode.multiple.add.choice is obsolete! Please use recode.multiple.add.choices instead.")
+  warning(" recode.multiple.add.choice is obsolete! Please use recode.multiple.add.choices instead.")
   
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
@@ -795,7 +796,7 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
   #' [obsolete] use `recode.multiple.remove.choices` instead
   #' 
   
-  warning("recode.multiple.remove.choice is obsolete! Please use recode.multiple.remove.choices instead.")
+  warning(" recode.multiple.remove.choice is obsolete! Please use recode.multiple.remove.choices instead.")
   
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
@@ -1145,7 +1146,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
 
 add.to.cleaning.log.other.recode <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
   if(!"existing.other" %in% colnames(x)){
     x <- rename_with(x, ~gsub(".v",".other", .), ends_with(".v"))
   } # a bit of a dirty fix :)
@@ -1157,7 +1158,7 @@ add.to.cleaning.log.other.recode <- function(data, x){
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   #' [obsolete] replaced by make.logical.check.entry
   #' 
-  warning("add.to.cleaning.log is obsolete! Please use make.logical.check.entry instead.")
+  warning(" add.to.cleaning.log is obsolete! Please use make.logical.check.entry instead.")
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>%
       mutate(variable = q.n,
@@ -1176,7 +1177,7 @@ add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", 
 
 add.to.cleaning.log.other.remove <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.remove is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.remove is obsolete! Please use recode.others instead.")
   issue <- "Invalid other response"
   old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
@@ -1222,7 +1223,7 @@ add.to.cleaning.log.trans.remove <- function(data, x){
 
 add.to.cleaning.log.other.recode.one <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
   issue <- "Recoding other response"
   old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
@@ -1259,7 +1260,7 @@ add.to.cleaning.log.other.recode.one <- function(data, x){
 
 add.to.cleaning.log.other.recode.multiple <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
   issue <- "Recoding other response"
   old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
