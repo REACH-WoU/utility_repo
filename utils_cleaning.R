@@ -1550,7 +1550,7 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
 }
 
 #-------------------------------------------------------------------------------
-# misc functions for pulling data
+# misc functions for pulling and checking data
 #-------------------------------------------------------------------------------
 
 what.country <- function(id){
@@ -1561,33 +1561,61 @@ what.country <- function(id){
   return(raw.main %>% filter(uuid == id) %>% pull(country))
 }
 
-pull.raw <- function(uuids = NA, loop_indexes = NA){
-    #' Pull records from `raw.main` with the given uuids or loop_index.
+pull.raw <- function(uniquis, print_warnings = T){
+    #' Pull records from raw data with the given uuids or loop_indexes.
     #' 
-    #' Either `uuids` or `loop_indexes` must be provided. If pulling by uuid, the dataframe used is `raw.main`.
+    #' A vector of either uuids or loop_indexes must be provided as the argument.
+    #' If pulling by uuid, the dataframe used is `raw.main`.
     #' Otherwise, all of the loop_indexes must belong to the same loop (so all must start with the same string "loop#"),
     #' and the data is pulled from dataframe `raw.loop1`, or `raw.loop2`, etc...
     #' 
-    #' @note If both uuids and loop_indexes are provided, only loop indexes will be used! (data is not filtered by the provided uuids)
-    #' 
-    #' @param uuids Character vector of 
-    #' @param loop_indexes Character vector of 
-    #' @returns Dataframe: raw.main, or raw.loop1 or raw.loop2, depending on the provided arguments.
+    #' @param uniquis Character vector of either uuids or loop_indexes
+    #' @param print_warning Whether to print warnings about identifiers that were not found in data. This slows down this function a bit.
+    #' @returns Dataframe: raw.main, or one of the raw.loops, filtered to only include the provided identifiers.
 
-    if(all(is.na(loop_indexes))) {
-        if(all(is.na(uuids))) stop("Need to provide either uuids, or loop_indexes!")
-        uuids <- str_squish(uuids)
-        return(raw.main %>% filter(uuid %in% uuids))
-    }
-    else{
-        loop_indexes <- str_squish(loop_indexes)
-        if (all( str_starts(loop_indexes,  "loop1")))  return(raw.loop1 %>% filter(loop_index %in% loop_indexes))
-        else if(all(str_starts(loop_indexes,"loop2"))) return(raw.loop2 %>% filter(loop_index %in% loop_indexes))
-        # TODO: add additional loops if necessary
-        else stop("Referenced loop indexes belong to different loops!")
-    }
+  if(all(is.na(uniquis)) & print_warnings) warning("Nothing to pull (provided uniquis vector is empty)")
+  uniquis <- str_squish(uniquis)
+  # check if we're dealing with loop_indexes or uuids:
+  loop_num <- str_extract(str_extract(uniquis, "^loop\\d+_"), "\\d+")
+  if(all(is.na(loop_num))){
+    ### uuids
+    find.missing.ids(raw.main, uniquis)
+    return(raw.main %>% filter(uuid %in% uniquis))       
+  } else{
+    ### loop_indexes
+    if(any(loop_num != loop_num[1])) stop("Provided loop indexes belong to different loops!")
+    
+    loop_to_pull <- switch (loop_num[1],                                 
+      "1" = raw.loop1, 
+      "2" = raw.loop2, 
+      "3" = raw.loop3, 
+      "4" = raw.loop4, 
+      "5" = raw.loop5, 
+      "6" = raw.loop6  
+      # add additional loops if necessary
+    )
+    find.missing.ids(loop_to_pull, uniquis)
+    return(loop_to_pull %>% filter(loop_index %in% uniquis))
+  }
 }
 
+find.missing.ids <- function(data, uniquis, print_warnings = T){
+  if(length(uniquis) == 0) return(character(0))
+  if(any(str_starts(uniquis, "loop\\d"))){
+    if(!"loop_index" %in% names(data)) stop("uniquis are loop indexes, but data does not contain column loop_index!")
+    if(!all(str_starts(uniquis, "loop\\d")) & print_warnings) warning("not all provided identifiers are loop_indexes!")
+    data$uniqui <- data$loop_index
+  } else if ("uuid" %in% names(data)) {
+    data$uniqui <- data$uuid
+  } else stop("data does not contain column uuid!")
+
+  if(any(!data$uniqui %in% uniquis)){
+    missing_ids <- uniquis[!uniquis %in% data$uniqui]
+    if(length(missing_ids) == length(uniquis) & print_warnings) warning("NONE of the identifiers were found in data!")
+    else if(length(missing_ids) > 0 & print_warnings) warning("Identifiers not found in data:\n\t", paste(missing_ids, collapse = ",\n\t"))
+    return(missing_ids)
+  }
+} 
 
 #------------------------------------------------------------------------------------------------------------
 # utility operators & other legacy functions
