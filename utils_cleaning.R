@@ -193,7 +193,7 @@ save.outlier.responses_msna <- function(df, or.submission=""){
 save.follow.up.requests <- function(cleaning.log, data){
     #' [obsolete] - replaced by `create.follow.up.requests`
     #' 
-  warning("save.follow.up.requests is obsolete! Please use create.follow.up.requests instead.")
+  warning(" save.follow.up.requests is obsolete! Please use create.follow.up.requests instead.")
   use.color <- function(check.id){
     return(str_starts(check.id, "0"))
     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
@@ -394,7 +394,7 @@ load.edited <- function(dir.edited, file.type){
   #'
   #' [obsolete] This function is superceded by load.requests
   
-  warning("load.edited is obsolete! Please use load.requests instead.")
+  warning(" load.edited is obsolete! Please use load.requests instead.")
 
   # file.type should be one of the following:
   valid_types = c("other","translate","follow_up","outliers")
@@ -422,7 +422,7 @@ load.edited <- function(dir.edited, file.type){
 load.logic.request <- function(dir.requests){
   #' [obsolete] remove before christmas
   
-  warning("load.logic.request is obsolete! Please use load.requests instead.")
+  warning(" load.logic.request is obsolete! Please use load.requests instead.")
   logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
                                 recursive=FALSE, full.names=TRUE)
   cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
@@ -439,7 +439,7 @@ load.logic.request <- function(dir.requests){
 load.outlier.edited <- function(dir.outlier.edited){
   #' [obsolete] remove before christmas
   
-  warning("load.outlier.edited is obsolete! Please use load.requests instead.")
+  warning(" load.outlier.edited is obsolete! Please use load.requests instead.")
   logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
                                 recursive=TRUE, full.names=TRUE)
   cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
@@ -631,7 +631,7 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
     #'
     #' @usage `recode.multiple.set.choice(data = filter(raw.main, condition), variable = "question_name", choice = "option", issue = "explanation")`
     #'
-  warning("recode.multiple.set.choice is obsolete! Please use recode.multiple.set.choices instead!")
+  warning(" recode.multiple.set.choice is obsolete! Please use recode.multiple.set.choices instead!\n\t...unless you are trying to change some NA values - in this case I hope you know what you're doing :)")
   choice_column <- paste0(variable,"/",choice)
     if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
     # filter out cases that already have only this choice selected
@@ -676,7 +676,8 @@ recode.multiple.set.choices <- function(data, variable, choices, issue){
   #' @param choices Vector of strings (or a single string) containing the choices that will be added. They must be valid options for this variable.
   #' @param issue String with explanation used for the cleaning log entry.
   #' 
-  #' @note THIS FUNCTION DOES NOT CHANGE ENTRIES WHERE VARIABLE WAS PREVOIUSLY NA
+  #' @note this function does not change entries where variable was prevoiusly NA
+  #' # TODO: allow for this^
   #'
   #' @returns Dataframe containing cleaning log entries constructed from `data`.
   #'
@@ -687,7 +688,7 @@ recode.multiple.set.choices <- function(data, variable, choices, issue){
   if(any(!choice_columns %in% colnames(data))) stop(paste("Columns",paste(choice_columns, collapse = ", "),"not present in data!"))
   
   # find the new value for the cumulative variable (get the proper order from tool.choices)
-  newvalue  <-  tool.choices %>% filter(list_name == get.choice.list.from.name(variable) & name %in% choices) %>% 
+  newvalue <- tool.choices %>% filter(list_name == get.choice.list.from.name(variable) & name %in% choices) %>% 
     pull(name) %>% paste(collapse = " ")
   anychoice_pattern <- paste0("(",choices,")", collapse = "|")
   
@@ -773,7 +774,7 @@ recode.multiple.add.choice <- function(data, variable, choice, issue){
   #' [obsolete] use `recode.multiple.add.choices` instead
   #' 
   
-  warning("recode.multiple.add.choice is obsolete! Please use recode.multiple.add.choices instead.")
+  warning(" recode.multiple.add.choice is obsolete! Please use recode.multiple.add.choices instead.")
   
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
@@ -795,7 +796,7 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
   #' [obsolete] use `recode.multiple.remove.choices` instead
   #' 
   
-  warning("recode.multiple.remove.choice is obsolete! Please use recode.multiple.remove.choices instead.")
+  warning(" recode.multiple.remove.choice is obsolete! Please use recode.multiple.remove.choices instead.")
   
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
@@ -903,20 +904,20 @@ recode.others <- function(data, or.edited, orig_response_col = "response.uk", is
     missing_ids <- ids[!ids %in% data$uniqui]
     if(length(missing_ids) == length(ids)) stop("NONE of the identifiers from or.edited were found in data!")
     else{
-      if(print_debug) warning("Identifiers from or.edited not found in data:\n\t", paste(missing_ids, collapse = ",\n\t"))
+      if(print_debug) warning("Identifiers from or.edited not found in data:\n\t", paste(missing_ids, collapse = ",\n\t"), "\n")
     } 
   } 
   
   # HANDLE SELECT_ONES:
   or.select_one <- or.edited %>% filter(ref.type == "select_one")
-  if(print_debug) cat("Number of select_one other responses:", nrow(or.select_one))
+  if(print_debug) cat("Number of select_one other responses:", nrow(or.select_one), "\n")
   s1_data <- data %>% filter(uniqui %in% or.select_one$uuid)
   if(nrow(s1_data) == 0) cl_select_one <- tibble()
   else cl_select_one <- recode.others_select_one(s1_data, or.select_one, orig_response_col, print_debug)
 
   # HANDLE SELECT_MULTIPLES:
   or.select_multiple <- or.edited %>% filter(ref.type == "select_multiple")
-  if(print_debug) cat("Number of select_multiple other responses:", nrow(or.select_multiple))
+  if(print_debug) cat("Number of select_multiple other responses:", nrow(or.select_multiple), "\n")
   sm_data <- data %>% filter(uniqui %in% or.select_multiple$uuid)
   if(nrow(sm_data) == 0)  cl_select_multiple <- tibble()
   else cl_select_multiple <- recode.others_select_multiple(sm_data, or.select_multiple, orig_response_col, print_debug)
@@ -928,7 +929,7 @@ recode.others_select_one <- function(data, or.select_one, orig_response_col = "r
 
   # invalid select_ones:
   or.select_one.remove <- filter(or.select_one, !is.na(invalid.v))
-  if(print_debug) cat(paste("Number of invalid other select_one responses:", nrow(or.select_one.remove)))
+  if(print_debug) cat(paste("Number of invalid other select_one responses:", nrow(or.select_one.remove)), "\n")
   cl_s1_remove <- rbind(
     or.select_one.remove %>% 
       mutate(variable = name, old.value = !!sym(orig_response_col), new.value = NA, issue = "Invalid other response") %>% 
@@ -941,7 +942,7 @@ recode.others_select_one <- function(data, or.select_one, orig_response_col = "r
   # recoding select_ones:
   or.select_one.recode <- or.select_one %>% filter(!is.na(existing.v)) %>% 
     mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_remove_all(existing.v, ";"))
-  if(print_debug) cat(paste("Number of other select_one responses to be recoded:", nrow(or.select_one.recode)))
+  if(print_debug) cat(paste("Number of select_one responses to be recoded:", nrow(or.select_one.recode)), "\n")
   choices_lookup <- or.select_one.recode %>% select(existing.v, list_name) %>% rename(label = existing.v) %>% 
     left_join(tool.choices %>% rename(label = label_colname, choice_name = name), by = c("label", "list_name")) %>% distinct()
   if(any(is.na(choices_lookup$choice_name))) {
@@ -957,7 +958,7 @@ recode.others_select_one <- function(data, or.select_one, orig_response_col = "r
   
   # true select_ones:
   or.select_one.true <- filter(or.select_one, !is.na(true.v))
-  if(print_debug) cat("Number of true other select_one responses:", nrow(or.select_one.true))
+  if(print_debug) cat("Number of true other select_one responses:", nrow(or.select_one.true), "\n")
   cl_s1_true <- or.select_one.true %>% 
     mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v, issue = "Translating other response") %>% 
     select(any_of(CL_COLS))
@@ -971,12 +972,13 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
   or.select_multiple.remove <- filter(or.select_multiple, !is.na(invalid.v))
   cl_sm_remove <- tibble()
   if (nrow(or.select_multiple.remove) > 0) {
-    if(print_debug) cat(paste("Number of invalid select_multiple responses:", nrow(or.select_multiple.remove)))
+    if(print_debug) cat(paste("Number of invalid select_multiple responses:", nrow(or.select_multiple.remove)), "\n")
     for(variable in or.select_multiple.remove %>% select(ref.name) %>% distinct %>% pull){
+      thisvar_data <- data %>% filter(uniqui %in% (or.select_multiple.remove %>% filter(ref.name == variable) %>% pull(uniqui)))
       # if the 'other' was the only one selected, change the entire question to NA:
-      cl_only_other <- data %>% filter(uniqui %in% or.select_multiple.remove$uniqui & !!sym(variable) %==na% "other") %>% 
+      cl_only_other <- thisvar_data %>% filter(!!sym(variable) == "other") %>% 
         recode.multiple.set.NA(variable, "Invalid other response")
-      cl_notjust_other <- data %>% filter(uniqui %in% or.select_multiple.remove$uniqui & !!sym(variable) %!=na% "other") %>% 
+      cl_notjust_other <- thisvar_data %>% filter(!!sym(variable) != "other") %>% 
         recode.multiple.remove.choices(variable, "other", "Invalid other response")
       cl_sm_remove <- rbind(cl_sm_remove, cl_only_other, cl_notjust_other)
     }
@@ -984,18 +986,14 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
     
   # recoding select_multiples:
   or.select_multiple.recode <- or.select_multiple %>% filter(!is.na(existing.v)) %>% 
-    mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_split(existing.v, " *; *", simplify = T))
-  cl_sm_recode <- tibble()
+    mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_split(str_squish(existing.v), " *; *", simplify = T))
+  
   if(nrow(or.select_multiple.recode) > 0){
-    if(print_debug) cat(paste("Number of select_multiple responses to be recoded:", nrow(or.select_multiple.recode)))
+    if(print_debug) cat(paste("Number of select_multiple responses to be recoded:", nrow(or.select_multiple.recode)), "\n")
     
     choices_lookup <- tool.choices %>% filter(list_name %in% or.select_multiple.recode$list_name) %>% 
        rename(label = label_colname, choice_name = name)
     
-    if(any(is.na(choices_lookup$choice_name))) {
-      # TODO: replace stop with a warning, and automatically fix typos
-      stop("Choices not found in lists: ", paste(choices_lookup %>% filter(is.na(choice_name)) %>% pull(label), collapse = ", "))
-    }
     for (r in 1:nrow(or.select_multiple.recode)) {
       or.row <- or.select_multiple.recode[r,]
       data.row <- data %>% filter(uniqui == or.row$uniqui)
@@ -1005,11 +1003,15 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
         next
       }
       
+      or.row$existing.v <- or.row$existing.v[or.row$existing.v != "" & !is.na(or.row$existing.v)]
+      
+      if(any(!or.row$existing.v %in% choices_lookup$label)) {
+        # TODO: replace stop with a warning, and automatically fix typos
+        stop("Choice '", paste(or.row$existing.v[!or.row$existing.v %in% choices_lookup$label], collapse = "' "), "' not found in list ", or.row$list_name)
+      }
+      
       choices <- choices_lookup %>% filter(list_name == or.row$list_name & label %in% or.row$existing.v) %>% pull(choice_name)
       
-      anychoice_pattern <- paste0("(",choices,")", collapse = "|")
-      if(str_detect(data.row[[or.row$ref.name]],anychoice_pattern )) cat("some choices already selected:\nchoices =", paste(choices, collapse = ","),
-                                                                         "\ndata.row =", data.row[[or.row$ref.name]])
       # check if true.v is also not na
       if(!is.na(or.row$true.v)){
         # in this case, simply add new choices
@@ -1028,7 +1030,7 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
   
   # true select_multiples:
   or.select_multiple.true <- or.select_multiple %>% filter(!is.na(true.v) & check == 2)
-  if(print_debug) cat(paste("Number of true select_multiple responses:", nrow(or.select_multiple.true)))
+  if(print_debug) cat(paste("Number of true select_multiple responses:", nrow(or.select_multiple.true)), "\n")
   cl_sm_true <- or.select_multiple.true %>% 
     mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v, issue = "Translating other response") %>% 
     select(any_of(CL_COLS))
@@ -1144,7 +1146,7 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
 
 add.to.cleaning.log.other.recode <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
   if(!"existing.other" %in% colnames(x)){
     x <- rename_with(x, ~gsub(".v",".other", .), ends_with(".v"))
   } # a bit of a dirty fix :)
@@ -1156,7 +1158,7 @@ add.to.cleaning.log.other.recode <- function(data, x){
 add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", enumerator.code.col="Staff_Name"){
   #' [obsolete] replaced by make.logical.check.entry
   #' 
-  warning("add.to.cleaning.log is obsolete! Please use make.logical.check.entry instead.")
+  warning(" add.to.cleaning.log is obsolete! Please use make.logical.check.entry instead.")
   for(q.n in question.names){
     new.entries <- checks %>% filter(flag) %>%
       mutate(variable = q.n,
@@ -1175,7 +1177,7 @@ add.to.cleaning.log <- function(checks, check.id, question.names=c(), issue="", 
 
 add.to.cleaning.log.other.remove <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.remove is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.remove is obsolete! Please use recode.others instead.")
   issue <- "Invalid other response"
   old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
@@ -1221,7 +1223,7 @@ add.to.cleaning.log.trans.remove <- function(data, x){
 
 add.to.cleaning.log.other.recode.one <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
   issue <- "Recoding other response"
   old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
@@ -1258,7 +1260,7 @@ add.to.cleaning.log.other.recode.one <- function(data, x){
 
 add.to.cleaning.log.other.recode.multiple <- function(data, x){
   # [obsolete] use recode.others instead
-  warning("add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
+  warning(" add.to.cleaning.log.other.recode is obsolete! Please use recode.others instead.")
   issue <- "Recoding other response"
   old.response <- data %>% filter(uuid == x$uuid) %>% pull(!!sym(x$name))
   # remove text of the response
@@ -1314,7 +1316,7 @@ add.to.cleaning.log.other.recode.multiple <- function(data, x){
 # ------------------------------------------------------------------------------------------
 
 create.deletion.log <- function(data, col_enum, reason){
-  #' Creates a deletion log for the provided ids and reason.
+  #' Creates a deletion log for the provided data and reason.
   #'
   #' @param data Dataframe containing columns 'uuid' and `col_enum`. For example, this could be a subset of `raw.main`, filtered.
   #' @param col_enum Name of the column which contains the enumerator's id.
@@ -1322,7 +1324,7 @@ create.deletion.log <- function(data, col_enum, reason){
   #' @returns A dataframe containing a deletion log with columns `uuid`, `col_enum`, `reason`, OR an empty dataframe if `data` has 0 rows.
   
   if(!col_enum %in% colnames(data))
-    stop(paste0("Enumerator column (", col_enum, ") not found in the data!\nDid you mean ", colnames(data)[agrep(col_enum, colnames(data))], "?"))
+    stop(paste0("Enumerator column (", col_enum, ") not found in the data!\nDid you mean ", colnames(data)[agrep(col_enum, colnames(data), max.distance = 1, value = T)], "?"))
   
   if(nrow(data) > 0){
     # if it's a loop, then include the loop_index in the deletion log
