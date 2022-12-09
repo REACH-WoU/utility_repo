@@ -136,10 +136,14 @@ load_entry <- function(daf_row){
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
   entry$disaggregate.variables <- c(str_split(sub(" ", "", entry$disaggregations), ";", simplify = T))
-  # omit_na is True by default (calculation empty):
+  # omit_na is True by default (if calculation is empty), False only if "include_na" is in this column:
   entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
   # comments - add two lines to them if necessary
-  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
+  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
+  # label - if NA, take it from tool.survey
+  entry$label <- ifelse(is.na(entry$label), get.label(entry$variable), entry$label)
+  # admin - stop if NA
+  if(is.na(entry$admin)) stop("Missing admin in one of the entries (variable: ", entry$variable, ")")
   
   entry$join <- !is.na(entry$join)
   
