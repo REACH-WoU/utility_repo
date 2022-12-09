@@ -143,8 +143,15 @@ load_entry <- function(daf_row){
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
   # label - if NA, take it from tool.survey
   entry$label <- ifelse(is.na(entry$label), get.label(entry$variable), entry$label)
+  # func - set using the q.type from tool.survey
+  if(is.na(entry$func)){
+    var_type <- get.type(entry$variable)
+    entry$func <- ifelse(var_type %in% c("integer", "numeric"), "mean",
+                        ifelse(var_type == "text", "count", var_type)))
+    warning("Missing parameter 'func' in one of the entries (variable: ", entry$variable, ")\tWill be set to ", entry$func)
+  }
   # admin - stop if NA
-  if(is.na(entry$admin)) stop("Missing admin in one of the entries (variable: ", entry$variable, ")")
+  if(is.na(entry$admin)) stop("Missing parameter 'admin' in one of the entries (variable: ", entry$variable, ")")
   
   entry$join <- !is.na(entry$join)
   
