@@ -106,7 +106,7 @@ get.choice.label <- function(choice, list){
   if(!list %in% tool.choices$list_name) stop(paste("list",list, "not found in tool.choices!"))
   
   res <- data.frame(name = unlist(choice)) %>%
-      left_join(select(tool.choices, name, list_name, label_colname) %>% filter(list_name == list),
+      left_join(select(tool.choices, name, list_name, all_of(label_colname)) %>% filter(list_name == list),
                 by = "name", na_matches = "never")
   if(any(is.na(res[[label_colname]]))){
     culprits <- paste0(filter(res, is.na(!!sym(label_colname))) %>%
@@ -120,10 +120,19 @@ get.choice.label <- function(choice, list){
 # ------------------------------------------------------------------------------
 
 get.choice.list.from.name <- function(variable){
-  #' find the choices list name
+  #' Find the choices list name of a variable
+  #' 
+  #' Looks up the list_name" in tool.survey. Operates on single values and vectors
+  #' For column named after select_multiple choices (i.e containing a slash in the name),
+  #' the returned list_name will be the one for the base question itself (e.g. if variable == "pytanie/choice", the result is the label of "pytanie")
   #' @param variable This is the name of the header from raw data.
-  if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
-  return(tool.survey %>% filter(name == variable) %>% pull(list_name))
+  variable <- ifelse(str_detect(variable, "/"), str_split(variable, "/", simplify = T)[1], variable)
+  not_in_tool <- variable[!variable %in% tool.survey$name]
+  if(length(not_in_tool) > 0){
+    warning(paste("Variables not found in tool.survey:", paste0(not_in_tool, collapse = ", ")))
+  }
+  res <- tibble(name = variable) %>% left_join(select(tool.survey, name, list_name), by = "name", na_matches = "never")
+  return(pull(res, list_name))
 }
 
 get.choice.list.from.type <- function(q_type){
@@ -142,38 +151,6 @@ get.ref.question <- function(q_relevancy){
 # ------------------------------------------------------------------------------------------
 split.q.type <- function(x) return(str_split(x, " ")[[1]][1])
 
-# ------------------------------------------------------------------------------------------
-get.other.variables <- function(other_cnames = c()){
-  #' finds all 'other' question in tool.survey
-  #'
-  #' This function is superceded by get.other.db and should be considered deprecated.
-  #'
-  #' question needs to have 'other' in its relevancy, or be in `other_cnames`
-  #' @returns Dataframe containing ref.question, label, name etc.
-
-  ov <- tool.survey %>%
-    filter(type=="text" &
-             (str_detect(tolower(relevant), "other'") |
-                name %in% other_cnames)) %>%
-    select("type", "name", label_colname, "relevant") %>%
-    mutate(ref.question=as.character(lapply(relevant, get.ref.question)))
-  return(ov)
-}
-
-# ------------------------------------------------------------------------------------------
-get.var.labels <- function() {
-  var.labels <- tool.survey %>%
-    select(type, name, `label_colname`) %>%
-    rename(label=`label_colname`) %>%
-    left_join(get.other.variables() %>% select(name, ref.question), by="name")
-
-  var.labels <- var.labels %>%
-    left_join(var.labels %>% select(name, label), by=c("ref.question"="name")) %>%
-    mutate(label.x=ifelse(is.na(label.x), name, label.x),
-           label.full=ifelse(is.na(label.y), label.x, paste0(label.y, " / ", label.x))) %>%
-    select(-c(label.x, label.y))
-  return(var.labels)
-}
 
 # ------------------------------------------------------------------------------------------
 get.select.db <- function(){
@@ -199,7 +176,7 @@ get.select.db <- function(){
 # ------------------------------------------------------------------------------------------
 get.other.db <- function(){
   #' finds all 'other' questions and their ref question and choices
-  #' #' @returns Dataframe containing name, ref.name, full.label, choices etc.
+  #' @returns Dataframe containing name, ref.name, full.label, choices etc.
   select.questions <- get.select.db()
 
   # for each "other" question, get ref.question and list of choices
@@ -217,19 +194,12 @@ get.other.db <- function(){
 }
 
 # ------------------------------------------------------------------------------------------
-get.trans.db <- function(){
+get.trans.db <- function(include.all=c()){
   #' finds all questions which should be translated (meaning all 'text'-type question that are not 'other's)
-  #' somewhat obsolete because it searches for ref questions too which are unnecesary
   select.questions <- get.select.db()
 
-  df1 <- tool.survey %>% filter(type == "text" & !(str_ends(name, "_other"))) %>%
+  df1 <- tool.survey %>% filter(type == "text" & (!(str_ends(name, "_other")) | name %in% include.all)) %>%
     rename(label=label_colname) %>%
-    select("name", "label", "relevant") %>%
-    mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>%
-    left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
-              by=c("ref.name"="name")) %>%
-    rename(ref.label=q.label, ref.type=q.type) %>%
-    mutate(full.label=paste0(ref.label, " - ", label)) %>%
-    select(name, ref.name, full.label, ref.type, choices, choices.label)
+    select("name", "label")
   return(df1)
 }

@@ -151,11 +151,72 @@ load_entry <- function(daf_row){
 
 convert_cols_with_daf <- function(df, omit_na = T){
   #' brand new function for conversions...
+  #' TODO: rewrite to use convert_col_with_entry and not convert.col.type :)
   
   converted <- c()
   # filter the daf using the data that was entered 
-  daf <- daf %>% filter(variable %in% colnames(df))
+  dafp <- daf %>% filter(variable %in% colnames(df))
+  if(nrow(dafp) == 0){
+      cat("\nThere was nothing to convert - no questions from data are found in DAF.")
+      return(df)
+    }
+  for(r in 1:nrow(dafp)){
+    entry <- load_entry(dafp[r,])
+    col <- entry$variable
+
+    cat("Converting",col," ")
+    if(!entry$omit_na){
+      if(!is.na(q$relevant))   stop(paste0("Issue with entry #", r, " (", col,"): flag include_na cannot be set if question has relevancy!"))
+      if(entry$func == "mean") stop(paste0("Issue with entry #", r, " (", col,"): flag include_na cannot be set if func == mean!"))
+    }
+
+    # convert disagg variable :)
+    if(!all(is.na(entry$disaggregate.variables))){
+        for(disagg.var in entry$disaggregate.variables){
+            if(!disagg.var %in% colnames(df)){          
+              stop(paste("Disaggregation variable", disagg.var, "not found in data!\n"))
+            }
+            # if(!disagg.var %in% tool.survey$name) warning(paste("Disaggregation variable", disagg.var, "not found in tool.survey!\n"))
+            if(disagg.var %in% converted) next
+            df[[disagg.var]] <- convert.col.type(df, disagg.var)
+            converted <- append(converted, disagg.var)
+        }
+    }
+
+    if(col %in% converted) next
+
+    if(entry$func == "select_multiple"){
+
+        choice_cols <- colnames(df)[str_starts(colnames(df), paste0(col, "/"))]
+        for(ccol in choice_cols){
+            df[[ccol]] <- convert.col.type(df, ccol, entry$omit_na)
+            df <- df %>% rename_with(~str_replace(ccol, "/", "___"), ccol)
+        }
+        if(!entry$omit_na){
+            # create a new NA column
+            na_colname <- paste0(col,"___NA")
+            df[[na_colname]] <- factor(ifelse(is.na(df[[col]]), 1, 0))
+            df <- df %>% relocate(na_colname, .after = !!sym(col))
+        }
+    }else {
+      if(!col %in% tool.survey$name){
+          if(entry$func == "select_one") df[[col]] <- as.factor(df[[col]])
+          else if(entry$func %in% c("mean", "median")) df[[col]] <- as.numeric(df[[col]])   # probably will need to be updated with new funcs
+        }
+        df[[col]] <- convert.col.type(df, col, entry$omit_na)
+        converted <- append(converted, col)
+    }
+    cat("... done.\n")
+  }
+  cat("\nAll conversions done!")
+  
   return(df)
+}
+
+convert_col_with_entry <- function(col_vec, entry){
+
+  # TODO: rewrite this using entry
+
 }
 
 ###-----------------------------------------------------------------------------
@@ -188,7 +249,6 @@ convert.col.type <- function(df, col, omit_na = T){
   #' @param omit_na This flag should be set if NA values should be skipped (not included as level).
   #' Otherwise NA values are included as levels and will be used for calculating num_samples.
   #' @returns a vector containing the converted values of column `col`.
-
   if((col %in% tool.survey$name)){
     if(get.type(col) == "select_one"){
       choices <- tool.choices %>% filter(list_name==get.choice.list.from.name(col)) %>%
@@ -196,8 +256,11 @@ convert.col.type <- function(df, col, omit_na = T){
                                   rename(label = `label_colname`)
       d <- data.frame(col = as.character(df[[col]])) %>%
                       left_join(choices, by=c("col"="name"))
-      if(omit_na) return(factor(d$label, levels = choices$label, exclude = NA))
-      else        return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      if(omit_na){
+        return(factor(d$label, levels = choices$label, exclude = NA))
+      } else  {
+        return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
+      }      
     }
     else if (get.type(col)=="integer" | get.type(col)=="decimal") return(as.numeric(df[[col]]))
     else if (get.type(col)=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
@@ -227,6 +290,7 @@ convert.cols.check.dap <- function(df, dap) {
     # loop_no  <- str_extract(str_split(df$loop_index[1], "_", simplify = T)[1], "\\d+")
     
     # filter the dap using the data that was entered 
+
     dap <- dap %>% filter(variable %in% colnames(df))
     
     if(nrow(dap) == 0){
@@ -240,8 +304,9 @@ convert.cols.check.dap <- function(df, dap) {
 
         cat("Converting",col," ")
         # check if variables exist in data
-        if(!col %in% colnames(df)) 
+        if(!col %in% colnames(df)) {
           stop(paste("Variable", col, "not found in data!"))
+        }
           
         # if(!col %in% tool.survey$name){
         #     warning(paste("Variable", col, "not found in tool.survey!\n"))
