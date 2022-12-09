@@ -25,7 +25,7 @@ load.audit.files <- function(dir.audits, uuids=NULL, track.changes=F){
         audit <- audit %>% mutate(old.value = NA, new.value = NA)
       }
       counter <- counter + 1
-      res <- bind_rows(res, audit)
+      res <- rbind(res, audit)
       cat("...")
     }
   }
