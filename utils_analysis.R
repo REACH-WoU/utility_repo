@@ -132,6 +132,7 @@ load_entry <- function(daf_row){
   #' 
   #' This function replaces load.entry (from descriptive_analysis)
   #' 
+  #' This is where you would setup default values in case of NA in one of the columns
   
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
