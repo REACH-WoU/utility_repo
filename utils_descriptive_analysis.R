@@ -1,9 +1,3 @@
-#--------------------------------------------------------------------------------------------------------------
-# LISTS
-tableFormat <-list(
-  dom = 'T<"clear">lfrtip',
-  scrollX = TRUE)
-
 
 ###--------------------------------------------------------------------------------------------------------------
 ### SELECT_ONE
@@ -185,9 +179,14 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
   res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res, options = tableFormat)))
+  # %>% 
+  #                formatStyle(colnames(res),
+  #                            backgroundColor = styleEqual(
+  #                              levels = list(one_50,fifty_100),
+  #                              values = c('green','red')
+  #                            ))))
 }
 
-# function to produce HTML table
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- get.choice.list.from.name(entry$variable)
@@ -226,6 +225,9 @@ select_one.to_html <- function(res, entry, include.CI=T){
   res <- res %>% filter(!is.na(num_samples))
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res, options = tableFormat)))
+           #     %>% 
+           # formatStyle(colnames(res),
+           #             backgroundColor = JS(jsFunc))))
 }
 
 ###--------------------------------------------------------------------------------------------------------------
@@ -233,6 +235,7 @@ select_one.to_html <- function(res, entry, include.CI=T){
 ###--------------------------------------------------------------------------------------------------------------
 # function to run the analysis
 select_multiple.analysis <- function(srv.design, entry){
+  srv.design <- survey.design
   # get list of columns for the selected question --> variables
   q.list_name <- get.choice.list.from.name(entry$variable)
   choices <- tool.choices %>% filter(list_name==q.list_name) %>%
@@ -440,7 +443,8 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
       relocate("num_samples", .after=2)
     res.overall <- res.overall %>%
       left_join(t.res_over, by=c("strata", set_names(entry$disaggregate.variable))) %>%
-      relocate("num_samples", .after=2) 
+      relocate("num_samples", .after=2) %>%
+      select(-overall)
     if (nrow(res)!=n_rows) stop()
   }
   res <- res %>% filter(!is.na(num_samples))
