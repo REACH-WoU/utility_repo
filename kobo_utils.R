@@ -2,6 +2,63 @@
 # UTILITY FUNCTIONS RELATED TO KOBO TOOLS
 ###############################################################################
 
+# ------------------------------------------------------------------------------
+# LOADING THE KOBO TOOL
+# ------------------------------------------------------------------------------
+
+load.tool.survey <- function(filename_tool, keep_cols = F){
+  #' Load the 'survey' tab from a Kobo tool.
+  #' 
+  #' The variable `label_colname` must be set before running this function!
+  #' 
+  #' @param filename_tool This is the path to the file that contains the tool (probably in your 'resources' folder)
+  #' @param keep_cols Whether all columns from the original tool should be kept. Defaults to False, meaning that only the relevant labels, hints, etc are kept.
+  #' @returns A dataframe: tool.survey, it's almost the same as the 'survey' tab from the tool, with new columns added: `datasheet`, `q.type`, `list_name`
+  
+  tool.survey <- read_xlsx(filename_tool, sheet = "survey", col_types = "text") %>% 
+    filter(!is.na(type)) %>%
+    mutate(q.type=as.character(lapply(type, function(x) str_split(x, " ")[[1]][1])),
+           list_name=as.character(lapply(type, function(x) str_split(x, " ")[[1]][2])),
+           list_name=ifelse(str_starts(type, "select_"), list_name, NA))
+  
+  if(!keep_cols){
+    # select only the relevant (English) labels, hints etc.
+    lang_code <- str_split(label_colname, "::", 2, T)[2]
+    lang_code <- str_replace(str_replace(lang_code, "\\(", "\\\\("), "\\)", "\\\\)")
+    cols <- colnames(tool.survey)
+    cols_to_keep <- cols[str_detect(cols, paste0("((label)|(hint)|(constraint_message))::",lang_code)) | 
+                           !str_detect(cols, "((label)|(hint)|(constraint_message))::")]
+  
+    tool.survey <- select(tool.survey, all_of(cols_to_keep))
+  }
+  # Find which data sheet question belongs to:
+  tool.survey <- tool.survey %>% mutate(datasheet = NA)
+  sheet_name <- "main"
+  for(i in 1:nrow(tool.survey)){
+    toolrow <- tool.survey %>% slice(i)
+    if(str_detect(toolrow$type, "begin[ _]repeat")) sheet_name <- toolrow$name
+    else if(str_detect(toolrow$type, "end[ _]repeat")) sheet_name <- "main"   # watch out for nested repeats (Why would you even want to do that?)
+    else if(str_detect(toolrow$type, "((end)|(begin))[ _]group", T)) tool.survey[i, "datasheet"] <- sheet_name
+  }
+  return(tool.survey)
+  
+}
+
+load.tool.choices <- function(filename_tool){
+  #' Load the 'choices' tab from a Kobo tool.
+  #' 
+  #' The variable `label_colname` must be set before running this function!
+  #' 
+  #' @param filename_tool This is the path to the file that contains the tool (probably in your 'resources' folder)
+  #' @returns A dataframe: tool.choices, it's the same as the 'choices' tab from the tool, filtered to include only distinct rows.
+  
+  read_xlsx(filename_tool, sheet = "choices", col_types = "text") %>% 
+    filter(!is.na(list_name)) %>% 
+    select(all_of(c("list_name", "name")), !!sym(label_colname)) %>% distinct()
+}
+
+# ------------------------------------------------------------------------------
+
 get.type <- function(variable){
   #' Find the type of variables.
   #'
@@ -19,13 +76,23 @@ get.type <- function(variable){
 }
 
 get.label <- function(variable){
-  #' find the label of a variable
+  #' Find the label of a variable
   #'
-  #' TODO change to work on vectors too
+  #' Looks up the "name" and `label_colname` in tool.survey. Operates on single values and vectors.
+  #' For column named after select_multiple choices (i.e containing a slash in the name),
+  #' the returned label will be the one for the base question itself (e.g. if variable == "pytanie/choice", the result is the label of "pytanie")
   #'
   #' @param variable This is the name of the header from raw data.
-  if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
-  return(tool.survey[tool.survey$name == variable, ][[label_colname]])
+  
+  not_in_tool <- variable[!variable %in% tool.survey$name]
+  if(length(not_in_tool) > 0){
+    warning(paste("Variables not found in tool.survey:", paste0(not_in_tool, collapse = ", ")))
+  }
+  if (any(str_detect(variable, "/"))) variable <- str_split(variable, "/", 2, T)[,1]
+  res <- data.frame(name = variable) %>% 
+    left_join(select(tool.survey, name, !!sym(label_colname)), by = "name", na_matches = "never")
+  
+  return(pull(res, label_colname))
 }
 
 get.choice.label <- function(choice, list){
@@ -35,9 +102,11 @@ get.choice.label <- function(choice, list){
   #'
   #' @param choice the name of the choice
   #' @param list the name of the list containing choice
-  #'
+  
+  if(!list %in% tool.choices$list_name) stop(paste("list",list, "not found in tool.choices!"))
+  
   res <- data.frame(name = unlist(choice)) %>%
-      left_join(select(tool.choices, name, list_name, label_colname) %>% filter(list_name == list),
+      left_join(select(tool.choices, name, list_name, all_of(label_colname)) %>% filter(list_name == list),
                 by = "name", na_matches = "never")
   if(any(is.na(res[[label_colname]]))){
     culprits <- paste0(filter(res, is.na(!!sym(label_colname))) %>%
@@ -48,11 +117,22 @@ get.choice.label <- function(choice, list){
   return(pull(res, label_colname))
 }
 
+# ------------------------------------------------------------------------------
+
 get.choice.list.from.name <- function(variable){
-  #' find the choices list name
+  #' Find the choices list name of a variable
+  #' 
+  #' Looks up the list_name" in tool.survey. Operates on single values and vectors
+  #' For column named after select_multiple choices (i.e containing a slash in the name),
+  #' the returned list_name will be the one for the base question itself (e.g. if variable == "pytanie/choice", the result is the label of "pytanie")
   #' @param variable This is the name of the header from raw data.
-  if (str_detect(variable, "/")) variable <- str_split(variable, "/")[[1]][1]
-  return(tool.survey %>% filter(name == variable) %>% pull(list_name))
+  variable <- ifelse(str_detect(variable, "/"), str_split(variable, "/", simplify = T)[1], variable)
+  not_in_tool <- variable[!variable %in% tool.survey$name]
+  if(length(not_in_tool) > 0){
+    warning(paste("Variables not found in tool.survey:", paste0(not_in_tool, collapse = ", ")))
+  }
+  res <- tibble(name = variable) %>% left_join(select(tool.survey, name, list_name), by = "name", na_matches = "never")
+  return(pull(res, list_name))
 }
 
 get.choice.list.from.type <- function(q_type){
@@ -63,7 +143,7 @@ get.choice.list.from.type <- function(q_type){
 }
 
 get.ref.question <- function(q_relevancy){
-  #' smart function that finds ref.question basing on relevancy text
+  #' Very smart function that finds ref.question basing on relevancy text
   q_relevancy.1 <- str_split(q_relevancy, "\\{")[[1]][2]
   return(str_split(q_relevancy.1, "\\}")[[1]][1])
 }
@@ -71,38 +151,6 @@ get.ref.question <- function(q_relevancy){
 # ------------------------------------------------------------------------------------------
 split.q.type <- function(x) return(str_split(x, " ")[[1]][1])
 
-# ------------------------------------------------------------------------------------------
-get.other.variables <- function(other_cnames = c()){
-  #' finds all 'other' question in tool.survey
-  #'
-  #' This function is superceded by get.other.db and should be considered deprecated.
-  #'
-  #' question needs to have 'other' in its relevancy, or be in `other_cnames`
-  #' @returns Dataframe containing ref.question, label, name etc.
-
-  ov <- tool.survey %>%
-    filter(type=="text" &
-             (str_detect(tolower(relevant), "other'") |
-                name %in% other_cnames)) %>%
-    select("type", "name", label_colname, "relevant") %>%
-    mutate(ref.question=as.character(lapply(relevant, get.ref.question)))
-  return(ov)
-}
-
-# ------------------------------------------------------------------------------------------
-get.var.labels <- function() {
-  var.labels <- tool.survey %>%
-    select(type, name, `label_colname`) %>%
-    rename(label=`label_colname`) %>%
-    left_join(get.other.variables() %>% select(name, ref.question), by="name")
-
-  var.labels <- var.labels %>%
-    left_join(var.labels %>% select(name, label), by=c("ref.question"="name")) %>%
-    mutate(label.x=ifelse(is.na(label.x), name, label.x),
-           label.full=ifelse(is.na(label.y), label.x, paste0(label.y, " / ", label.x))) %>%
-    select(-c(label.x, label.y))
-  return(var.labels)
-}
 
 # ------------------------------------------------------------------------------------------
 get.select.db <- function(){
@@ -128,7 +176,7 @@ get.select.db <- function(){
 # ------------------------------------------------------------------------------------------
 get.other.db <- function(){
   #' finds all 'other' questions and their ref question and choices
-  #' #' @returns Dataframe containing name, ref.name, full.label, choices etc.
+  #' @returns Dataframe containing name, ref.name, full.label, choices etc.
   select.questions <- get.select.db()
 
   # for each "other" question, get ref.question and list of choices
@@ -146,19 +194,12 @@ get.other.db <- function(){
 }
 
 # ------------------------------------------------------------------------------------------
-get.trans.db <- function(){
+get.trans.db <- function(include.all=c()){
   #' finds all questions which should be translated (meaning all 'text'-type question that are not 'other's)
-  #' somewhat obsolete because it searches for ref questions too which are unnecesary
   select.questions <- get.select.db()
 
-  df1 <- tool.survey %>% filter(type == "text" & !(str_ends(name, "_other"))) %>%
+  df1 <- tool.survey %>% filter(type == "text" & (!(str_ends(name, "_other")) | name %in% include.all)) %>%
     rename(label=label_colname) %>%
-    select("name", "label", "relevant") %>%
-    mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>%
-    left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
-              by=c("ref.name"="name")) %>%
-    rename(ref.label=q.label, ref.type=q.type) %>%
-    mutate(full.label=paste0(ref.label, " - ", label)) %>%
-    select(name, ref.name, full.label, ref.type, choices, choices.label)
+    select("name", "label")
   return(df1)
 }

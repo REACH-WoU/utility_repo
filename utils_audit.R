@@ -243,7 +243,7 @@ create.count_deleted_enu <- function(deletion.log, col_enum)  {
 
   count_del_reas <- deletion.log %>%
     group_by(!!sym(col_enum),reason) %>%
-    summarize(count = n()) %>%
+    summarize(count = n(), .groups = "keep") %>%
       arrange(col_enum)
 
   wb <- createWorkbook()
@@ -295,7 +295,7 @@ create.count_enu_cleaning <- function(cleaning.log, col_enum)  {
 
   count_cl_entries_reas <- cleaning.log %>%
     group_by(!!sym(col_enum), issue) %>%
-    summarize(count = n()) %>%
+    summarize(count = n(), .groups = "keep") %>%
       arrange(col_enum)
 
   wb <- createWorkbook()
