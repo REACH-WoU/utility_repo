@@ -85,7 +85,7 @@ get.label <- function(variable){
   #' @param variable This is the name of the header from raw data.
   
   not_in_tool <- variable[!variable %in% tool.survey$name]
-  if(length(variable) > 0){
+  if(length(not_in_tool) > 0){
     warning(paste("Variables not found in tool.survey:", paste0(not_in_tool, collapse = ", ")))
   }
   if (any(str_detect(variable, "/"))) variable <- str_split(variable, "/", 2, T)[,1]
