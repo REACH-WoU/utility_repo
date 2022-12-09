@@ -132,6 +132,7 @@ load_entry <- function(daf_row){
   #' 
   #' This function replaces load.entry (from descriptive_analysis)
   #' 
+  #' This is where you would setup default values in case of NA in one of the columns
   
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
@@ -139,7 +140,9 @@ load_entry <- function(daf_row){
   # omit_na is True by default (calculation empty):
   entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
   # comments - add two lines to them if necessary
-  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
+  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
+  # label - if NA, take it from tool.survey
+  entry$label <- ifelse(is.na(entry$label), get.label(entry$variable), entry$label)
   
   entry$join <- !is.na(entry$join)
   
