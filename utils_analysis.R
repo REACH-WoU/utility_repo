@@ -147,7 +147,7 @@ load_entry <- function(daf_row){
   if(is.na(entry$func)){
     var_type <- get.type(entry$variable)
     entry$func <- ifelse(var_type %in% c("integer", "numeric"), "mean",
-                        ifelse(var_type == "text", "count", var_type)))
+                        ifelse(var_type == "text", "count", var_type))
     warning("Missing parameter 'func' in one of the entries (variable: ", entry$variable, ")\tWill be set to ", entry$func)
   }
   # admin - stop if NA
@@ -367,7 +367,7 @@ convert.cols.check.dap <- function(df, dap) {
                 df <- df %>% relocate(na_colname, .after = !!sym(col))
             }
         }else {
-          if(!col %in% tool.survey$name){
+          if(!col %in% tool.survey$name | get.type(col) == "calculate"){
               if(entry$func == "select_one") df[[col]] <- as.factor(df[[col]])
               else if(entry$func == "mean") df[[col]] <- as.numeric(df[[col]])
             }
