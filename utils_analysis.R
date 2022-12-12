@@ -147,7 +147,7 @@ load_entry <- function(daf_row){
   if(is.na(entry$func)){
     var_type <- get.type(entry$variable)
     entry$func <- ifelse(var_type %in% c("integer", "numeric"), "mean",
-                        ifelse(var_type == "text", "count", var_type)))
+                        ifelse(var_type == "text", "count", var_type))
     warning("Missing parameter 'func' in one of the entries (variable: ", entry$variable, ")\tWill be set to ", entry$func)
   }
   # admin - stop if NA
