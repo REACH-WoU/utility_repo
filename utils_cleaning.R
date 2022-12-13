@@ -1041,6 +1041,182 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
 
 # ------------------------------------------------------------------------------
 
+recode.others <- function(data, or.edited, orig_response_col = "response.uk", is.loop = F, print_debug = T){
+  #' Create a cleaning log for recoding other responses
+  #' 
+  #' Use the filled out other_requests file to create cleaning.log.other.
+  #' Run this function on every datasheet your data has (main, loop1, loop2, etc...)
+  #' Unexpected behavior may occur if some variables from `or.edited` are not present in the data.
+  #' @param data Dataframe containing Kobo data
+  #' @param or.edited Dataframe containing the filled-out other_requests file. Needs to contain the standard TEI (True, Existing, Invalid) columns,
+  #' as well as column `check`. Please use the ```load.requests``` function to load these xlsx files.
+  #' @param orig_response_col The name of the column which stores the original (untranslated!) response for each question.
+  #' @param is.loop Set this to True if the provided dataframe is a loop (it needs to contain the column loop_index).
+  #' @param print_debug Whether debugging information will be printed to screen (about how many responses will be recoded/translated etc.).
+  #' @returns Dataframe containing cleaning log entries covering recoding others, constructed from `data` and `or.edited`
+  
+  
+  # a new thing: UNIQUI - universal unique identifier (either loop_index or uuid)
+  # it will be used for matching records to or.edited entries :)
+  if(!is.loop) {
+    or.edited <- or.edited %>% select(-any_of("loop_index")) %>% mutate(uniqui = uuid)
+    data <- data %>% mutate(uniqui = uuid)
+  }else{
+    if(!"loop_index" %in% colnames(or.edited)) stop("Parameter is.loop = TRUE, but column loop_index was not found in or.edited!")
+    else{
+      or.edited <- or.edited %>% mutate(uniqui = loop_index)
+      data <- data %>% mutate(uniqui = loop_index)
+    } 
+  }
+  
+  # fix legacy naming
+  if(!"existing.v" %in% colnames(or.edited)) {
+    if("existing.other" %in% colnames(or.edited)) or.edited <- or.edited %>% rename_with(~gsub(".other", ".v", .), ends_with(".other"))
+    else stop("Column 'existing.v' not found in or.edited!\n\tPlease check your requests file.")
+  }
+  # the column 'check' must be present in the or.edited (meaning you must use the validate = T option when loading requests)
+  if(!"check" %in% colnames(or.edited)) stop("Column 'check' was not found in or.edited!\n\tPlease, use the `validate` option in load.requests.")
+  
+  # check for missing identifiers:
+  if(any(!or.edited$uniqui %in% data$uniqui)){
+    ids <- or.edited %>% distinct(uniqui) %>% pull
+    missing_ids <- ids[!ids %in% data$uniqui]
+    if(length(missing_ids) == length(ids)) stop("NONE of the identifiers from or.edited were found in data!")
+    else{
+      if(print_debug) warning("Identifiers from or.edited not found in data:\n\t", paste(missing_ids, collapse = ",\n\t"), "\n")
+    } 
+  } 
+  
+  # HANDLE SELECT_ONES:
+  or.select_one <- or.edited %>% filter(ref.type == "select_one")
+  if(print_debug) cat("Number of select_one other responses:", nrow(or.select_one), "\n")
+  s1_data <- data %>% filter(uniqui %in% or.select_one$uuid)
+  if(nrow(s1_data) == 0) cl_select_one <- tibble()
+  else cl_select_one <- recode.others_select_one(s1_data, or.select_one, orig_response_col, print_debug)
+  
+  # HANDLE SELECT_MULTIPLES:
+  or.select_multiple <- or.edited %>% filter(ref.type == "select_multiple")
+  if(print_debug) cat("Number of select_multiple other responses:", nrow(or.select_multiple), "\n")
+  sm_data <- data %>% filter(uniqui %in% or.select_multiple$uuid)
+  if(nrow(sm_data) == 0)  cl_select_multiple <- tibble()
+  else cl_select_multiple <- recode.others_select_multiple(sm_data, or.select_multiple, orig_response_col, print_debug)
+  
+  return(rbind(cl_select_one, cl_select_multiple))
+}
+
+recode.others_select_one <- function(data, or.select_one, orig_response_col = "response.uk", print_debug = T){
+  
+  # invalid select_ones:
+  or.select_one.remove <- filter(or.select_one, !is.na(invalid.v))
+  if(print_debug) cat(paste("Number of invalid other select_one responses:", nrow(or.select_one.remove)), "\n")
+  cl_s1_remove <- rbind(
+    or.select_one.remove %>% 
+      mutate(variable = name, old.value = !!sym(orig_response_col), new.value = NA, issue = "Invalid other response") %>% 
+      select(any_of(CL_COLS)),
+    or.select_one.remove %>% 
+      mutate(variable = ref.name, old.value = "other", new.value = NA, issue = "Invalid other response") %>% 
+      select(any_of(CL_COLS))
+  )
+  
+  # recoding select_ones:
+  or.select_one.recode <- or.select_one %>% filter(!is.na(existing.v)) %>% 
+    mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_remove_all(existing.v, ";"))
+  if(print_debug) cat(paste("Number of select_one responses to be recoded:", nrow(or.select_one.recode)), "\n")
+  choices_lookup <- or.select_one.recode %>% select(existing.v, list_name) %>% rename(label = existing.v) %>% 
+    left_join(tool.choices %>% rename(label = label_colname, choice_name = name), by = c("label", "list_name")) %>% distinct()
+  if(any(is.na(choices_lookup$choice_name))) {
+    # TODO: replace stop with a warning, and automatically fix typos using agrep
+    stop("Choices not found in lists: ", paste(choices_lookup %>% filter(is.na(choice_name)) %>% pull(label), collapse = ", "))
+  }
+  cl_s1_recode <- rbind(
+    or.select_one.recode %>% mutate(variable = name, old.value = !!sym(orig_response_col), new.value = NA, issue = "Recoding other response") %>% 
+      select(any_of(CL_COLS)),
+    or.select_one.recode %>% rename(label = existing.v) %>% left_join(choices_lookup, by = c("list_name", "label")) %>% 
+      mutate(variable = ref.name, old.value = "other", new.value = choice_name, issue = "Recoding other response") %>% select(any_of(CL_COLS))
+  )
+  
+  # true select_ones:
+  or.select_one.true <- filter(or.select_one, !is.na(true.v))
+  if(print_debug) cat("Number of true other select_one responses:", nrow(or.select_one.true), "\n")
+  cl_s1_true <- or.select_one.true %>% 
+    mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v, issue = "Translating other response") %>% 
+    select(any_of(CL_COLS))
+  
+  return(rbind(cl_s1_true, cl_s1_remove, cl_s1_recode))
+}
+
+recode.others_select_multiple <- function(data, or.select_multiple, orig_response_col = "response.uk", print_debug = T){
+  
+  # invalid select_multiples:
+  or.select_multiple.remove <- filter(or.select_multiple, !is.na(invalid.v))
+  cl_sm_remove <- tibble()
+  if (nrow(or.select_multiple.remove) > 0) {
+    if(print_debug) cat(paste("Number of invalid select_multiple responses:", nrow(or.select_multiple.remove)), "\n")
+    for(variable in or.select_multiple.remove %>% select(ref.name) %>% distinct %>% pull){
+      thisvar_data <- data %>% filter(uniqui %in% (or.select_multiple.remove %>% filter(ref.name == variable) %>% pull(uniqui)))
+      # if the 'other' was the only one selected, change the entire question to NA:
+      cl_only_other <- thisvar_data %>% filter(!!sym(variable) == "other") %>% 
+        recode.multiple.set.NA(variable, "Invalid other response")
+      cl_notjust_other <- thisvar_data %>% filter(!!sym(variable) != "other") %>% 
+        recode.multiple.remove.choices(variable, "other", "Invalid other response")
+      cl_sm_remove <- rbind(cl_sm_remove, cl_only_other, cl_notjust_other)
+    }
+  }
+  
+  # recoding select_multiples:
+  or.select_multiple.recode <- or.select_multiple %>% filter(!is.na(existing.v)) %>% 
+    mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_split(str_squish(existing.v), " *; *", simplify = T))
+  
+  if(nrow(or.select_multiple.recode) > 0){
+    if(print_debug) cat(paste("Number of select_multiple responses to be recoded:", nrow(or.select_multiple.recode)), "\n")
+    
+    choices_lookup <- tool.choices %>% filter(list_name %in% or.select_multiple.recode$list_name) %>% 
+      rename(label = label_colname, choice_name = name)
+    
+    for (r in 1:nrow(or.select_multiple.recode)) {
+      or.row <- or.select_multiple.recode[r,]
+      data.row <- data %>% filter(uniqui == or.row$uniqui)
+      
+      if(nrow(data.row) == 0) {
+        # uniqui was not found in data
+        next
+      }
+      
+      or.row$existing.v <- or.row$existing.v[or.row$existing.v != "" & !is.na(or.row$existing.v)]
+      
+      if(any(!or.row$existing.v %in% choices_lookup$label)) {
+        # TODO: replace stop with a warning, and automatically fix typos
+        stop("Choice '", paste(or.row$existing.v[!or.row$existing.v %in% choices_lookup$label], collapse = "' "), "' not found in list ", or.row$list_name)
+      }
+      
+      choices <- choices_lookup %>% filter(list_name == or.row$list_name & label %in% or.row$existing.v) %>% pull(choice_name)
+      
+      # check if true.v is also not na
+      if(!is.na(or.row$true.v)){
+        # in this case, simply add new choices
+        cl_sm_recode <- rbind(cl_sm_recode, or.row %>% mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v,
+                                                              issue = "Translating other response") %>% select(any_of(CL_COLS)))
+        cl_sm_recode <- rbind(cl_sm_recode, 
+                              recode.multiple.add.choices(data.row, or.row$ref.name, choices, "Recoding other response"))
+      }else{
+        # read the previous choices and set selection to previous + new
+        old_choices <- data.row[[or.row$ref.name]] %>% str_split(" ", simplify = T)
+        choices <- c(choices, old_choices[old_choices!="other"])
+        cl_sm_recode <- rbind(cl_sm_recode, recode.multiple.set.choices(data.row, or.row$ref.name, choices, "Recoding other response"))
+      }
+    }
+  }
+  
+  # true select_multiples:
+  or.select_multiple.true <- or.select_multiple %>% filter(!is.na(true.v) & check == 2)
+  if(print_debug) cat(paste("Number of true select_multiple responses:", nrow(or.select_multiple.true)), "\n")
+  cl_sm_true <- or.select_multiple.true %>% 
+    mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v, issue = "Translating other response") %>% 
+    select(any_of(CL_COLS))
+  
+  return(rbind(cl_sm_true, cl_sm_remove, cl_sm_recode))
+  
+}
 apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
   #' Apply changes to main data basing on a cleaning log.
   #'
