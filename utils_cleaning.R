@@ -565,7 +565,7 @@ recode.set.value.regex <- function(data, variables, pattern, new.value, issue, a
 # RECODING SELECT_MULTIPLES
 # ------------------------------------------------------------------------------
 
-recode.multiple.set.NA <- function(data, variable, issue){
+recode.multiple.set.NA <- function(data, variable, issue, other_var_name = NULL){
     #' Recode select_multiple responses: set to NA.
     #'
     #' Changes all 1s and 0s to NA in choice columns, sets cumulative variable and _other text answers to NA.
@@ -598,12 +598,13 @@ recode.multiple.set.NA <- function(data, variable, issue){
                 cl_choices <- rbind(cl_choices, cl)
                 # remove text from text other response
                 if(str_ends(col, "/other")){
-                    cl_other_text <- df %>% filter(!is.na(!!sym(paste0(variable, "_other")))) %>% 
-                      mutate(variable = paste0(variable, "_other"), old.value = !!sym(paste0(variable, "_other")),
-                      new.value = NA, issue = issue) %>%
-                      select(any_of(CL_COLS))
-                    
-                    cl_choices <- rbind(cl_choices, cl_other_text) 
+                  other_var_name <- ifelse(is.null(other_var_name), paste0(variable, "_other"), other_var_name)
+                  cl_other_text <- df %>% filter(!is.na(!!sym(other_var_name))) %>% 
+                    mutate(variable = other_var_name, old.value = !!sym(other_var_name),
+                    new.value = NA, issue = issue) %>%
+                    select(any_of(CL_COLS))
+                  
+                  cl_choices <- rbind(cl_choices, cl_other_text) 
                 }
             }
         }
@@ -614,13 +615,13 @@ recode.multiple.set.NA <- function(data, variable, issue){
 
 }
 
-recode.multiple.set.choice <- function(data, variable, choice, issue){
+recode.multiple.set.choice <- function(data, variable, choice, issue, other_var_name = NULL){
     #' Recode select_multiple responses: set answer to one particular choice.
     #' 
     #' [obsolete] Use recode.multiple.set.choices instead
     #'
     #' Changes all 1s to 0 in choice columns (except for `choice`) and sets cumulative variable to be equal to `choice`.
-    #' Additionally, all NAs will be changed too.
+    #' Additionally, all NAs will be changed too, and the _other variable will be set to NA (if it is not the chosen option).
     #'
     #' @param data Dataframe containing records which will be affected.
     #' @param variable String containing the name of the select_multiple variable.
@@ -658,18 +659,23 @@ recode.multiple.set.choice <- function(data, variable, choice, issue){
                 cl_choices <- rbind(cl_choices, cl)
             }
         }
-        return(rbind(cl_cummulative, cl_choices))
+        if(choice != "other"){
+          other_var_name <- ifelse(is.null(other_var_name), paste0(variable, "_other"), other_var_name)
+          cl_other <- recode.set.NA(data, other_var_name, issue)
+          return(rbind(cl_cummulative, cl_choices, cl_other))
+        } else return(rbind(cl_cummulative, cl_choices))
 
     }
     return(data.frame())
 }
 
-recode.multiple.set.choices <- function(data, variable, choices, issue){
+recode.multiple.set.choices <- function(data, variable, choices, issue, other_var_name = NULL){
   #' Recode select_multiple responses: set answer to one particular choice.
   #'
   #' This function affects choice columns: setting 1 for `choices` and 0 everywhere else.
   #' For the cumulative variable, the valye will be more or less equal to `paste(choices, collapse=" ")` 
-  #' (to be precise, the exact order of choices will be the same as the one in `tool.choices`)
+  #' (to be precise, the exact order of choices will be the same as the one in `tool.choices`) ... 
+  #' Additionally, the _other variable will be set to NA if it is not one of the `choices`
   #'
   #' @param data Dataframe containing records which will be affected.
   #' @param variable String containing the name of the select_multiple variable.
@@ -709,7 +715,8 @@ recode.multiple.set.choices <- function(data, variable, choices, issue){
     
     if(!"other" %in% choices) {
       # remove text from other responses
-      cl_other <- recode.set.NA.regex(data, paste0(variable, "_other"), ".*", issue)
+      other_var_name <- ifelse(is.null(other_var_name), paste0(variable, "_other"), other_var_name)
+      cl_other <- recode.set.NA(data, other_var_name, issue)
       return(rbind(cl_cummulative, cl_choices, cl_other))
     } else{
       return(rbind(cl_cummulative, cl_choices))
@@ -755,16 +762,6 @@ recode.multiple.add.choices <- function(data, variable, choices, issue){
       
       choice_columns <- paste0(variable,"/",choices)
       cl_choices <- recode.set.value.regex(data, choice_columns, "0", "1", issue)
-      # cl_choices <- data.frame()
-      # for(choice in choices){
-      #     choice_column <- paste0(variable,"/",choice)
-      #     data1 <- data %>% filter(str_detect(!!sym(variable), choice, negate = T))
-      #     if(nrow(data1) > 0){
-      #       cl_choice <- data1 %>% select(any_of(c("uuid","loop_index"))) %>%
-      #           mutate(variable = choice_column, old.value = "0", new.value = "1", issue = issue)
-      #       cl_choices <- rbind(cl_choices, cl_choice)
-      #     }
-      # }
       return(rbind(cl_cummulative, cl_choices))
     }
     return(data.frame())
@@ -814,7 +811,7 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
   return(data.frame())
 }
 
-recode.multiple.remove.choices <- function(data, variable, choices, issue){
+recode.multiple.remove.choices <- function(data, variable, choices, issue, other_var_name = NULL){
   #' Recode select_multiple responses: remove particular choices.
   #'
   #' Removes the relevant text from the cummulative column. Changes all 1s to 0 in choice columns specified by `choices`.
@@ -847,10 +844,10 @@ recode.multiple.remove.choices <- function(data, variable, choices, issue){
     
     cl_choices <- recode.set.value.regex(data, choice_columns, "1", "0", issue)
     
-    if(!"other" %in% choices) {
-      return(rbind(cl_cummulative, cl_choices))
+    if(!"other" %in% choices) { return(rbind(cl_cummulative, cl_choices))
     } else{
-      cl_other <- recode.set.NA.regex(data, paste0(variable, "_other"), ".*", issue)
+      other_var_name <- ifelse(is.null(other_var_name), paste0(variable, "_other"), other_var_name)
+      cl_other <- recode.set.NA(data, other_var_name, issue)
       return(rbind(cl_cummulative, cl_choices, cl_other))
     }
   }
@@ -910,14 +907,14 @@ recode.others <- function(data, or.edited, orig_response_col = "response.uk", is
   
   # HANDLE SELECT_ONES:
   or.select_one <- or.edited %>% filter(ref.type == "select_one")
-  if(print_debug) cat("Number of select_one other responses:", nrow(or.select_one), "\n")
+  if(print_debug) cat("Total number of select_one other responses:", nrow(or.select_one), "\n")
   s1_data <- data %>% filter(uniqui %in% or.select_one$uuid)
   if(nrow(s1_data) == 0) cl_select_one <- tibble()
   else cl_select_one <- recode.others_select_one(s1_data, or.select_one, orig_response_col, print_debug)
 
   # HANDLE SELECT_MULTIPLES:
   or.select_multiple <- or.edited %>% filter(ref.type == "select_multiple")
-  if(print_debug) cat("Number of select_multiple other responses:", nrow(or.select_multiple), "\n")
+  if(print_debug) cat("Total number of select_multiple other responses:", nrow(or.select_multiple), "\n")
   sm_data <- data %>% filter(uniqui %in% or.select_multiple$uuid)
   if(nrow(sm_data) == 0)  cl_select_multiple <- tibble()
   else cl_select_multiple <- recode.others_select_multiple(sm_data, or.select_multiple, orig_response_col, print_debug)
@@ -947,7 +944,8 @@ recode.others_select_one <- function(data, or.select_one, orig_response_col = "r
     left_join(tool.choices %>% rename(label = label_colname, choice_name = name), by = c("label", "list_name")) %>% distinct()
   if(any(is.na(choices_lookup$choice_name))) {
     # TODO: replace stop with a warning, and automatically fix typos using agrep
-    stop("Choices not found in lists: ", paste(choices_lookup %>% filter(is.na(choice_name)) %>% pull(label), collapse = ", "))
+    missing_names <- choices_lookup %>% filter(is.na(choice_name))
+    stop("Choices not found in lists:\n\t", paste(missing_names$label, missing_names$list_name, sep = "\t - in list ", collapse = "\n\t"))
   }
   cl_s1_recode <- rbind(
     or.select_one.recode %>% mutate(variable = name, old.value = !!sym(orig_response_col), new.value = NA, issue = "Recoding other response") %>% 
@@ -973,13 +971,15 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
   cl_sm_remove <- tibble()
   if (nrow(or.select_multiple.remove) > 0) {
     if(print_debug) cat(paste("Number of invalid select_multiple responses:", nrow(or.select_multiple.remove)), "\n")
-    for(variable in or.select_multiple.remove %>% select(ref.name) %>% distinct %>% pull){
+    variables <- or.select_multiple.remove %>% select(ref.name, name) %>% distinct(ref.name, .keep_all = T)
+    for(variable in variables %>% pull(ref.name)){
       thisvar_data <- data %>% filter(uniqui %in% (or.select_multiple.remove %>% filter(ref.name == variable) %>% pull(uniqui)))
+      other_variable <- variables$name[which(variables$ref.name == variable)]
       # if the 'other' was the only one selected, change the entire question to NA:
       cl_only_other <- thisvar_data %>% filter(!!sym(variable) == "other") %>% 
-        recode.multiple.set.NA(variable, "Invalid other response")
+        recode.multiple.set.NA(variable, "Invalid other response", other_var_name = other_variable)
       cl_notjust_other <- thisvar_data %>% filter(!!sym(variable) != "other") %>% 
-        recode.multiple.remove.choices(variable, "other", "Invalid other response")
+        recode.multiple.remove.choices(variable, "other", "Invalid other response", other_var_name = other_variable)
       cl_sm_remove <- rbind(cl_sm_remove, cl_only_other, cl_notjust_other)
     }
   }
@@ -989,6 +989,7 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
     mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_split(str_squish(existing.v), " *; *", simplify = T))
   
   if(nrow(or.select_multiple.recode) > 0){
+    cl_sm_recode <- tibble()
     if(print_debug) cat(paste("Number of select_multiple responses to be recoded:", nrow(or.select_multiple.recode)), "\n")
     
     choices_lookup <- tool.choices %>% filter(list_name %in% or.select_multiple.recode$list_name) %>% 
@@ -1002,15 +1003,14 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
         # uniqui was not found in data
         next
       }
+      chosen_labels <- or.row$existing.v[or.row$existing.v != "" & !is.na(or.row$existing.v)]
       
-      or.row$existing.v <- or.row$existing.v[or.row$existing.v != "" & !is.na(or.row$existing.v)]
-      
-      if(any(!or.row$existing.v %in% choices_lookup$label)) {
+      if(any(!chosen_labels %in% choices_lookup$label)) {
         # TODO: replace stop with a warning, and automatically fix typos
-        stop("Choice '", paste(or.row$existing.v[!or.row$existing.v %in% choices_lookup$label], collapse = "' "), "' not found in list ", or.row$list_name)
+        stop("Choice '", paste(chosen_labels[!chosen_labels %in% choices_lookup$label], collapse = "' "), "' not found in list ", or.row$list_name)
       }
       
-      choices <- choices_lookup %>% filter(list_name == or.row$list_name & label %in% or.row$existing.v) %>% pull(choice_name)
+      choices <- choices_lookup %>% filter(list_name == or.row$list_name & label %in% chosen_labels) %>% pull(choice_name)
       
       # check if true.v is also not na
       if(!is.na(or.row$true.v)){
@@ -1023,7 +1023,8 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
         # read the previous choices and set selection to previous + new
         old_choices <- data.row[[or.row$ref.name]] %>% str_split(" ", simplify = T)
         choices <- c(choices, old_choices[old_choices!="other"])
-        cl_sm_recode <- rbind(cl_sm_recode, recode.multiple.set.choices(data.row, or.row$ref.name, choices, "Recoding other response"))
+        cl_sm_recode <- rbind(cl_sm_recode, 
+                              recode.multiple.set.choices(data.row, or.row$ref.name, choices, "Recoding other response", other_var_name = or.row$name))
       }
     }
   }
@@ -1041,18 +1042,27 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
 
 # ------------------------------------------------------------------------------
 
-apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
+apply.changes <- function(data, clog, is.loop = F, print_debug = T){
   #' Apply changes to main data basing on a cleaning log.
   #'
   #' Outputs warnings if uuids, loop indexes or variables from `clog` are not found in `data`.
   #' Be aware: all values will be written to data as character.
   #' @param data Data (raw.main or raw.loop#)
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
-  #' @param is.loop Set to True if the provided dataframe is a loop (it needs to contain the column loop_index).
-  #' @param suppress.diff.warnings Set to True if you want to omit warnings related to value mismatches. Default False.
+  #' @param is.loop Obsolete. This function automatically guesses whether the data contains column 'loop_index'. But there will be warnings produced just in case.
+  #' @param print_debug If True (any by default), warnings related to value mismatches and informational messages about the number of changes will be printed.
   #'
   #' @returns Dataframe containing data with applied changes
-
+    
+    if(!is.loop && "loop_index" %in% colnames(data)){
+      warning("Parameter is.loop is = False, but data contains column 'loop_index'. It will be assumed that this data is, actually, a loop!\n
+              N.B.: for the future, you can use apply.changes without the is.loop parameter.\n")
+      is.loop <- T
+    }else if(is.loop && (!"loop_index" %in% colnames(data))) {
+      stop("Parameter is.loop is = True, but data does not contain column 'loop_index'!\n
+              N.B.: for the future, you can use apply.changes without the is.loop parameter.\n")
+    }
+      
     if(!is.loop && ("loop_index" %in% colnames(clog))){
       clog <- filter(clog, is.na(loop_index))
     }else if(is.loop)
@@ -1064,6 +1074,7 @@ apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
         missinguuids <- c()
         missingloop_indexs <- c()
         missingvars <- c()
+        changes_counter <- 0
         for (r in 1:nrow(clog)){
           variable <- as.character(clog$variable[r])
             if(!variable %in% colnames(data)) {
@@ -1076,33 +1087,48 @@ apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
               missingloop_indexs <- append(missingloop_indexs, loop_index)
               next
             }
-            if(!suppress.diff.warnings && data[data$loop_index == loop_index, variable] %!=na% clog$old.value[r]){
+            if(print_debug && data[data$loop_index == loop_index, variable] %!=na% clog$old.value[r]){
               warning(paste0("Value in data is different than old.value in Cleaning log!\nloop_index: ", loop_index,
+                             "\tVariable: ", variable,
                              "\tExpected: ", clog$old.value[r], "\t found: ", data[data$loop_index == loop_index, variable],
                              "\tReplacing with: ", clog$new.value[r]))
             }
             data[data$loop_index == loop_index, variable] <- as.character(clog$new.value[r])
+            changes_counter <- changes_counter + 1
           }else {
             uuid <- as.character(clog$uuid[r])
             if(!uuid %in% data$uuid) {
               missinguuids <- append(missinguuids, uuid)
               next
             }
-            if(!suppress.diff.warnings && data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
+            if(print_debug && data[data$uuid == uuid, variable] %!=na% clog$old.value[r]){
               warning(paste0("Value in data is different than old.value in Cleaning log!\nUUID: ", uuid,
+                             "\tVariable: ", variable,
                             "\tExpected: ", clog$old.value[r], "\t found: ", data[data$uuid == uuid, variable],
                             "\tReplacing with: ", clog$new.value[r]))
             }
             data[data$uuid == uuid, variable] <- as.character(clog$new.value[r])
+            changes_counter <- changes_counter + 1
           }
         }
-        if(length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n", paste0(missinguuids, collapse = "\n")))
-        if(length(missingloop_indexs) > 0) warning(paste0("loop_indexes from cleaning log not found in data:\n", paste0(missingloop_indexs, collapse = "\n")))
-        if(length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n", paste0(missingvars, collapse = "\n")))
+        if(print_debug && length(missinguuids > 0)) warning(paste0("uuids from cleaning log not found in data:\n\t", paste0(missinguuids, collapse = "\n\t")))
+        if(print_debug && length(missingloop_indexs) > 0) warning(paste0("loop_indexes from cleaning log not found in data:\n\t", paste0(missingloop_indexs, collapse = "\n\t")))
+        if(print_debug && length(missingvars > 0))  warning(paste0("variables from cleaning log not found in data:\n\t", paste0(missingvars, collapse = "\n\t")))
+        if(print_debug) cat("\tMade", changes_counter, "changes to the data.\n")
     }
     return(data)
 }
 
+undo.changes <- function(data, clog){
+  #' ever made changes to your data that you should not have done?
+  #' 
+  #' Simply provide the same cleaning log as the one that you used to apply the changes and voila...
+  #' 
+  #' this function will undo the changes and rewind your data to the previous state! as long as you didn't modify the cleaning log since you applied the changes!
+  #' This function basically flips old.value and new.value around in the clog, and applies changes again.
+  clog <- clog %>% mutate(temp = new.value) %>% mutate(new.value = old.value, old.value = temp)
+  return(data %>% apply.changes(clog, print_debug = T))
+}
 
 make.logical.check.entry <- function(check, id, question.names, issue, cols_to_keep = c("today"), is.loop = F){
   #' Create a logical check DF
@@ -1114,13 +1140,14 @@ make.logical.check.entry <- function(check, id, question.names, issue, cols_to_k
   #' @param id The identifier of this logical check.
   #' @param question.names List of relevant queston names for this logical check.
   #' @param cols_to_keep List of columns from raw.main to be included in result.
+  #' @param is.loop Obsolete. This function automatically guesses whether the input data (`check`) contains column 'loop_index'. By setting this to True, you will end up with an empty 'loop_index' column if it does not exist in `check`
   #'
   #' @returns Dataframe containing at the least columns: `uuid`, `check.id`, `variable`, `issue`, `old.value`, `new.value`, `explanation`.
   #' This object can be later added to cleaning log.
 
   res <- data.frame()
-  if(is.loop) {
-      cols_to_keep <- append(cols_to_keep, "loop_index")
+  if(is.loop || "loop_index" %in% colnames(check)) {
+      cols_to_keep <- append("loop_index", cols_to_keep)
   }
   for(q.n in question.names){
     new.entries <- check %>%
