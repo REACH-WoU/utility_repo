@@ -132,14 +132,26 @@ load_entry <- function(daf_row){
   #' 
   #' This function replaces load.entry (from descriptive_analysis)
   #' 
+  #' This is where you would setup default values in case of NA in one of the columns
   
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
   entry$disaggregate.variables <- c(str_split(sub(" ", "", entry$disaggregations), ";", simplify = T))
-  # omit_na is True by default (calculation empty):
+  # omit_na is True by default (if calculation is empty), False only if "include_na" is in this column:
   entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
   # comments - add two lines to them if necessary
-  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
+  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
+  # label - if NA, take it from tool.survey
+  entry$label <- ifelse(is.na(entry$label), get.label(entry$variable), entry$label)
+  # func - set using the q.type from tool.survey
+  if(is.na(entry$func)){
+    var_type <- get.type(entry$variable)
+    entry$func <- ifelse(var_type %in% c("integer", "numeric"), "mean",
+                        ifelse(var_type == "text", "count", var_type))
+    warning("Missing parameter 'func' in one of the entries (variable: ", entry$variable, ")\tWill be set to ", entry$func)
+  }
+  # admin - stop if NA
+  if(is.na(entry$admin)) stop("Missing parameter 'admin' in one of the entries (variable: ", entry$variable, ")")
   
   entry$join <- !is.na(entry$join)
   
@@ -355,7 +367,7 @@ convert.cols.check.dap <- function(df, dap) {
                 df <- df %>% relocate(na_colname, .after = !!sym(col))
             }
         }else {
-          if(!col %in% tool.survey$name){
+          if(!col %in% tool.survey$name | get.type(col) == "calculate"){
               if(entry$func == "select_one") df[[col]] <- as.factor(df[[col]])
               else if(entry$func == "mean") df[[col]] <- as.numeric(df[[col]])
             }
