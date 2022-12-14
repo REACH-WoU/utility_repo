@@ -890,8 +890,7 @@ count.to_html.overall <- function(res, entry){
       group_by(overall) %>%
       summarise(num_samples=n()) %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall") %>% 
-      select(-overall)
+      mutate(strata = "Overall")
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
