@@ -345,6 +345,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
                           pattern=paste0("^",filename.pattern,".*\\.xlsx"))
   if (length(filenames) == 0){
     warning(paste("Files with",file.type,"requests not found!"))
+    return(tibble())
   } else {
     cat(paste("Loading",length(filenames),file.type,"files:\n"),paste(filenames, collapse = "\n "),"\n")
     res <- data.frame()
