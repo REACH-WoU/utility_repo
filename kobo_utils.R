@@ -181,7 +181,7 @@ get.other.db <- function(){
 
   # for each "other" question, get ref.question and list of choices
   df1 <- tool.survey %>% filter(str_ends(name, "_other"), type=="text") %>%
-    rename(label=label_colname) %>%
+    rename(label=all_of(label_colname)) %>%
     select("name", "label", "relevant") %>%
     mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>%
     left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
