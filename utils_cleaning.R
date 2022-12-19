@@ -345,6 +345,7 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
                           pattern=paste0("^",filename.pattern,".*\\.xlsx"))
   if (length(filenames) == 0){
     warning(paste("Files with",file.type,"requests not found!"))
+    return(tibble())
   } else {
     cat(paste("Loading",length(filenames),file.type,"files:\n"),paste(filenames, collapse = "\n "),"\n")
     res <- data.frame()
@@ -1440,22 +1441,19 @@ find.other.responses <- function(data, other.db, values_to = "response.uk", is.l
   return(binded.responses)
 }
 
-translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en"){
+translate.responses <- function(responses, values_from = "response.uk", source_lang = NULL, target_lang = "en"){
 
   #' Translate a vector from a given dataframe.
   #'
   #' The provided dataframe `responses` must contain the column `values_from` which will be used as input vector for the translation.
-  #' Also outputs informative logs to file named "translate_info.csv". Specify the target language using `target_lang` parameter
-  #'
-  #' Warning: If more than one source language code is provided, the entire translation WILL BE REPEATED. You are advised against that,
-  #' because we do not want to hit our monthly limits for the API.
+  #' Also outputs informative logs to file named "translate_info.csv". You may specify the target language using `target_lang` parameter (or keep it NULL - by default it will be autodected)
   #'
   #' @param respones Dataframe containing a column which shall be translated.
   #' @param values_from Name of the column from `responses` which shall be translated.
-  #' @param language_codes Character vector of two-letter language codes. The input vector will be translated from both of these languages.
-  #' @param target_lang Input vector will be translated into this language.
+  #' @param source_lang String containing a two-letter language code. The input vector will be translated from this language. Defaults to NULL - autodetect language.
+  #' @param target_lang A two-letter language code. Input vector will be translated into this language. Defaults to 'en' - translation to English
   #' @returns The same dataframe as `responses`, but with a new column, containing the translation.
-  #' The column will be named according to the given source and target languages. By default, the output will be stored in column named 'response.en.from.uk'
+  #' The column will be named according to the target language. By default, the output will be stored in column named 'response.en'
   info_df <- data.frame()
   responses_batch <- data.frame()
   temp_resp_whole <- data.frame()
@@ -1481,60 +1479,56 @@ translate.responses <- function(responses, values_from = "response.uk", language
   batching <- as.numeric(batching)
   if(yes_no == "YES"){
     if(length(input_vec) > 0){
-      for (code in language_codes) {
-        col_name <- paste0("response.",target_lang, ".from.",code)
-        # relevant_colnames <- append(relevant_colnames, col_name)  # this line may be bugged??
-        
-        temp_resp <- tibble(input_vec)
-        temp_resp[[col_name]] <- NA
-        temp_resp <-  temp_resp[sample(1:nrow(temp_resp)),]
-        ## create batches
-        temp_resp_batches <- split(temp_resp, factor(sort(rank(row.names(temp_resp))%%batching)))
-        progress.bar.title <- as.character(Sys.time())
-        pb <- tcltk::tkProgressBar(progress.bar.title, "Number of batches executed", 0, batching, 0, width = 600)
-        prog <- 1
-        for (temp_resp_batch in temp_resp_batches){
-          tcltk::setTkProgressBar(pb, prog, progress.bar.title, paste0("Number of batches executed: ", prog, " of ", batching,"\n",length(temp_resp_batch$input_vec)," responses will be translated from ",code," to ",target_lang, "\nThis means ",sum(str_length(temp_resp_batch$input_vec))," utf-8 characters."))
-          prog <- prog + 1
-          # cat(length(temp_resp_batch$input_vec),"responses will be translated from",code,"to",target_lang, "\tThis means",sum(str_length(temp_resp_batch$input_vec)),"utf-8 characters.\n")
-          # actual translation:
-          result_vec <- NULL
-          result_vec <- try(translateR::translate(content.vec = temp_resp_batch$input_vec,
-                              microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
-                              microsoft.api.region = "switzerlandnorth",
-                              source.lang = code, target.lang = target_lang))
-          if(inherits(result_vec,"try-error")) break
-          # checking the results
-          info_df <- rbind(info_df, data.frame(## DEBUGG IT HERE
-            "input_responses_num" = length(temp_resp_batch$input_vec),
-            "translated_characters_num" = sum(str_length(temp_resp_batch$input_vec)),
-            "language_from" = code,
-            "result_num" = length(result_vec),
-            "time_elapsed" = as.numeric(Sys.time() - start_time),
-            "date"=Sys.Date(),
-            "status"=NA))
-          if(is.null(result_vec)){
-            warning("Error while translating responses: result_vec is NULL\n")
-            info_df$status <- "error"
+      col_name <- paste0("response.",target_lang)
+      
+      temp_resp <- tibble(input_vec)
+      temp_resp[[col_name]] <- NA
+      temp_resp <-  temp_resp[sample(1:nrow(temp_resp)),]
+      ## create batches
+      temp_resp_batches <- split(temp_resp, factor(sort(rank(row.names(temp_resp))%%batching)))
+      progress.bar.title <- as.character(Sys.time())
+      pb <- tcltk::tkProgressBar(progress.bar.title, "Number of batches executed", 0, batching, 0, width = 600)
+      prog <- 1
+      for (temp_resp_batch in temp_resp_batches){
+        tcltk::setTkProgressBar(pb, prog, progress.bar.title, paste0("Number of batches executed: ", prog, " of ", batching,"\n",length(temp_resp_batch$input_vec)," responses will be translated to ",target_lang, "\nThis means ",sum(str_length(temp_resp_batch$input_vec))," utf-8 characters."))
+        prog <- prog + 1
+        # actual translation:
+        result_vec <- NULL
+        result_vec <- try(translateR::translate(content.vec = temp_resp_batch$input_vec,
+                            microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
+                            microsoft.api.region = "switzerlandnorth",
+                            source.lang = source_lang, target.lang = target_lang))
+        if(inherits(result_vec,"try-error")) break
+        # checking the results
+        info_df <- rbind(info_df, data.frame(## DEBUGG IT HERE
+          "input_responses_num" = length(temp_resp_batch$input_vec),
+          "translated_characters_num" = sum(str_length(temp_resp_batch$input_vec)),
+          "language_from" = source_lang,
+          "result_num" = length(result_vec),
+          "time_elapsed" = as.numeric(Sys.time() - start_time),
+          "date"=Sys.Date(),
+          "status"=NA))
+        if(is.null(result_vec)){
+          warning("Error while translating responses: result_vec is NULL\n")
+          info_df$status <- "error"
+        }else{
+          temp_resp_batch[[col_name]] <- gsub("&#39;", "'", result_vec)
+          if(length(result_vec) == length(temp_resp_batch$input_vec)){ 
+            info_df$status <- "success"
+            # bind the translated and source dfs
+            temp_resp_whole <- rbind(temp_resp_whole,temp_resp_batch)
           }else{
-            temp_resp_batch[[col_name]] <- gsub("&#39;", "'", result_vec)
-            if(length(result_vec) == length(temp_resp_batch$input_vec)){ 
-              info_df$status <- "success"
-              # bind the translated and source dfs
-              temp_resp_whole <- rbind(temp_resp_whole,temp_resp_batch)
-            }else{
-              info_df$status <- "partial success"
-            }
+            info_df$status <- "partial success"
           }
         }
-        close(pb)
-        if("partial success" %in% info_df$status){
-          svDialogs::msgBox("translate.responses: finished - PARTIAL SUCCESS?")
-        } else{
-          svDialogs::msgBox("translate.responses: finished - SUCCESS")
-        }
-        responses <- responses %>% left_join(temp_resp_whole, by = c("resp_lower" = "input_vec")) 
       }
+      close(pb)
+      if("partial success" %in% info_df$status){
+        svDialogs::msgBox("translate.responses: finished - PARTIAL SUCCESS?")
+      } else{
+        svDialogs::msgBox("translate.responses: finished - SUCCESS")
+      }
+      responses <- responses %>% left_join(temp_resp_whole, by = c("resp_lower" = "input_vec")) 
     }else{
       warning("Nothing to be translated")
     }
