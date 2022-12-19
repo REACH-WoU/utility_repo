@@ -1568,7 +1568,7 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
         mutate("TRUE other (provide a better translation if necessary)"=NA,
                "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                "INVALID other (insert yes or leave blank)"=NA) %>%
-        arrange(name, !!sym(response_cols[which(nchar(response_cols) == max(nchar(response_cols)))]))
+        arrange(name, !!sym(response_cols[which(response_cols == "response.en")]))
     # if(!is.loop) {
     #     responses.j <- responses.j %>% select(-loop_index)
     #     }
