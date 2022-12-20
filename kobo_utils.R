@@ -31,14 +31,25 @@ load.tool.survey <- function(filename_tool, keep_cols = F){
   
     tool.survey <- select(tool.survey, all_of(cols_to_keep))
   }
-  # Find which data sheet question belongs to:
-  tool.survey <- tool.survey %>% mutate(datasheet = NA)
+  # Find which data sheet and group a question belongs to:
+  tool.survey <- tool.survey %>% mutate(datasheet = NA, group_name = NA)
   sheet_name <- "main"
+  group_count <- 1
+  group_names <- c(NA)
   for(i in 1:nrow(tool.survey)){
     toolrow <- tool.survey %>% slice(i)
     if(str_detect(toolrow$type, "begin[ _]repeat")) sheet_name <- toolrow$name
     else if(str_detect(toolrow$type, "end[ _]repeat")) sheet_name <- "main"   # watch out for nested repeats (Why would you even want to do that?)
-    else if(str_detect(toolrow$type, "((end)|(begin))[ _]group", T)) tool.survey[i, "datasheet"] <- sheet_name
+    if(str_detect(toolrow$type, "end[ _]group")) group_count <- group_count - 1
+    if(str_detect(toolrow$type, "begin[ _]group")){
+      group_count <- group_count + 1
+      group_names[group_count] <- ifelse(isna(toolrow[[label_colname]]), toolrow[["name"]], toolrow[[label_colname]])
+    }
+    else if(str_detect(toolrow$type, "((end)|(begin))[ _]group", T)){
+      tool.survey[i, "datasheet"] <- sheet_name
+      tool.survey[i, "group_name"] <- group_names[group_count]
+    }
+    
   }
   return(tool.survey)
   
