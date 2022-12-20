@@ -1503,7 +1503,7 @@ translate.responses <- function(responses, values_from = "response.uk", source_l
         info_df <- rbind(info_df, data.frame(## DEBUGG IT HERE
           "input_responses_num" = length(temp_resp_batch$input_vec),
           "translated_characters_num" = sum(str_length(temp_resp_batch$input_vec)),
-          "language_from" = source_lang,
+          "language_from" = ifelse(is.null(source_lang), "NULL", source_lang),
           "result_num" = length(result_vec),
           "time_elapsed" = as.numeric(Sys.time() - start_time),
           "date"=Sys.Date(),
