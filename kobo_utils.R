@@ -163,7 +163,7 @@ get.select.db <- function(){
     summarise(choices=choices[1], choices.label=choices.label[1])
   # list of choices for each question
   select.questions <- tool.survey %>%
-    rename(q.label=label_colname) %>%
+    rename(q.label = !!sym(label_colname)) %>%
     select(type, name, q.label) %>%
     mutate(q.type=as.character(lapply(type, split.q.type)),
            list_name=as.character(lapply(type, get.choice.list.from.type))) %>%
@@ -181,7 +181,7 @@ get.other.db <- function(){
 
   # for each "other" question, get ref.question and list of choices
   df1 <- tool.survey %>% filter(str_ends(name, "_other"), type=="text") %>%
-    rename(label=all_of(label_colname)) %>%
+    rename(label=!!sym(label_colname)) %>%
     select("name", "label", "relevant") %>%
     mutate(ref.name=as.character(lapply(relevant, get.ref.question))) %>%
     left_join(select(select.questions, "name", "q.type", "q.label", "list_name", "choices", "choices.label"),
