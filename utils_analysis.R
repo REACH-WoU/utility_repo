@@ -146,8 +146,12 @@ load_entry <- function(daf_row){
   # func - set using the q.type from tool.survey
   if(is.na(entry$func)){
     var_type <- get.type(entry$variable)
-    entry$func <- ifelse(var_type %in% c("integer", "numeric"), "mean",
-                        ifelse(var_type == "text", "count", var_type))
+    entry$func <- case_when(
+      isna(var_type) ~ "select_one",     # taking select_one by default - but perhaps count is better?
+      var_type %in% c("integer", "numeric") ~ "mean",
+      var_type == "text" ~ "count",
+      TRUE ~ var_type                    # all other cases - will be select_one or select_multiple most likely
+      )
     warning("Missing parameter 'func' in one of the entries (variable: ", entry$variable, ")\tWill be set to ", entry$func,"\n")
   }
   # admin - stop if NA
