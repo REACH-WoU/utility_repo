@@ -13,39 +13,6 @@ style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", val
                               fontSize = 10, fontName = "Arial Narrow", wrapText=T)
 
 # ------------------------------------------------------------------------------------------
-save.responses <- function(df, wb_name, or.submission=""){
-  #' [obsolete] superceded by save.other.requests and save.trans.requests
-
-  style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
-                                       border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
-                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-  wb <- createWorkbook()
-  addWorksheet(wb, "Sheet1")
-  writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
-  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=10)
-  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=11)
-  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=12)
-  setColWidths(wb, "Sheet1", cols=1, widths=35)
-  setColWidths(wb, "Sheet1", cols=c(5, 7), widths=50)
-  setColWidths(wb, "Sheet1", cols=c(8:9), widths=30)
-  setColWidths(wb, "Sheet1", cols=c(2:4, 6), widths=20)
-  setColWidths(wb, "Sheet1", cols=c(10:12), widths=40)
-  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
-  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
-  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
-  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
-  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=5)
-  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=6)
-  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
-  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=8)
-  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=9)
-  addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
-  addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=10:12)
-  modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
-  filename <- paste0("output/checking/requests/", wb_name, ".xlsx")
-  saveWorkbook(wb, filename, overwrite=TRUE)
-}
 
 save.other.requests <- function(df, wb_name, use_template = F){
 
@@ -126,142 +93,6 @@ save.trans.requests <- function(df, wb_name, blue_cols = NULL, use_template = F)
     saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
-# ------------------------------------------------------------------------------------------
-# OUTLIER SECTION
-# ------------------------------------------------------------------------------------------
-save.outlier.responses <- function(df, or.submission=""){
-  for (i in country_list){
-    df1 <- df %>%
-      filter(country == i)
-    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
-                                   valign="top", wrapText=T)
-    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
-                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
-                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    wb <- createWorkbook()
-    addWorksheet(wb, "Sheet1")
-    writeData(wb = wb, x = df1, sheet = "Sheet1", startRow = 1)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=6)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=7)
-    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
-    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=1)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=2)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=3)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=4)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=5)
-    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=6)
-    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=7)
-    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df1))
-    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
-    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
-    filename <- paste0("output/checking/outliers/",i,"_outliers_requests.xlsx")
-    saveWorkbook(wb, filename, overwrite=TRUE)
-    rm(df1)
-  }
-}
-
-save.outlier.responses_msna <- function(df, or.submission=""){
-    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
-                                   valign="top", wrapText=T)
-    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
-                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
-                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
-    wb <- createWorkbook()
-    addWorksheet(wb, "Sheet1")
-    writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=6)
-    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=7)
-    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
-    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
-    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=5)
-    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=6)
-    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
-    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
-    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
-    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
-    filename <- paste0("output/checking/outliers/outliers_requests.xlsx")
-    saveWorkbook(wb, filename, overwrite=TRUE)
-}
-
-save.follow.up.requests <- function(cleaning.log, data){
-    #' [obsolete] - replaced by `create.follow.up.requests`
-    #' 
-  warning(" save.follow.up.requests is obsolete! Please use create.follow.up.requests instead.")
-  use.color <- function(check.id){
-    return(str_starts(check.id, "0"))
-    # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
-  }
-  # define styles
-  style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
-  style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
-                                       border="TopBottomLeftRight", borderColour="#000000", wrapText=F)
-  col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
-                           border="TopBottomLeftRight", borderColour="#000000")
-  # arrange cleaning.log so that colors are properly assigned later
-  cleaning.log <- cleaning.log %>%
-    arrange(country) %>%
-    group_by(country) %>%
-    group_modify(~ rbind(
-      filter(.x, !use.color(check.id)) %>% arrange(check.id, uuid),
-      filter(.x, use.color(check.id)) %>% arrange(check.id)))
-  # add missing columns
-  cl <- cleaning.log %>%
-    left_join(select(data, uuid, `_submission_time`), by="uuid") %>%
-    rename(submission_time="_submission_time") %>%
-    select(uuid, submission_time, country, Reporting_organization, enumerator.code, check.id,
-           variable, issue, old.value, new.value) %>%
-    mutate(explanation=NA)
-  cl <- cl %>% arrange(match(check.id, str_sort(unique(cl$check.id), numeric=T)))
-  for(i in country_list){
-    cl1 <- cl %>%
-      filter(country == i)
-    # save follow-up requests
-    wb <- createWorkbook()
-    addWorksheet(wb, "Follow-up")
-    writeData(wb = wb, x = cl1, sheet = "Follow-up", startRow = 1)
-
-    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl1)+1), cols=10)
-    addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl1)+1), cols=11)
-
-    setColWidths(wb, "Follow-up", cols=1:ncol(cl1), widths="auto")
-    setColWidths(wb, "Follow-up", cols=7, widths=50)
-    setColWidths(wb, "Follow-up", cols=8, widths=50)
-
-    addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl1)+1), cols=7)
-    addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl1)+1), cols=8)
-
-    addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl1))
-
-    col.id <- which(colnames(cl1)=="old.value")
-    if(nrow(cl1) > 0){
-      random.color <- ""
-      for (r in 2:nrow(cl1)){
-        if((!use.color(as.character(cl1[r, "check.id"])) &
-            as.character(cl1[r, "uuid"])==as.character(cl1[r-1, "uuid"]) &
-            as.character(cl1[r, "check.id"])==as.character(cl1[r-1, "check.id"])) |
-           (use.color(as.character(cl1[r, "check.id"])) &
-            as.character(cl1[r, "country"])==as.character(cl1[r-1, "country"]) &
-            as.character(cl1[r, "check.id"])==as.character(cl1[r-1, "check.id"]))){
-          if (random.color == "") random.color <- randomColor(1, luminosity = "light")
-          addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
-                   rows = r:(r+1), cols=col.id)
-        } else random.color=""
-      }
-    }
-    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=10)
-    addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=11)
-    filename <- paste0("output/checking/requests/", str_to_lower(i) , "_follow_up_requests.xlsx")
-    saveWorkbook(wb, filename, overwrite = TRUE)
-    rm(cl1)
-  }
-}
 
 create.follow.up.requests <- function(checks.df, wb_name){
     use.color <- function(check.id){
@@ -317,9 +148,13 @@ create.follow.up.requests <- function(checks.df, wb_name){
       }
     }
 
-    filename <- paste0("output/checking/requests/", wb_name)
+    filename <- paste0(dir.requests, wb_name)
+    filename <- ifelse(str_ends(filename, "\\.xlsx", T), paste0(filename, ".xlsx"), filename)
     saveWorkbook(wb, filename, overwrite = TRUE)
 }
+
+# simply an alias:
+save.follow.up.requests <- function(checks.df, wb_name) create.follow.up.requests(checks.df, wb_name)
 
 # ------------------------------------------------------------------------------------------
 # LOADING REQUESTS/RESPONSES FILES
@@ -390,70 +225,6 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
   }
 }
 
-load.edited <- function(dir.edited, file.type){
-  #' Load logs from specified directory.
-  #'
-  #' [obsolete] This function is superceded by load.requests
-  
-  warning(" load.edited is obsolete! Please use load.requests instead.")
-
-  # file.type should be one of the following:
-  valid_types = c("other","translate","follow_up","outliers")
-  if(!(file.type %in% valid_types))
-    warning("Unexpected file.type for load.edited")
-
-  filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
-                          pattern=paste0(".*",file.type,"((responses)|(requests))?(_edited)?.*\\.xlsx$"))
-  if (length(filenames) == 0){
-    warning(paste("Files with",file.type,"responses not found!"))
-  } else {
-    cat(paste("Loading",length(filenames),file.type,"logs:\n"),paste(filenames, collapse = "\n "),"\n")
-    res <- data.frame()
-    for (filename in filenames){
-      # load file
-      other <- read_xlsx(filename, col_types = "text") %>% mutate(uuid=uuid, .before=1)
-      if (filename==filenames[1]) res <- other
-      else res <- rbind(res, other)
-    }
-    return(res)
-
-  }
-}
-
-load.logic.request <- function(dir.requests){
-  #' [obsolete] remove before christmas
-  
-  warning(" load.logic.request is obsolete! Please use load.requests instead.")
-  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
-                                recursive=FALSE, full.names=TRUE)
-  cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
-  for (filename in logic.filenames){
-    # load file
-    trans <- read_xlsx(filename) %>%
-      mutate(uuid=uuid, .before=1)
-    if (filename==logic.filenames[1]) res <- trans
-    else res <- rbind(res, trans)
-  }
-  return(res)
-}
-
-load.outlier.edited <- function(dir.outlier.edited){
-  #' [obsolete] remove before christmas
-  
-  warning(" load.outlier.edited is obsolete! Please use load.requests instead.")
-  logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
-                                recursive=TRUE, full.names=TRUE)
-  cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
-  res <- data.frame()
-  for (filename in logic.filenames){
-    # load file
-    trans <- read_xlsx(filename) %>%
-      mutate(uuid=uuid, .before=1)
-    if (filename==logic.filenames[1]) res <- trans
-    else res <- rbind(res, trans)
-  }
-  return(res)
-}
 
 # ------------------------------------------------------------------------------------------
 # CLEANING LOG FUNCTIONS
@@ -920,7 +691,9 @@ recode.others <- function(data, or.edited, orig_response_col = "response.uk", is
   if(nrow(sm_data) == 0)  cl_select_multiple <- tibble()
   else cl_select_multiple <- recode.others_select_multiple(sm_data, or.select_multiple, orig_response_col, print_debug)
   
-  return(rbind(cl_select_one, cl_select_multiple))
+  cl_all_others <- rbind(cl_select_one, cl_select_multiple) %>% filter(old.value %!=na% new.value)
+  
+  return(cl_all_others)
 }
 
 recode.others_select_one <- function(data, or.select_one, orig_response_col = "response.uk", print_debug = T){
@@ -942,7 +715,7 @@ recode.others_select_one <- function(data, or.select_one, orig_response_col = "r
     mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_remove_all(existing.v, ";"))
   if(print_debug) cat(paste("Number of select_one responses to be recoded:", nrow(or.select_one.recode)), "\n")
   choices_lookup <- or.select_one.recode %>% select(existing.v, list_name) %>% rename(label = existing.v) %>% 
-    left_join(tool.choices %>% rename(label = label_colname, choice_name = name), by = c("label", "list_name")) %>% distinct()
+    left_join(tool.choices %>% rename(label = !!sym(label_colname), choice_name = name), by = c("label", "list_name")) %>% distinct()
   if(any(is.na(choices_lookup$choice_name))) {
     # TODO: replace stop with a warning, and automatically fix typos using agrep
     missing_names <- choices_lookup %>% filter(is.na(choice_name))
@@ -994,7 +767,7 @@ recode.others_select_multiple <- function(data, or.select_multiple, orig_respons
     if(print_debug) cat(paste("Number of select_multiple responses to be recoded:", nrow(or.select_multiple.recode)), "\n")
     
     choices_lookup <- tool.choices %>% filter(list_name %in% or.select_multiple.recode$list_name) %>% 
-       rename(label = label_colname, choice_name = name)
+       rename(label = !!sym(label_colname), choice_name = name)
     
     for (r in 1:nrow(or.select_multiple.recode)) {
       or.row <- or.select_multiple.recode[r,]
@@ -1543,13 +1316,14 @@ translate.responses <- function(responses, values_from = "response.uk", source_l
 }
 
 
-create.translate.requests <- function(questions.db, responses.j, is.loop = F){
+create.translate.requests <- function(questions.db, responses.j, response_colname = "response.en", is.loop = F){
   #' Format a dataframe containing responses to prepare for other/translate requests
   #' 
   #' Relocates columns and adds the TEI columns.
   #' 
   #' @param questions.db Dataframe containing questions (e.g. other.db or trans.db)
   #' @param responses.j Dataframe containing responses to any questions from `questions.db`
+  #' @param response_colname String containing name of the column which has the relevant response (tanslated to English in most cases)
   #' @param is.loop unused
 
     relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","full.label","ref.type","ref.response", "choices.label", "today")
@@ -1562,7 +1336,7 @@ create.translate.requests <- function(questions.db, responses.j, is.loop = F){
         mutate("TRUE other (provide a better translation if necessary)"=NA,
                "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
                "INVALID other (insert yes or leave blank)"=NA) %>%
-        arrange(name, !!sym(response_cols[which(nchar(response_cols) == max(nchar(response_cols)))]))
+        arrange(name, !!sym(response_cols[which(response_cols == response_colname)]))
     # if(!is.loop) {
     #     responses.j <- responses.j %>% select(-loop_index)
     #     }
@@ -1637,62 +1411,3 @@ find.missing.ids <- function(data, uniquis, print_warnings = T){
     return(missing_ids)
   }
 } 
-
-#------------------------------------------------------------------------------------------------------------
-# utility operators & other legacy functions
-#------------------------------------------------------------------------------------------------------------
-
-# IMPORTANT: THESE OPERATORS HAVE BEEN MOVED TO misc_utils.R
-# if you will continue using them in the future, add a `source("src/utils/misc_utils.R")` to your init script
-
-# "%==%" <- function(a, b) ifelse(!is.na(a), a==b, F)
-# "%!=%" <- function(a, b) ifelse(!is.na(a), a!=b, F)
-# "%_<_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<b, F)
-# "%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
-# "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
-# "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
-# "%_+_%" <- function(a,b) as.numeric(a) + as.numeric(b)
-# "%==na%" <- function(e1, e2) (e1 == e2 | (is.na(e1) & is.na(e2)))
-# "%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
-
-# DO NOT UNCOMMENT THESE LINES: 
-
-# # ------------------------------------------------------------------------------------------
-# is_all_numeric <- function(x) {
-#   !any(is.na(suppressWarnings(as.numeric(na.omit(x))))) & is.character(x)
-# }
-
-# # ------------------------------------------------------------------------------------------
-# add.to.fu.requests <- function(checks, check.id){
-#   new.entries <- filter(checks, flag) %>% mutate(check.id=check.id) %>% select(uuid, check.id)
-#   fu.requests <<- arrange(rbind(fu.requests, new.entries), uuid)
-# }
-
-# # ------------------------------------------------------------------------------------------
-# write_excel_pwd <- function(df, file, password){
-#   xlsx::write.xlsx2(df, file, row.names=F, password=password)
-# }
-
-# # ------------------------------------------------------------------------------------------
-# name2label_question <- function(col){
-#   if (str_detect(col, "/")) {
-#     q.name <- str_split(col, "/")[[1]][1]
-#     c.name <- paste0(tail(str_split(col, "/")[[1]], -1), collapse="/")
-#   } else {
-#     q.name <- col
-#     c.name <- NA
-#   }
-#   if (q.name %in% tool.survey$name){
-#     q <- tool.survey[tool.survey$name==q.name,]
-#     q.label <- q[label_colname]
-#     if (is.na(q.label) | q$q.type %in% c("note")) q.label <- q.name
-#     if (!is.na(c.name)){
-#       q.list_name=ifelse(q$list_name=="NA", NA, q$list_name)
-#       c.label <- tool.choices[tool.choices$list_name==q.list_name & tool.choices$name==c.name, label_colname]
-#     } else c.label <- NA
-#     label <- ifelse(is.na(c.label), q.label, paste0(q.label, "/", c.label))
-#   } else label <- q.name
-#   return(label)
-# }
-
-# ^DELETE THESE LINES BEFORE CHRISTMAS
