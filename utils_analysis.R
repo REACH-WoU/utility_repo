@@ -158,7 +158,7 @@ load_entry <- function(daf_row){
   
   # parse the 'calculation' column:
   # join is False by default, True only if the pattern is detected in this column
-  entry$join <- str_detect(entry$calculation, "join")
+  entry$join <- !is.na(entry$calculation) & str_detect(entry$calculation, "join")
   # omit_na is True by default (if calculation is empty), especially always True for "numeric"
   entry$omit_na <- entry$func != "numeric" &  (is.na(entry$calculation) || 
               str_detect(entry$calculation, "include[_-]na", negate = T))  # False only if matches the pattern "include_na"
