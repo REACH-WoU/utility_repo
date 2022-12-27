@@ -137,8 +137,7 @@ load_entry <- function(daf_row){
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
   entry$disaggregate.variables <- c(str_split(str_remove_all(entry$disaggregations, " "), ";", simplify = T))
-  # omit_na is True by default (if calculation is empty), False only if "include_na" is in this column:
-  entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
+  
   # comments - add two lines to them if necessary
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
   # label - if NA, take it from tool.survey
@@ -148,7 +147,7 @@ load_entry <- function(daf_row){
     var_type <- get.type(entry$variable)
     entry$func <- case_when(
       isna(var_type) ~ "select_one",     # taking select_one by default - but perhaps count is better?
-      var_type %in% c("integer", "numeric") ~ "mean",
+      var_type %in% c("integer", "numeric", "decimal", "calculate") ~ "numeric",
       var_type == "text" ~ "count",
       TRUE ~ var_type                    # all other cases - will be select_one or select_multiple most likely
       )
@@ -157,7 +156,13 @@ load_entry <- function(daf_row){
   # admin - stop if NA
   if(is.na(entry$admin)) stop("Missing parameter 'admin' in one of the entries (variable: ", entry$variable, ")")
   
-  entry$join <- !is.na(entry$join)
+  # parse the 'calculation' column:
+  # join is False by default, True only if the pattern is detected in this column
+  entry$join <- str_detect(entry$calculation, "join")
+  # omit_na is True by default (if calculation is empty), especially always True for "numeric"
+  entry$omit_na <- entry$func != "numeric" &  (is.na(entry$calculation) || 
+              str_detect(entry$calculation, "include[_-]na", negate = T))  # False only if matches the pattern "include_na"
+  
   
   return(entry)
 }
@@ -450,45 +455,5 @@ name2label <- function(df){
 ### OTHER UTITILY FUNCTIONS
 ###-----------------------------------------------------------------------------
 
-factorize <- function(
-    x,  # vector to be transformed
-    min_freq = .01,  # all levels < this % of records will be bucketed
-    min_n = 1,  # all levels < this # of records will be bucketed
-    NA_level = '(missing)',  # level created for NA values
-    blank_level = '(blank)',  # level created for "" values
-    infrequent_level = 'Other',  # level created for bucketing rare values
-    infrequent_can_include_blank_and_NA = F,  # default NA and blank are not bucketed
-    order = T,  # default to ordered
-    reverse_order = F  # default to increasing order
-) {
-  if (class(x) != 'factor'){
-    x <- as.factor(x)
-  }
-  # suspect this is faster than reassigning new factor object
-  levels(x) <- c(levels(x), NA_level, infrequent_level, blank_level)
 
-  # Swap out the NA and blank categories
-  x[is.na(x)] <- NA_level
-  x[x == ''] <- blank_level
-
-  # Going to use this table to reorder
-  f_tb <- table(x, useNA = 'always')
-
-  # Which levels will be bucketed?
-  infreq_set <- c(
-    names(f_tb[f_tb < min_n]),
-    names(f_tb[(f_tb/sum(f_tb)) < min_freq])
-  )
-
-  # If NA and/or blank were infrequent levels above, this prevents bucketing
-  if(!infrequent_can_include_blank_and_NA){
-    infreq_set <- infreq_set[!infreq_set %in% c(NA_level, blank_level)]
-  }
-
-  # Relabel all the infrequent choices
-  x[x %in% infreq_set] <- infrequent_level
-
-  # Return the reordered factor
-  reorder(droplevels(x), rep(1-(2*reverse_order),length(x)), FUN = sum, order = order)
-}
 
