@@ -136,7 +136,8 @@ load_entry <- function(daf_row){
   
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
-  entry$disaggregate.variables <- c(str_split(str_remove_all(entry$disaggregations, " "), ";", simplify = T))
+  disaggregations <- c(str_split(str_remove_all(entry$disaggregations, " "), ";", simplify = T))
+  entry$disaggregate.variables <- disaggregations[disaggregations != ""]
   
   # comments - add two lines to them if necessary
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
@@ -144,7 +145,7 @@ load_entry <- function(daf_row){
   entry$label <- ifelse(is.na(entry$label), get.label(entry$variable), entry$label)
   # func - set using the q.type from tool.survey
   if(is.na(entry$func)){
-    var_type <- get.type(entry$variable)
+    var_type <- entry$var_type
     entry$func <- case_when(
       isna(var_type) ~ "select_one",     # taking select_one by default - but perhaps count is better?
       var_type %in% c("integer", "numeric", "decimal", "calculate") ~ "numeric",
@@ -157,19 +158,25 @@ load_entry <- function(daf_row){
   if(is.na(entry$admin)) stop("Missing parameter 'admin' in one of the entries (variable: ", entry$variable, ")")
   
   # parse the 'calculation' column:
-  # join is False by default, True only if the pattern is detected in this column
-  entry$join <- !is.na(entry$calculation) & str_detect(entry$calculation, "join")
-  # omit_na is True by default (if calculation is empty), especially always True for "numeric"
-  entry$omit_na <- entry$func != "numeric" &  (is.na(entry$calculation) || 
-              str_detect(entry$calculation, "include[_-]na", negate = T))  # False only if matches the pattern "include_na"
-  
+  if(!is.na(entry$calculation)){
+    # omit_na is especially always True for "numeric", it is False only if matches the pattern "include_na"
+    entry$omit_na <- entry$func == "numeric" | str_detect(entry$calculation, "include[_-]na", negate = T)
+    # join is False by default, True only if the pattern is detected in this column
+    entry$join <- str_detect(entry$calculation, "join")
+    # add_total is False by default, True only if the pattern is detected in this column
+    entry$add_total <- str_detect(entry$calculation, "add[_-]total")
+  }else{
+    # default values
+    entry$omit_na <- TRUE
+    entry$join <- FALSE
+    entry$add_total <- FALSE
+  }
   
   return(entry)
 }
 
 convert_cols_with_daf <- function(df, omit_na = T){
   #' brand new function for conversions...
-  #' TODO: rewrite to use convert_col_with_entry and not convert.col.type :)
   
   converted <- c()
   # filter the daf using the data that was entered 
@@ -232,12 +239,6 @@ convert_cols_with_daf <- function(df, omit_na = T){
   return(df)
 }
 
-convert_col_with_entry <- function(col_vec, entry){
-
-  # TODO: rewrite this using entry
-
-}
-
 ###-----------------------------------------------------------------------------
 ### ANALYSIS
 ###-----------------------------------------------------------------------------
@@ -281,7 +282,7 @@ convert.col.type <- function(df, col, omit_na = T){
         return(factor(d$label, levels = append(choices$label, NA), exclude = NULL))
       }      
     }
-    else if (get.type(col)=="integer" | get.type(col)=="decimal") return(as.numeric(df[[col]]))
+    else if (get.type(col)=="integer" | get.type(col)=="decimal" | get.type(col)=="numeric") return(as.numeric(df[[col]]))
     else if (get.type(col)=="date") return(as.character(as.Date(convertToDateTime(as.numeric(df[[col]])))))
     else return(df[[col]])
   } else if (str_detect(col, "/")){
