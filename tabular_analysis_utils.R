@@ -63,26 +63,39 @@ sm_ccols_to_choices <- function(ccols){
 }
 
 make_table.select_one <- function(srvyr.design.grouped, entry, add_total = FALSE) {
-  res <- srvyr.design.grouped %>% 
+  
+  disagg_vars <- c(entry$admin, entry$disaggregate.variables)
+  disagg_vars <- disagg_vars[disagg_vars %in% (srvyr.design.grouped %>% variable.names)]
+  
+  # make a long table:
+  res.long <- srvyr.design.grouped %>% 
     group_by(!!sym(entry$variable), .add = T) %>% 
-    summarise(n = survey_total(na.rm = T, vartype = "var"),
-              prop = survey_prop(na.rm = T, vartype = "var")) %>% 
-    pivot_wider(names_from = !!sym(entry$variable), values_from = prop) %>% 
-    group_by(!!sym(entry$admin), .add = T) %>%
-    summarise(across( .fns = ~sum(., na.rm = T)))
+    # num_samples here is the actual number of responses for each option in each group
+    summarise(num_samples = survey_total(na.rm = T, vartype = "var"),
+              prop = survey_prop(na.rm = T, vartype = "var"))
+  
+  # widen the table:
+  res.wide <- res.long %>% pivot_wider(id_cols = any_of(disagg_vars),
+                                       names_from = !!sym(entry$variable), values_from = c(num_samples, prop),
+                                       values_fill = 0) %>% 
+    # calculate total num_samples per group, instead of number of responses for each option
+    mutate(num_samples = rowSums(across(starts_with("num_samples_")), na.rm = T), .before = starts_with("prop_")) %>% 
+    # remove and rename columns
+    select(-starts_with("num_samples_")) %>% rename_with(~str_remove(., "prop_"), starts_with("prop_"))
   
   if(add_total){
-    total <- make_table.select_one(srvyr.design.grouped %>% ungroup %>% 
+    # calculate total and bind it to res
+    res.total <- make_table.select_one(srvyr.design.grouped %>% ungroup %>% 
                                select(!!sym(entry$admin), !!sym(entry$variable)) %>% 
                                group_by(!!sym(entry$admin)), entry)
-    res <- res %>% bind_rows(total)
+    res.wide <- res.wide %>% bind_rows(res.total)
   }
   
-  return(res)
+  return(res.wide)
 }
 
 make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = FALSE){
-
+  
   disagg_vars <- c(entry$admin, entry$disaggregate.variables)
   if(any(isna(disagg_vars))) disagg_vars <- NULL
   disagg_vars <- disagg_vars[disagg_vars %in% (srvyr.design.grouped %>% variable.names)]
@@ -92,18 +105,20 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
     summarise(across(.fns = list(prop = ~ survey_mean(., na.rm = T, vartype = "var"))))
     
   s_samples <- srvyr.design.grouped %>% 
-    summarise(n = survey_total(na.rm = T, vartype = "var"))
+    summarise(num_samples = survey_total(na.rm = T, vartype = "var"))
   
-  res <- s_samples %>% left_join(s_props, by = disagg_vars) #%>% relocate(n, .after = any_of(disagg_vars))
+  res <- s_samples %>% left_join(s_props, by = disagg_vars)
+
   if(add_total){
-    # calculate total:
+    # calculate total and bind it to res
     total <- srvyr.design.grouped %>% ungroup %>% group_by(!!sym(entry$admin)) %>% select(contains("___")) %>%
                summarise(across(.fns = list(prop = ~ survey_mean(., na.rm = T, vartype = "var"))), .groups = "drop") 
     
-    total_samples <- s_samples %>% group_by(!!sym(entry$admin)) %>% summarise(n = sum(n))
+    total_samples <- s_samples %>% group_by(!!sym(entry$admin)) %>% summarise(num_samples = sum(num_samples))
      
     res <- res %>% bind_rows(total_samples %>% left_join(total, by = entry$admin))
   }
+  # convert choice names to labels
   res <- res %>% 
     rename_with(~get.choice.label(sm_ccols_to_choices(.), entry$list_name, simplify = T), ends_with("_prop"))
   
@@ -111,6 +126,8 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
 }
 
 make_table <- function(srvyr.design, entry, disagg.var){
+  # grouping - if no disaggregations, then simply by admin
+  # (the design is already grouped by admin, so another group_by will not do anything)
   if(isna(disagg.var)) disagg.var <- entry$admin   
   srvyr.design.grouped <- srvyr.design %>% group_by(!!sym(disagg.var), .add = T)
   
@@ -125,26 +142,28 @@ make_table <- function(srvyr.design, entry, disagg.var){
   res <- switch (entry$func,
                  numeric =    { srvyr.design.grouped %>% 
                      summarise(
-                       n = n(),
+                       num_samples = n(),
                        mean  =  survey_mean(  !!sym(entry$variable), na.rm = T, vartype = "var"),
                        median = survey_median(!!sym(entry$variable), na.rm = T, vartype = "var"),
                        min = min(!!sym(entry$variable), na.rm = T),
                        max = max(!!sym(entry$variable), na.rm = T)) },
-                 select_one = { srvyr.design.grouped  %>%  make_table.select_one(entry, add_total = entry$add_total & disagg.var != entry$admin) },
-                 select_multiple = { srvyr.design.grouped %>% make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin)  }
+                 select_one = { srvyr.design.grouped  %>%
+                     make_table.select_one(entry, add_total = entry$add_total & disagg.var != entry$admin) },
+                 select_multiple = { srvyr.design.grouped %>%
+                     make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin) }
   )
   
   ##### cleaning up the res #####
   
   # remove the variance columns, filter out choices with n = 0
   res <- res %>% select(-ends_with("_var")) 
-  if("n" %in% names(res)) res <- res %>% filter(n > 0)
+  if("num_samples" %in% names(res)) res <- res %>% filter(num_samples > 0)
   
-  # rename props columns, convert to percentages etc:
+  # round & convert to percentages:
   res <- switch (entry$func,
                  numeric = res %>% mutate(across(where(is.numeric), ~round(., 2))), 
-                 # default (select_one or multiple):
-                 { res %>% mutate(across(where(is.numeric) & !matches("^n$"), as_perc)) %>% 
+                 # default (select_one or multiple): convert everything ecept num_samples to percent
+                 { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), as_perc)) %>% 
                      # add label for the TOTAL row
                      mutate(!!disagg.var := replace_na(!!sym(disagg.var) %>% as.character, "<TOTAL>"))  }
   )
