@@ -118,9 +118,11 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
      
     res <- res %>% bind_rows(total_samples %>% left_join(total, by = entry$admin))
   }
-  # convert choice names to labels
-  res <- res %>% 
-    rename_with(~get.choice.label(sm_ccols_to_choices(.), entry$list_name, simplify = T), ends_with("_prop"))
+  # convert choice names to labels (all except the NA column)
+  res <- res %>% rename_with(~get.choice.label(sm_ccols_to_choices(.), entry$list_name, simplify = T),
+                             ends_with("_prop") & !contains("___NA"))
+    # also convert the NA column:
+  if(!entry$omit_na) res <- res %>% rename("NA" = !!paste0(entry$variable, "___NA_prop"))
   
   return(res)
 }
@@ -162,7 +164,7 @@ make_table <- function(srvyr.design, entry, disagg.var){
   # round & convert to percentages:
   res <- switch (entry$func,
                  numeric = res %>% mutate(across(where(is.numeric), ~round(., 2))), 
-                 # default (select_one or multiple): convert everything ecept num_samples to percent
+                 # default (select_one or multiple): convert everything except num_samples to percent
                  { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), as_perc)) %>% 
                      # add label for the TOTAL row
                      mutate(!!disagg.var := replace_na(!!sym(disagg.var) %>% as.character, "<TOTAL>"))  }
