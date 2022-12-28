@@ -136,7 +136,7 @@ get.choice.label <- function(choice, list, simplify = FALSE){
   res_vec <- pull(res, label_colname)
   if(simplify){
     # if "e.g." or "for example" in label, shorten up to this point
-    e.g._pattern <- " ?((e\\.g\\.)|(for exa?m?a?ple))"
+    e.g._pattern <- " *\\(?((e\\.g\\.)|(for exa?m?a?ple))"
     res_vec <- str_split(res_vec, e.g._pattern, n=2,simplify = T)[,1] %>% str_squish
   }
   return(res_vec)
