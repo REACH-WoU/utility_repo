@@ -6,6 +6,12 @@
 # LOADING THE KOBO TOOL
 # ------------------------------------------------------------------------------
 
+load.label_colname <- function(filename_tool, language = "English"){
+  tool_colnames <- read_xlsx(filename_tool, sheet = "survey", col_types = "text") %>% names
+  return(tool_colnames[agrep(paste0("label::",language), tool_colnames)])
+}
+
+
 load.tool.survey <- function(filename_tool, keep_cols = F){
   #' Load the 'survey' tab from a Kobo tool.
   #' 
@@ -31,14 +37,25 @@ load.tool.survey <- function(filename_tool, keep_cols = F){
   
     tool.survey <- select(tool.survey, all_of(cols_to_keep))
   }
-  # Find which data sheet question belongs to:
-  tool.survey <- tool.survey %>% mutate(datasheet = NA)
+  # Find which data sheet and group a question belongs to:
+  tool.survey <- tool.survey %>% mutate(datasheet = NA, group_name = NA)
   sheet_name <- "main"
+  group_count <- 1
+  group_names <- c(NA)
   for(i in 1:nrow(tool.survey)){
     toolrow <- tool.survey %>% slice(i)
     if(str_detect(toolrow$type, "begin[ _]repeat")) sheet_name <- toolrow$name
     else if(str_detect(toolrow$type, "end[ _]repeat")) sheet_name <- "main"   # watch out for nested repeats (Why would you even want to do that?)
-    else if(str_detect(toolrow$type, "((end)|(begin))[ _]group", T)) tool.survey[i, "datasheet"] <- sheet_name
+    if(str_detect(toolrow$type, "end[ _]group")) group_count <- group_count - 1
+    if(str_detect(toolrow$type, "begin[ _]group")){
+      group_count <- group_count + 1
+      group_names[group_count] <- ifelse(isna(toolrow[[label_colname]]), toolrow[["name"]], toolrow[[label_colname]])
+    }
+    else if(str_detect(toolrow$type, "((end)|(begin))[ _]group", T)){
+      tool.survey[i, "datasheet"] <- sheet_name
+      tool.survey[i, "group_name"] <- group_names[group_count]
+    }
+    
   }
   return(tool.survey)
   
@@ -95,13 +112,14 @@ get.label <- function(variable){
   return(pull(res, label_colname))
 }
 
-get.choice.label <- function(choice, list){
+get.choice.label <- function(choice, list, simplify = FALSE){
   #' Find the label of choices in a list
   #'
   #' Looks up the "name" and `label_colname` in tool.choices. Operates on single values and vectors.
   #'
   #' @param choice the name of the choice
   #' @param list the name of the list containing choice
+  #' @param simplify If TRUE, output labels will be modified and simplified...
   
   if(!list %in% tool.choices$list_name) stop(paste("list",list, "not found in tool.choices!"))
   
@@ -114,7 +132,14 @@ get.choice.label <- function(choice, list){
     warning(paste0("Choices not in the list (", list, "):", culprits))
   }
   if(nrow(res) == 0) stop("All choices not in the list!")
-  return(pull(res, label_colname))
+  
+  res_vec <- pull(res, label_colname)
+  if(simplify){
+    # if "e.g." or "for example" in label, shorten up to this point
+    e.g._pattern <- " *\\(?((e\\.g\\.)|(for exa?m?a?ple))"
+    res_vec <- str_split(res_vec, e.g._pattern, n=2,simplify = T)[,1] %>% str_squish
+  }
+  return(res_vec)
 }
 
 # ------------------------------------------------------------------------------
@@ -186,7 +211,7 @@ get.select.db <- function(){
     summarise(choices=choices[1], choices.label=choices.label[1])
   # list of choices for each question
   select.questions <- tool.survey %>%
-    rename(q.label=label_colname) %>%
+    rename(q.label = !!sym(label_colname)) %>%
     select(type, name, q.label) %>%
     mutate(q.type=as.character(lapply(type, split.q.type)),
            list_name=as.character(lapply(type, get.choice.list.from.type))) %>%
