@@ -132,26 +132,14 @@ load_entry <- function(daf_row){
   #' 
   #' This function replaces load.entry (from descriptive_analysis)
   #' 
-  #' This is where you would setup default values in case of NA in one of the columns
   
   entry <- as.list(daf_row)
   # load disaggregate variables as vector:
-  entry$disaggregate.variables <- c(str_split(str_remove_all(entry$disaggregations, " "), ";", simplify = T))
-  # omit_na is True by default (if calculation is empty), False only if "include_na" is in this column:
+  entry$disaggregate.variables <- c(str_split(sub(" ", "", entry$disaggregations), ";", simplify = T))
+  # omit_na is True by default (calculation empty):
   entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
   # comments - add two lines to them if necessary
-  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", entry$comments))
-  # label - if NA, take it from tool.survey
-  entry$label <- ifelse(is.na(entry$label), get.label(entry$variable), entry$label)
-  # func - set using the q.type from tool.survey
-  if(is.na(entry$func)){
-    var_type <- get.type(entry$variable)
-    entry$func <- ifelse(var_type %in% c("integer", "numeric"), "mean",
-                        ifelse(var_type == "text", "count", var_type))
-    warning("Missing parameter 'func' in one of the entries (variable: ", entry$variable, ")\tWill be set to ", entry$func,"\n")
-  }
-  # admin - stop if NA
-  if(is.na(entry$admin)) stop("Missing parameter 'admin' in one of the entries (variable: ", entry$variable, ")")
+  entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
   
   entry$join <- !is.na(entry$join)
   
@@ -160,73 +148,11 @@ load_entry <- function(daf_row){
 
 convert_cols_with_daf <- function(df, omit_na = T){
   #' brand new function for conversions...
-  #' TODO: rewrite to use convert_col_with_entry and not convert.col.type :)
   
   converted <- c()
   # filter the daf using the data that was entered 
-  dafp <- daf %>% filter(variable %in% colnames(df))
-  if(nrow(dafp) == 0){
-      cat("\nThere was nothing to convert - no questions from data are found in DAF.")
-      return(df)
-    }
-  for(r in 1:nrow(dafp)){
-    entry <- load_entry(dafp[r,])
-    col <- entry$variable
-
-    cat("Converting",col," ")
-    if(!entry$omit_na){
-      if(!is.na(q$relevant))   stop(paste0("Issue with entry #", r, " (", col,"): flag include_na cannot be set if question has relevancy!"))
-      if(entry$func == "mean") stop(paste0("Issue with entry #", r, " (", col,"): flag include_na cannot be set if func == mean!"))
-    }
-
-    # convert disagg variable :)
-    if(!all(is.na(entry$disaggregate.variables))){
-        for(disagg.var in entry$disaggregate.variables){
-            if(!disagg.var %in% colnames(df)){          
-              stop(paste("Disaggregation variable", disagg.var, "not found in data!\n"))
-            }
-            # if(!disagg.var %in% tool.survey$name) warning(paste("Disaggregation variable", disagg.var, "not found in tool.survey!\n"))
-            if(disagg.var %in% converted) next
-            df[[disagg.var]] <- convert.col.type(df, disagg.var)
-            converted <- append(converted, disagg.var)
-        }
-    }
-
-    if(col %in% converted) next
-
-    if(entry$func == "select_multiple"){
-
-        choice_cols <- colnames(df)[str_starts(colnames(df), paste0(col, "/"))]
-        for(ccol in choice_cols){
-            df[[ccol]] <- convert.col.type(df, ccol, entry$omit_na)
-            df <- df %>% rename_with(~str_replace(ccol, "/", "___"), ccol)
-        }
-        if(!entry$omit_na){
-            # create a new NA column
-            na_colname <- paste0(col,"___NA")
-            df[[na_colname]] <- factor(ifelse(is.na(df[[col]]), 1, 0))
-            df <- df %>% relocate(na_colname, .after = !!sym(col))
-        }
-    }else {
-      if(!col %in% tool.survey$name){
-          if(entry$func == "select_one") df[[col]] <- as.factor(df[[col]])
-          else if(entry$func %in% c("mean", "median")) df[[col]] <- as.numeric(df[[col]])   # probably will need to be updated with new funcs
-      }else{
-        df[[col]] <- convert.col.type(df, col, entry$omit_na)
-        }
-        converted <- append(converted, col)
-    }
-    cat("... done.\n")
-  }
-  cat("\nAll conversions done!")
-  
+  daf <- daf %>% filter(variable %in% colnames(df))
   return(df)
-}
-
-convert_col_with_entry <- function(col_vec, entry){
-
-  # TODO: rewrite this using entry
-
 }
 
 ###-----------------------------------------------------------------------------
@@ -368,7 +294,7 @@ convert.cols.check.dap <- function(df, dap) {
                 df <- df %>% relocate(na_colname, .after = !!sym(col))
             }
         }else {
-          if(!col %in% tool.survey$name | get.type(col) == "calculate"){
+          if(!col %in% tool.survey$name){
               if(entry$func == "select_one") df[[col]] <- as.factor(df[[col]])
               else if(entry$func == "mean") df[[col]] <- as.numeric(df[[col]])
             }
