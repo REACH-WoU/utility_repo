@@ -47,9 +47,10 @@ load.audit.files <- function(dir.audits, uuids=NULL, track.changes=F){
 
 
 process.uuid <- function(df){
+  # df <- audits
   max.num.iterations <- 15
   t <- list() # Time of each iteration
-  rt <- list() # response time of each iteration
+  rt <- list() # response time of each iteration 
   j <- list() # number of jumps
   q <- list() # number of questions
   w <- list() # waiting time
@@ -75,14 +76,14 @@ process.uuid <- function(df){
     } else if (status=="waiting" & df$event[r]=="form.exit"){
       if("uuid2" %in% colnames(df)) warning(paste("status=waiting while form.exit! uuid:",df$uuid2[r]))
       else warning("status=waiting while form.exit!")
-    }
+    } 
   }
   res <- data.frame()
   res[1, "n.iteration"] <- length(t)
   res[1, "tot.t"] <- round((df[nrow(df), "start"] - df[1, "start"])/60000, 1)
   res[1, "tot.rt"] <- round(sum(filter(df, event %in% c("question", "group.questions"))$duration)/60, 1)
   for (i in 1:max.num.iterations){
-    res[1, c(paste0("t", i), paste0("rt", i),
+    res[1, c(paste0("t", i), paste0("rt", i), 
              paste0("q", i), paste0("j", i),
              paste0("e", i),
              paste0("w", i))] <- NA
@@ -101,9 +102,9 @@ process.uuid <- function(df){
     for (i in 1:min(length(w), max.num.iterations)) res[1, paste0("w", i)] <- round(w[[i]], 1)
   }
   if("uuid2" %in% colnames(res)) res <- res %>% select(-uuid2)
-
+  
   # new functionality :)
-  res <- res %>%  discard(~all(is.na(.) | . == ""))  # dropping empty columns (all NA)
+  # res <- res %>%  discard(~any_of(is.na(.)))  # dropping empty columns (all NA)
   return(res)
 }
 
