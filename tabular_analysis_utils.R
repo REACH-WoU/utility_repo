@@ -141,7 +141,11 @@ make_table <- function(srvyr.design, entry, disagg.var){
   )
   
   # calculate metrics
-  res <- switch (entry$func,
+  res <- srvyr.design.grouped %>%
+    make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin) 
+    
+    
+    switch (entry$func,
                  numeric =    { srvyr.design.grouped %>% 
                      summarise(
                        num_samples = n(),
