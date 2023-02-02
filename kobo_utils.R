@@ -5,6 +5,10 @@
 # ------------------------------------------------------------------------------
 # LOADING THE KOBO TOOL
 # ------------------------------------------------------------------------------
+load.label_colname <- function(filename_tool, language = "English"){
+  tool_colnames <- read_xlsx(filename_tool, sheet = "survey", col_types = "text") %>% names
+  return(tool_colnames[agrep(paste0("label::",language), tool_colnames)])
+}
 
 load.tool.survey <- function(filename_tool, keep_cols = F){
   #' Load the 'survey' tab from a Kobo tool.
