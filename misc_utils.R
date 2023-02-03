@@ -16,10 +16,7 @@
 qview <- function(datum, title = NULL, ..., n = NULL){ 
   view(datum %>% select(-contains("/")), title = ifelse(is.null(title), "qview", title), ..., n = NULL) 
 }
-# utility for viewing data without the 0/1 choice columns (unselects all columns that contain a slash)
-qview <- function(datum, title = NULL, ..., n = NULL){ 
-  view(datum %>% select(-contains("/")), title = ifelse(is.null(title), "qview", title), ..., n = NULL) 
-} 
+
 
 # just a shorthand
 isna <- function(x) is.na(x)
