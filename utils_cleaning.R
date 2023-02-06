@@ -13,6 +13,40 @@ style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", val
                               fontSize = 10, fontName = "Arial Narrow", wrapText=T)
 
 # ------------------------------------------------------------------------------------------
+save.responses <- function(df, wb_name, or.submission=""){
+  # TODO: upgrade this function to work on changing df sizes
+  # this function is most likely superceded by save.other.requests and save.trans.requests
+
+  style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                                       border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+  style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+  wb <- createWorkbook()
+  addWorksheet(wb, "Sheet1")
+  writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
+  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=10)
+  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=11)
+  addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=12)
+  setColWidths(wb, "Sheet1", cols=1, widths=35)
+  setColWidths(wb, "Sheet1", cols=c(5, 7), widths=50)
+  setColWidths(wb, "Sheet1", cols=c(8:9), widths=30)
+  setColWidths(wb, "Sheet1", cols=c(2:4, 6), widths=20)
+  setColWidths(wb, "Sheet1", cols=c(10:12), widths=40)
+  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
+  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
+  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
+  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
+  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=5)
+  addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=6)
+  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
+  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=8)
+  addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=9)
+  addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
+  addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=10:12)
+  modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
+  filename <- paste0("output/checking/requests/", wb_name, ".xlsx")
+  saveWorkbook(wb, filename, overwrite=TRUE)
+}
 
 save.other.requests <- function(df, wb_name, use_template = F){
 
@@ -93,6 +127,41 @@ save.trans.requests <- function(df, wb_name, blue_cols = NULL, use_template = F)
     saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
+# ------------------------------------------------------------------------------------------
+# OUTLIER SECTION
+# ------------------------------------------------------------------------------------------
+save.outlier.responses <- function(df, or.submission=""){
+  for (i in country_list){
+    df1 <- df %>%
+      filter(country == i)
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+                                   valign="top", wrapText=T)
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    wb <- createWorkbook()
+    addWorksheet(wb, "Sheet1")
+    writeData(wb = wb, x = df1, sheet = "Sheet1", startRow = 1)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=7)
+    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
+    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=1)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=2)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=3)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=4)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=5)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=6)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=7)
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df1))
+    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
+    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
+    filename <- paste0("output/checking/outliers/",i,"_outliers_requests.xlsx")
+    saveWorkbook(wb, filename, overwrite=TRUE)
+    rm(df1)
+  }
+}
 
 save.outlier.responses_msna <- function(df, or.submission=""){
     style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
@@ -247,13 +316,9 @@ create.follow.up.requests <- function(checks.df, wb_name){
       }
     }
 
-    filename <- paste0(dir.requests, wb_name)
-    filename <- ifelse(str_ends(filename, "\\.xlsx", T), paste0(filename, ".xlsx"), filename)
+    filename <- paste0("output/checking/requests/", wb_name)
     saveWorkbook(wb, filename, overwrite = TRUE)
 }
-
-# simply an alias:
-save.follow.up.requests <- function(checks.df, wb_name) create.follow.up.requests(checks.df, wb_name)
 
 # ------------------------------------------------------------------------------------------
 # LOADING REQUESTS/RESPONSES FILES
@@ -323,6 +388,63 @@ load.requests <- function(dir, filename.pattern, sheet=NULL, validate=FALSE){
   }
 }
 
+load.edited <- function(dir.edited, file.type){
+  #' Load logs from specified directory.
+  #'
+  #' [obsolete] This function is superceded by load.requests
+
+
+  # file.type should be one of the following:
+  valid_types = c("other","translate","follow_up","outliers")
+  if(!(file.type %in% valid_types))
+    warning("Unexpected file.type for load.edited")
+
+  filenames <- list.files(dir.edited, recursive=FALSE, full.names=TRUE, ignore.case = TRUE,
+                          pattern=paste0(".*",file.type,"((responses)|(requests))?(_edited)?.*\\.xlsx$"))
+  if (length(filenames) == 0){
+    warning(paste("Files with",file.type,"responses not found!"))
+  } else {
+    cat(paste("Loading",length(filenames),file.type,"logs:\n"),paste(filenames, collapse = "\n "),"\n")
+    res <- data.frame()
+    for (filename in filenames){
+      # load file
+      other <- read_xlsx(filename, col_types = "text") %>% mutate(uuid=uuid, .before=1)
+      if (filename==filenames[1]) res <- other
+      else res <- rbind(res, other)
+    }
+    return(res)
+
+  }
+}
+
+load.logic.request <- function(dir.requests){
+  logic.filenames <- list.files(dir.requests, pattern="follow_up_requests",
+                                recursive=FALSE, full.names=TRUE)
+  cat(paste("\nLoading",length(logic.filenames),"logic requests logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
+  for (filename in logic.filenames){
+    # load file
+    trans <- read_xlsx(filename) %>%
+      mutate(uuid=uuid, .before=1)
+    if (filename==logic.filenames[1]) res <- trans
+    else res <- rbind(res, trans)
+  }
+  return(res)
+}
+
+load.outlier.edited <- function(dir.outlier.edited){
+  logic.filenames <- list.files(dir.outlier.edited, pattern="outliers_responses.xlsx",
+                                recursive=TRUE, full.names=TRUE)
+  cat(paste("Loading",length(logic.filenames),"outlier logs:\n"),paste(logic.filenames, collapse = "\n "),"\n")
+  res <- data.frame()
+  for (filename in logic.filenames){
+    # load file
+    trans <- read_xlsx(filename) %>%
+      mutate(uuid=uuid, .before=1)
+    if (filename==logic.filenames[1]) res <- trans
+    else res <- rbind(res, trans)
+  }
+  return(res)
+}
 
 # ------------------------------------------------------------------------------------------
 # CLEANING LOG FUNCTIONS
@@ -578,240 +700,8 @@ recode.multiple.remove.choice <- function(data, variable, choice, issue){
   return(data.frame())
 }
 
-recode.multiple.remove.choices <- function(data, variable, choices, issue, other_var_name = NULL){
-  #' Recode select_multiple responses: remove particular choices.
-  #'
-  #' Removes the relevant text from the cummulative column. Changes all 1s to 0 in choice columns specified by `choices`.
-  #' Also, if one of the `choices` is "other", then the text variable (_other) will be changed to NA.
-  #' 
-  #' @note This function does not affect entries that have NA in `variable`.
-  #'
-  #' @param data Dataframe containing records which will be affected.
-  #' @param variable String containing the name of the select_multiple variable.
-  #' @param choices Vector of strings (or a single string) containing the choices that will be removed. They must be valid options for this variable.
-  #' @param issue String with explanation used for the cleaning log entry.
-  #'
-  #' @returns Dataframe containing cleaning log entries constructed from `data`.
-  #'
-  #' @usage `recode.multiple.remove.choices(data = filter(raw.main, condition), variable = "question_name", choices = c("option1", "option2"), issue = "explanation")`
-  #'
-  
-  choice_columns <- paste0(variable,"/",choices)
-  if(any(!choice_columns %in% colnames(data))) stop(paste("Column",choice_columns[!choice_columns %in% colnames(data)],"were not found in data!"))
-  
-  # filter to include only rows that are not NA, and that have at least one of the choices selected
-  anychoice_pattern <- paste0("(",choices,")", collapse = "|")
-  data <- data %>% filter(!is.na(!!sym(variable)) & str_detect(!!sym(variable), anychoice_pattern))
-  
-  if(nrow(data) > 0){
-    # remove the choices from cumulative column using a combined regex pattern
-    cl_cummulative <- data %>% select(any_of(CL_COLS), all_of(variable)) %>% 
-      rename(old.value = !!sym(variable)) %>% 
-      mutate(variable = variable, new.value = str_squish(str_remove_all(old.value, anychoice_pattern)), issue = issue)
-    
-    cl_choices <- recode.set.value.regex(data, choice_columns, "1", "0", issue)
-    
-    if(!"other" %in% choices) { return(rbind(cl_cummulative, cl_choices))
-    } else{
-      other_var_name <- ifelse(is.null(other_var_name), paste0(variable, "_other"), other_var_name)
-      cl_other <- recode.set.NA(data, other_var_name, issue)
-      return(rbind(cl_cummulative, cl_choices, cl_other))
-    }
-  }
-  return(data.frame())
-  
-}
 
-# ----------------
-# RECODING OTHERS (new functions!)
-# ------------------------------------------------------------------------------
-
-recode.others <- function(data, or.edited, orig_response_col = "response.uk", is.loop = F, print_debug = T){
-  #' Create a cleaning log for recoding other responses
-  #' 
-  #' Use the filled out other_requests file to create cleaning.log.other.
-  #' Run this function on every datasheet your data has (main, loop1, loop2, etc...)
-  #' Unexpected behavior may occur if some variables from `or.edited` are not present in the data.
-  #' @param data Dataframe containing Kobo data
-  #' @param or.edited Dataframe containing the filled-out other_requests file. Needs to contain the standard TEI (True, Existing, Invalid) columns,
-  #' as well as column `check`. Please use the ```load.requests``` function to load these xlsx files.
-  #' @param orig_response_col The name of the column which stores the original (untranslated!) response for each question.
-  #' @param is.loop Set this to True if the provided dataframe is a loop (it needs to contain the column loop_index).
-  #' @param print_debug Whether debugging information will be printed to screen (about how many responses will be recoded/translated etc.).
-  #' @returns Dataframe containing cleaning log entries covering recoding others, constructed from `data` and `or.edited`
-  
-  
-  # a new thing: UNIQUI - universal unique identifier (either loop_index or uuid)
-  # it will be used for matching records to or.edited entries :)
-  if(!is.loop) {
-    or.edited <- or.edited %>% select(-any_of("loop_index")) %>% mutate(uniqui = uuid)
-    data <- data %>% mutate(uniqui = uuid)
-  }else{
-    if(!"loop_index" %in% colnames(or.edited)) stop("Parameter is.loop = TRUE, but column loop_index was not found in or.edited!")
-    else{
-      or.edited <- or.edited %>% mutate(uniqui = loop_index)
-      data <- data %>% mutate(uniqui = loop_index)
-    } 
-  }
-  
-  # fix legacy naming
-  if(!"existing.v" %in% colnames(or.edited)) {
-    if("existing.other" %in% colnames(or.edited)) or.edited <- or.edited %>% rename_with(~gsub(".other", ".v", .), ends_with(".other"))
-    else stop("Column 'existing.v' not found in or.edited!\n\tPlease check your requests file.")
-  }
-  # the column 'check' must be present in the or.edited (meaning you must use the validate = T option when loading requests)
-  if(!"check" %in% colnames(or.edited)) stop("Column 'check' was not found in or.edited!\n\tPlease, use the `validate` option in load.requests.")
-
-  # check for missing identifiers:
-  if(any(!or.edited$uniqui %in% data$uniqui)){
-    ids <- or.edited %>% distinct(uniqui) %>% pull
-    missing_ids <- ids[!ids %in% data$uniqui]
-    if(length(missing_ids) == length(ids)) stop("NONE of the identifiers from or.edited were found in data!")
-    else{
-      if(print_debug) warning("Identifiers from or.edited not found in data:\n\t", paste(missing_ids, collapse = ",\n\t"), "\n")
-    } 
-  } 
-  
-  # HANDLE SELECT_ONES:
-  or.select_one <- or.edited %>% filter(ref.type == "select_one")
-  if(print_debug) cat("Total number of select_one other responses:", nrow(or.select_one), "\n")
-  s1_data <- data %>% filter(uniqui %in% or.select_one$uuid)
-  if(nrow(s1_data) == 0) cl_select_one <- tibble()
-  else cl_select_one <- recode.others_select_one(s1_data, or.select_one, orig_response_col, print_debug)
-
-  # HANDLE SELECT_MULTIPLES:
-  or.select_multiple <- or.edited %>% filter(ref.type == "select_multiple")
-  if(print_debug) cat("Total number of select_multiple other responses:", nrow(or.select_multiple), "\n")
-  sm_data <- data %>% filter(uniqui %in% or.select_multiple$uuid)
-  if(nrow(sm_data) == 0)  cl_select_multiple <- tibble()
-  else cl_select_multiple <- recode.others_select_multiple(sm_data, or.select_multiple, orig_response_col, print_debug)
-  
-  cl_all_others <- rbind(cl_select_one, cl_select_multiple) %>% filter(old.value %!=na% new.value)
-  
-  return(cl_all_others)
-}
-
-recode.others_select_one <- function(data, or.select_one, orig_response_col = "response.uk", print_debug = T){
-
-  # invalid select_ones:
-  or.select_one.remove <- filter(or.select_one, !is.na(invalid.v))
-  if(print_debug) cat(paste("Number of invalid other select_one responses:", nrow(or.select_one.remove)), "\n")
-  cl_s1_remove <- rbind(
-    or.select_one.remove %>% 
-      mutate(variable = name, old.value = !!sym(orig_response_col), new.value = NA, issue = "Invalid other response") %>% 
-      select(any_of(CL_COLS)),
-    or.select_one.remove %>% 
-      mutate(variable = ref.name, old.value = "other", new.value = NA, issue = "Invalid other response") %>% 
-      select(any_of(CL_COLS))
-  )
-  
-  # recoding select_ones:
-  or.select_one.recode <- or.select_one %>% filter(!is.na(existing.v)) %>% 
-    mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_remove_all(existing.v, ";"))
-  if(print_debug) cat(paste("Number of select_one responses to be recoded:", nrow(or.select_one.recode)), "\n")
-  choices_lookup <- or.select_one.recode %>% select(existing.v, list_name) %>% rename(label = existing.v) %>% 
-    left_join(tool.choices %>% rename(label = !!sym(label_colname), choice_name = name), by = c("label", "list_name")) %>% distinct()
-  if(any(is.na(choices_lookup$choice_name))) {
-    # TODO: replace stop with a warning, and automatically fix typos using agrep
-    missing_names <- choices_lookup %>% filter(is.na(choice_name))
-    stop("Choices not found in lists:\n\t", paste(missing_names$label, missing_names$list_name, sep = "\t - in list ", collapse = "\n\t"))
-  }
-  cl_s1_recode <- rbind(
-    or.select_one.recode %>% mutate(variable = name, old.value = !!sym(orig_response_col), new.value = NA, issue = "Recoding other response") %>% 
-      select(any_of(CL_COLS)),
-    or.select_one.recode %>% rename(label = existing.v) %>% left_join(choices_lookup, by = c("list_name", "label")) %>% 
-      mutate(variable = ref.name, old.value = "other", new.value = choice_name, issue = "Recoding other response") %>% select(any_of(CL_COLS))
-  )
-  
-  # true select_ones:
-  or.select_one.true <- filter(or.select_one, !is.na(true.v))
-  if(print_debug) cat("Number of true other select_one responses:", nrow(or.select_one.true), "\n")
-  cl_s1_true <- or.select_one.true %>% 
-    mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v, issue = "Translating other response") %>% 
-    select(any_of(CL_COLS))
-
-  return(rbind(cl_s1_true, cl_s1_remove, cl_s1_recode))
-}
-
-recode.others_select_multiple <- function(data, or.select_multiple, orig_response_col = "response.uk", print_debug = T){
-  
-  # invalid select_multiples:
-  or.select_multiple.remove <- filter(or.select_multiple, !is.na(invalid.v))
-  cl_sm_remove <- tibble()
-  if (nrow(or.select_multiple.remove) > 0) {
-    if(print_debug) cat(paste("Number of invalid select_multiple responses:", nrow(or.select_multiple.remove)), "\n")
-    variables <- or.select_multiple.remove %>% select(ref.name, name) %>% distinct(ref.name, .keep_all = T)
-    for(variable in variables %>% pull(ref.name)){
-      thisvar_data <- data %>% filter(uniqui %in% (or.select_multiple.remove %>% filter(ref.name == variable) %>% pull(uniqui)))
-      other_variable <- variables$name[which(variables$ref.name == variable)]
-      # if the 'other' was the only one selected, change the entire question to NA:
-      cl_only_other <- thisvar_data %>% filter(!!sym(variable) == "other") %>% 
-        recode.multiple.set.NA(variable, "Invalid other response", other_var_name = other_variable)
-      cl_notjust_other <- thisvar_data %>% filter(!!sym(variable) != "other") %>% 
-        recode.multiple.remove.choices(variable, "other", "Invalid other response", other_var_name = other_variable)
-      cl_sm_remove <- rbind(cl_sm_remove, cl_only_other, cl_notjust_other)
-    }
-  }
-    
-  # recoding select_multiples:
-  or.select_multiple.recode <- or.select_multiple %>% filter(!is.na(existing.v)) %>% 
-    mutate(list_name = get.choice.list.from.name(ref.name), existing.v = str_split(str_squish(existing.v), " *; *", simplify = T))
-  
-  if(nrow(or.select_multiple.recode) > 0){
-    cl_sm_recode <- tibble()
-    if(print_debug) cat(paste("Number of select_multiple responses to be recoded:", nrow(or.select_multiple.recode)), "\n")
-    
-    choices_lookup <- tool.choices %>% filter(list_name %in% or.select_multiple.recode$list_name) %>% 
-       rename(label = !!sym(label_colname), choice_name = name)
-    
-    for (r in 1:nrow(or.select_multiple.recode)) {
-      or.row <- or.select_multiple.recode[r,]
-      data.row <- data %>% filter(uniqui == or.row$uniqui)
-      
-      if(nrow(data.row) == 0) {
-        # uniqui was not found in data
-        next
-      }
-      chosen_labels <- or.row$existing.v[or.row$existing.v != "" & !is.na(or.row$existing.v)]
-      
-      if(any(!chosen_labels %in% choices_lookup$label)) {
-        # TODO: replace stop with a warning, and automatically fix typos
-        stop("Choice '", paste(chosen_labels[!chosen_labels %in% choices_lookup$label], collapse = "' "), "' not found in list ", or.row$list_name)
-      }
-      
-      choices <- choices_lookup %>% filter(list_name == or.row$list_name & label %in% chosen_labels) %>% pull(choice_name)
-      
-      # check if true.v is also not na
-      if(!is.na(or.row$true.v)){
-        # in this case, simply add new choices
-        cl_sm_recode <- rbind(cl_sm_recode, or.row %>% mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v,
-                                                              issue = "Translating other response") %>% select(any_of(CL_COLS)))
-        cl_sm_recode <- rbind(cl_sm_recode, 
-                              recode.multiple.add.choices(data.row, or.row$ref.name, choices, "Recoding other response"))
-      }else{
-        # read the previous choices and set selection to previous + new
-        old_choices <- data.row[[or.row$ref.name]] %>% str_split(" ", simplify = T)
-        choices <- c(choices, old_choices[old_choices!="other"])
-        cl_sm_recode <- rbind(cl_sm_recode, 
-                              recode.multiple.set.choices(data.row, or.row$ref.name, choices, "Recoding other response", other_var_name = or.row$name))
-      }
-    }
-  }
-  
-  # true select_multiples:
-  or.select_multiple.true <- or.select_multiple %>% filter(!is.na(true.v) & check == 2)
-  if(print_debug) cat(paste("Number of true select_multiple responses:", nrow(or.select_multiple.true)), "\n")
-  cl_sm_true <- or.select_multiple.true %>% 
-    mutate(variable = name, old.value = !!sym(orig_response_col), new.value = true.v, issue = "Translating other response") %>% 
-    select(any_of(CL_COLS))
-
-  return(rbind(cl_sm_true, cl_sm_remove, cl_sm_recode))
-
-}
-
-# ------------------------------------------------------------------------------
-
-apply.changes <- function(data, clog, is.loop = F, print_debug = T){
+apply.changes <- function(data, clog, is.loop = F, suppress.diff.warnings = F){
   #' Apply changes to main data basing on a cleaning log.
   #'
   #' Outputs warnings if uuids, loop indexes or variables from `clog` are not found in `data`.
@@ -1212,7 +1102,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
           info_df <- rbind(info_df, data.frame(## DEBUGG IT HERE
             "input_responses_num" = length(temp_resp_batch$input_vec),
             "translated_characters_num" = sum(str_length(temp_resp_batch$input_vec)),
-            "language_from" = ifelse(is.null(source_lang), "NULL", code),
+            "language_from" = code,
             "result_num" = length(result_vec),
             "time_elapsed" = as.numeric(Sys.time() - start_time),
             "date"=Sys.Date(),
@@ -1253,30 +1143,22 @@ translate.responses <- function(responses, values_from = "response.uk", language
 }
 
 
-create.translate.requests <- function(questions.db, responses.j, response_colname = "response.en", is.loop = F){
-  #' Format a dataframe containing responses to prepare for other/translate requests
-  #' 
-  #' Relocates columns and adds the TEI columns.
-  #' 
-  #' @param questions.db Dataframe containing questions (e.g. other.db or trans.db)
-  #' @param responses.j Dataframe containing responses to any questions from `questions.db`
-  #' @param response_colname String containing name of the column which has the relevant response (tanslated to English in most cases)
-  #' @param is.loop unused
+create.translate.requests <- function(questions.db, responses.j, is.loop = F){
 
     relevant_colnames <- c("uuid", "loop_index", "name", "ref.name","full.label","ref.type", "choices.label", "today")
 
-    response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
-    relevant_colnames <- append(relevant_colnames, response_cols)
-    responses.j <- responses.j %>%
-        select(any_of(relevant_colnames)) %>%
-        relocate(all_of(response_cols), .after = last_col()) %>%
-        mutate("TRUE other (provide a better translation if necessary)"=NA,
-               "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
-               "INVALID other (insert yes or leave blank)"=NA) %>%
-        arrange(name, !!sym(response_cols[which(response_cols == response_colname)]))
-    # if(!is.loop) {
-    #     responses.j <- responses.j %>% select(-loop_index)
-    #     }
+      response_cols <- colnames(responses.j)[str_starts(colnames(responses.j), "response")]
+      relevant_colnames <- append(relevant_colnames, response_cols)
+      responses.j <- responses.j %>%
+          select(any_of(relevant_colnames)) %>%
+          relocate(all_of(response_cols), .after = last_col()) %>%
+          mutate("TRUE other (provide a better translation if necessary)"=NA,
+                 "EXISTING other (copy the exact wording from the options in column choices.label)"=NA,
+                 "INVALID other (insert yes or leave blank)"=NA) %>%
+          arrange(name)
+      # if(!is.loop) {
+      #     responses.j <- responses.j %>% select(-loop_index)
+      #     }
 
     return(responses.j)
 }
@@ -1320,3 +1202,60 @@ pull.raw <- function(uuids = NA, loop_indexes = NA){
     }
 }
 
+
+#------------------------------------------------------------------------------------------------------------
+# utility operators & other legacy functions
+#------------------------------------------------------------------------------------------------------------
+
+# IMPORTANT: THESE OPERATORS HAVE BEEN MOVED TO misc_utils.R
+# EVENTUALLY THEY WILL BE REMOVED FROM HERE
+# if you will continue using them in the future, add a `source("src/utils/misc_utils.R")` to your init script
+
+"%==%" <- function(a, b) ifelse(!is.na(a), a==b, F)
+"%!=%" <- function(a, b) ifelse(!is.na(a), a!=b, F)
+"%_<_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<b, F)
+"%_<=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)<=b, F)
+"%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
+"%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
+"%_+_%" <- function(a,b) as.numeric(a) + as.numeric(b)
+"%==na%" <- function(e1, e2) (e1 == e2 | (is.na(e1) & is.na(e2)))
+"%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
+
+
+# ------------------------------------------------------------------------------------------
+is_all_numeric <- function(x) {
+  !any(is.na(suppressWarnings(as.numeric(na.omit(x))))) & is.character(x)
+}
+
+# ------------------------------------------------------------------------------------------
+add.to.fu.requests <- function(checks, check.id){
+  new.entries <- filter(checks, flag) %>% mutate(check.id=check.id) %>% select(uuid, check.id)
+  fu.requests <<- arrange(rbind(fu.requests, new.entries), uuid)
+}
+
+# ------------------------------------------------------------------------------------------
+write_excel_pwd <- function(df, file, password){
+  xlsx::write.xlsx2(df, file, row.names=F, password=password)
+}
+
+# ------------------------------------------------------------------------------------------
+name2label_question <- function(col){
+  if (str_detect(col, "/")) {
+    q.name <- str_split(col, "/")[[1]][1]
+    c.name <- paste0(tail(str_split(col, "/")[[1]], -1), collapse="/")
+  } else {
+    q.name <- col
+    c.name <- NA
+  }
+  if (q.name %in% tool.survey$name){
+    q <- tool.survey[tool.survey$name==q.name,]
+    q.label <- q[label_colname]
+    if (is.na(q.label) | q$q.type %in% c("note")) q.label <- q.name
+    if (!is.na(c.name)){
+      q.list_name=ifelse(q$list_name=="NA", NA, q$list_name)
+      c.label <- tool.choices[tool.choices$list_name==q.list_name & tool.choices$name==c.name, label_colname]
+    } else c.label <- NA
+    label <- ifelse(is.na(c.label), q.label, paste0(q.label, "/", c.label))
+  } else label <- q.name
+  return(label)
+}
