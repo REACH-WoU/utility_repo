@@ -72,7 +72,7 @@ make_table.select_one <- function(srvyr.design.grouped, entry, add_total = FALSE
   res.long <- srvyr.design.grouped %>% 
     group_by(!!sym(entry$variable), .add = T) %>% 
     # num_samples here is the actual number of responses for each option in each group
-    summarise(num_samples = survey_total(na.rm = T, vartype = "var"),
+    summarise(num_samples = n(),
               prop = survey_prop(na.rm = T, vartype = "var"))
   
   # widen the table:
@@ -106,7 +106,7 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
     summarise(across(.fns = list(prop = ~ survey_mean(., na.rm = T, vartype = "var"))))
   
   s_samples <- srvyr.design.grouped %>% 
-    summarise(num_samples = survey_total(na.rm = T, vartype = "var"))
+    summarise(num_samples = n())
   
   res <- s_samples %>% left_join(s_props, by = disagg_vars)
   
