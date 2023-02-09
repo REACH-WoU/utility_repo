@@ -99,26 +99,34 @@ get.label <- function(variable){
   return(pull(res, label_colname))
 }
 
-get.choice.label <- function(choice, list){
+get.choice.label <- function(choice, list, simplify = FALSE){
   #' Find the label of choices in a list
   #'
   #' Looks up the "name" and `label_colname` in tool.choices. Operates on single values and vectors.
   #'
   #' @param choice the name of the choice
   #' @param list the name of the list containing choice
+  #' @param simplify If TRUE, output labels will be modified and simplified...
   
   if(!list %in% tool.choices$list_name) stop(paste("list",list, "not found in tool.choices!"))
   
   res <- data.frame(name = unlist(choice)) %>%
-      left_join(select(tool.choices, name, list_name, label_colname) %>% filter(list_name == list),
-                by = "name", na_matches = "never")
+    left_join(select(tool.choices, name, list_name, all_of(label_colname)) %>% filter(list_name == list),
+              by = "name", na_matches = "never")
   if(any(is.na(res[[label_colname]]))){
     culprits <- paste0(filter(res, is.na(!!sym(label_colname))) %>%
                          pull(name), collapse = ", ")
     warning(paste0("Choices not in the list (", list, "):", culprits))
   }
   if(nrow(res) == 0) stop("All choices not in the list!")
-  return(pull(res, label_colname))
+  
+  res_vec <- pull(res, label_colname)
+  if(simplify){
+    # if "e.g." or "for example" in label, shorten up to this point
+    e.g._pattern <- " *\\(?((e\\.g\\.)|(for exa?m?a?ple))"
+    res_vec <- str_split(res_vec, e.g._pattern, n=2,simplify = T)[,1] %>% str_squish
+  }
+  return(res_vec)
 }
 
 # ------------------------------------------------------------------------------
