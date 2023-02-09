@@ -138,6 +138,8 @@ load_entry <- function(daf_row){
   entry$disaggregate.variables <- c(str_split(sub(" ", "", entry$disaggregations), ";", simplify = T))
   # omit_na is True by default (calculation empty):
   entry$omit_na <- is.na(entry$calculation) || str_detect(entry$calculation, "include[_-]na", negate = T)
+  # add_total is False by default 
+  entry$add_total <- !is.na(entry$calculation) && str_detect(entry$calculation, "add_total")
   # comments - add two lines to them if necessary
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
   
