@@ -110,11 +110,7 @@ select_one.analysis_overall <- function(srv.design, entry){
 select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- get.choice.list.from.name(entry$variable)
-  if(is.na(var_list_name)){
-    choices <- NA
-  }else{
-    choices <- (tool.choices %>% pull(label_colname))[tool.choices$list_name==var_list_name]
-  }
+  choices <- (tool.choices %>% pull(label_colname))[tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>%
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
@@ -194,11 +190,7 @@ select_one.to_html_bind_overall <- function(res, res.overall, entry, include.CI=
 select_one.to_html <- function(res, entry, include.CI=T){
   var.full <- entry$variable
   var_list_name <- get.choice.list.from.name(entry$variable)
-  if(is.na(var_list_name)){
-    choices <- NA
-  }else{
-    choices <- (tool.choices %>% pull(label_colname))[tool.choices$list_name==var_list_name]
-  }
+  choices <- tool.choices[[label_colname]][tool.choices$list_name==var_list_name]
   res <- res %>% mutate(pct=ifelse(is.na(pct), NA, paste0(pct, "%")))
   res <- res %>% arrange(match(!!sym(entry$variable), choices)) %>%
     pivot_wider(names_from=entry$variable[1], values_from=c("pct", "ci"), names_sep=".", values_fill=list(pct="0%"))
@@ -427,8 +419,7 @@ select_multiple.to_html_bind_overall <- function(res,res.overall, entry, include
       relocate("num_samples", .after=1)
     res.overall <- res.overall %>%
       left_join(t.res_over, by=("strata")) %>%
-      relocate("num_samples", .after=1) %>% 
-      select(-overall)
+      relocate("num_samples", .after=1)
     if (nrow(res)!=n_rows) stop()
   }
   if (!is.na(entry$disaggregate.variable)){
@@ -733,6 +724,7 @@ median.analysis_overall <- function(srv.design, entry){
 }
 
 
+
 # function to produce HTML table
 median.to_html <- function(res, entry, include.CI=T){
   if (str_starts(entry$variable, "pct.")){
@@ -791,7 +783,7 @@ median.to_html_overall <- function(res,res.overall, entry, include.CI=T){
       group_by(overall) %>%
       summarise(num_samples=n()) %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall") 
+      mutate(strata = "Overall") %>% 
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
@@ -887,7 +879,7 @@ count.analysis_overall <- function(srv.design, entry){
 }
 
 # function to produce HTML table (overall)
-count.to_html.overall <- function(res, res.overall, entry){
+count.to_html.overall <- function(res, entry){
   if (is.na(entry$disaggregate.variable)){
     t.res <- data %>%
       filter(!is.na(!!sym(entry$variable))) %>%
@@ -898,19 +890,20 @@ count.to_html.overall <- function(res, res.overall, entry){
       group_by(overall) %>%
       summarise(num_samples=n()) %>%
       rename(strata = "overall") %>%
-      mutate(strata = "Overall")
+      mutate(strata = "Overall") %>% 
+      select(-overall)
     if (nrow(t.res) == 0){
       return(data.frame())
     } else{
       n_rows <- nrow(res)
-      res <- res %>% 
+      res <- res %>%
         left_join(t.res, by=set_names(entry$admin)) %>%
         relocate("num_samples", .after=1)
       res.overall <- res.overall %>%
         rename(strata ="overall") %>%
         mutate(strata = "Overall")  %>% 
         left_join(t.res_over, by=("strata")) %>%
-        relocate("num_samples", .after=1) 
+        relocate("num_samples", .after=1)
       if (nrow(res)!=n_rows) stop()
     }
   }
@@ -930,12 +923,9 @@ count.to_html.overall <- function(res, res.overall, entry){
     n_rows <- nrow(res)
     res <- res %>%
       left_join(t, by=c(set_names(entry$admin), set_names(entry$disaggregate.variable))) %>%
-      relocate("num_samples", .after=2) %>% select(-overall)
+      relocate("num_samples", .after=2)
     if (nrow(res)!=n_rows) stop()
   }
-  res <- res %>% filter(!is.na(num_samples))
-  res.overall <- res.overall %>% filter(!is.na(num_samples))
-  res <- rbind(res,res.overall)
   write_xlsx(res,paste0("temp/combine/",entry$xlsx_name,".xlsx"))
   return(subch(datatable(res, options = tableFormat)))
 }
