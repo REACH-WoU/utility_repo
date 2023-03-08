@@ -142,8 +142,7 @@ load_entry <- function(daf_row){
   entry$add_total <- !is.na(entry$calculation) && str_detect(entry$calculation, "add_total")
   # comments - add two lines to them if necessary
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
-  
-  entry$join <- !is.na(entry$join)
+
   
   return(entry)
 }
