@@ -1034,7 +1034,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   return(responses.j)
 }
 
-translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en"){
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en", threshold = 200000){
 
   #' Translate a vector from a given dataframe.
   #'
@@ -1048,6 +1048,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
   #' @param values_from Name of the column from `responses` which shall be translated.
   #' @param language_codes Character vector of two-letter language codes. The input vector will be translated from both of these languages.
   #' @param target_lang Input vector will be translated into this language.
+  #' @param threshold Input threshold to interrupt the user if the number of characters is exceeding 200,000 by default. 
   #' @returns The same dataframe as `responses`, but with a new column, containing the translation.
   #' The column will be named according to the given source and target languages. By default, the output will be stored in column named 'response.en.from.uk'
   info_df <- data.frame()
@@ -1066,8 +1067,8 @@ translate.responses <- function(responses, values_from = "response.uk", language
   # counts characters which will be translated
   char_counter <- sum(str_length(input_vec))
   # TODO: pause here, print the char_counter, and ask the user if the translation should go ahead
-  if (char_counter > 200000){
-    yes_no <- svDialogs::dlgInput("The number of characters exceeds 200,000. Please enter [YES] if you would like to proceed or [NO] to kill:", "YES or NO")$res
+  if (char_counter > threshold){
+    yes_no <- svDialogs::dlgInput(paste0("The number of characters exceeds ", threshold, ". Please enter [YES] if you would like to proceed or [NO] to kill:"), "YES or NO")$res
   } else{
     yes_no <- "YES"
   }
