@@ -1094,7 +1094,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
           # actual translation:
           result_vec <- NULL
           result_vec <- try(translateR::translate(content.vec = temp_resp_batch$input_vec,
-                              microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
+                              microsoft.api.key = source("resources/microsoft.api.key_ukraine.R")$value,
                               microsoft.api.region = "switzerlandnorth",
                               source.lang = code, target.lang = target_lang))
           if(inherits(result_vec,"try-error")) break
