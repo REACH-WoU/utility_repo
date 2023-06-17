@@ -3,7 +3,6 @@
 ###--------------------------------------------------------------------------------------------------------------
 
 # add table to HTML
-# add table to HTML
 subch <- function(g, fig_height=7, fig_width=5) {
   g_deparsed <- paste0(deparse(function() {g}), collapse = '')
   sub_chunk <- paste0("\n\n<center>\n", "```{r sub_chunk_", as.numeric(Sys.time())*1000, 
@@ -72,7 +71,7 @@ make_table.select_one <- function(srvyr.design.grouped, entry, add_total = FALSE
   res.long <- srvyr.design.grouped %>% 
     group_by(!!sym(entry$variable), .add = T) %>% 
     # num_samples here is the actual number of responses for each option in each group
-    summarise(num_samples = n(),
+    summarise(num_samples = survey_total(na.rm = T, vartype = "var"),
               prop = survey_prop(na.rm = T, vartype = "var"))
   
   # widen the table:
@@ -87,8 +86,8 @@ make_table.select_one <- function(srvyr.design.grouped, entry, add_total = FALSE
   if(add_total){
     # calculate total and bind it to res
     res.total <- make_table.select_one(srvyr.design.grouped %>% ungroup %>% 
-                                         select(!!sym(entry$admin), !!sym(entry$variable)) %>% 
-                                         group_by(!!sym(entry$admin)), entry)
+                               select(!!sym(entry$admin), !!sym(entry$variable)) %>% 
+                               group_by(!!sym(entry$admin)), entry)
     res.wide <- res.wide %>% bind_rows(res.total)
   }
   
@@ -104,25 +103,25 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
   # calculate the totals and percentages, then join them together
   s_props <- srvyr.design.grouped %>% 
     summarise(across(.fns = list(prop = ~ survey_mean(., na.rm = T, vartype = "var"))))
-  
+    
   s_samples <- srvyr.design.grouped %>% 
-    summarise(num_samples = n())
+    summarise(num_samples = survey_total(na.rm = T, vartype = "var"))
   
   res <- s_samples %>% left_join(s_props, by = disagg_vars)
-  
+
   if(add_total){
     # calculate total and bind it to res
     total <- srvyr.design.grouped %>% ungroup %>% group_by(!!sym(entry$admin)) %>% select(contains("___")) %>%
-      summarise(across(.fns = list(prop = ~ survey_mean(., na.rm = T, vartype = "var"))), .groups = "drop") 
+               summarise(across(.fns = list(prop = ~ survey_mean(., na.rm = T, vartype = "var"))), .groups = "drop") 
     
     total_samples <- s_samples %>% group_by(!!sym(entry$admin)) %>% summarise(num_samples = sum(num_samples))
-    
+     
     res <- res %>% bind_rows(total_samples %>% left_join(total, by = entry$admin))
   }
   # convert choice names to labels (all except the NA column)
   res <- res %>% rename_with(~get.choice.label(sm_ccols_to_choices(.), entry$list_name, simplify = T),
                              ends_with("_prop") & !contains("___NA"))
-  # also convert the NA column:
+    # also convert the NA column:
   if(!entry$omit_na) res <- res %>% rename("NA" = !!paste0(entry$variable, "___NA_prop"))
   
   return(res)

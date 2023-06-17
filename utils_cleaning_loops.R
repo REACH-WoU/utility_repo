@@ -4,6 +4,10 @@
 # ------------------------------------------------------------------------------------------
 
 add.to.cleaning.log.other.recode.LOOP <- function(data, x){
+  #' [obsolete] use recode.others instead
+  #' 
+  warning("This function is obsolete! Use recode.others instead (with is.loop = T)")
+  
   if(!"existing.other" %in% colnames(x)){
     x <- rename_with(x, ~gsub(".v",".other", .), ends_with(".v"))
   } # a bit of a dirty fix :)
@@ -14,6 +18,10 @@ add.to.cleaning.log.other.recode.LOOP <- function(data, x){
 
 
 add.to.cleaning.log.other.remove.LOOP <- function(data, x){
+  #' [obsolete] use recode.others instead
+  #' 
+  warning("This function is obsolete! Use recode.others instead (with is.loop = T)")
+  
   issue <- "Invalid other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$name, issue=issue,
@@ -56,6 +64,9 @@ add.to.cleaning.log.other.remove.LOOP <- function(data, x){
 }
 
 add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
+  #' [obsolete] use recode.others instead
+  #' 
+  warning("This function is obsolete! Use recode.others instead (with is.loop = T)")
   issue <- "Recoding other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid, loop_index=x$loop_index, variable=x$name, issue=issue,
@@ -126,6 +137,10 @@ add.to.cleaning.log.other.recode.multiple.LOOP <- function(data, x){
 }
 
 add.to.cleaning.log.other.recode.one.LOOP <- function(x){
+  #' [obsolete] use recode.others instead
+  #' 
+  warning("This function is obsolete! Use recode.others instead (with is.loop = T)")
+  
   issue <- "Recoding other response"
   # remove text of the response
   df <- data.frame(uuid=x$uuid,loop_index=x$loop_index, variable=x$name, issue=issue,
@@ -266,6 +281,7 @@ save.follow.up.requests.LOOP <- function(cleaning.log, data){
 
 recode.multiple.add.choice.LOOP <- function(data, variable, choice, issue, isLoop = F){
     #' [obsolete]
+    warning("recode.multiple.add.choice.LOOP is obsolete!! Please use recode.multiple.add.choices instead!")
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that already have choice selected
@@ -286,8 +302,8 @@ recode.multiple.add.choice.LOOP <- function(data, variable, choice, issue, isLoo
 }
 
 recode.multiple.remove.choice.LOOP <- function(data, variable, choice, issue, isLoop = F){
-
   #' [obsolete]
+  warning("recode.multiple.remove.choice.LOOP is obsolete!! Please use recode.multiple.remove.choices instead!")
   choice_column <- paste0(variable,"/",choice)
   if(!choice_column %in% colnames(data)) stop(paste("Column",choice_column,"not present in data!"))
   # filter out cases that dont have the choice selected
@@ -310,7 +326,7 @@ recode.multiple.remove.choice.LOOP <- function(data, variable, choice, issue, is
 
 apply.changes.LOOP <- function(data, clog, isLoop = F){
   #' Apply changes to main data basing on a cleaning log.
-  #'
+  #' [obsolete]
   #' Outputs warnings if uuids or variables from `clog` are not found in `data`
   #' @param data Data (raw.main)
   #' @param clog Cleaning log - dataframe containing columns uuid, variable, new.value, old.value
@@ -318,7 +334,7 @@ apply.changes.LOOP <- function(data, clog, isLoop = F){
   #' @returns Dataframe containing data with applied changes
   #'
 
-  # TODO: fix this function to not produce so many unnecessary warnings
+  warning("apply.changes.LOOP is obsolete! Please use apply.changes, with the is.loop parameter.")
 
   if(nrow(clog) == 0){
     warning("No changes to be applied (cleaning log empty).")

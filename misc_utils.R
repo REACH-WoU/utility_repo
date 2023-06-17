@@ -9,14 +9,15 @@
 "%_>_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>b, F)
 "%_>=_%" <- function(a, b) ifelse(!is.na(a), as.numeric(a)>=b, F)
 "%_+_%" <- function(a, b) as.numeric(a) + as.numeric(b)
+"%_/_%" <- function(a, b) as.numeric(a) / as.numeric(b)
 "%==na%" <- function(e1, e2) ifelse(is.na(e1 == e2), is.na(e1) == is.na(e2), e1 == e2)
 "%!=na%" <- function(e1, e2) (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1))) & !(is.na(e1) & is.na(e2))
 
 
+# utility for viewing data without the 0/1 choice columns (unselects all columns that contain a slash)
 qview <- function(datum, title = NULL, ..., n = NULL){ 
   view(datum %>% select(-contains("/")), title = ifelse(is.null(title), "qview", title), ..., n = NULL) 
-}
-
+} 
 
 # just a shorthand
 isna <- function(x) is.na(x)
@@ -56,28 +57,28 @@ factorize <- function(
   }
   # suspect this is faster than reassigning new factor object
   levels(x) <- c(levels(x), NA_level, infrequent_level, blank_level)
-  
+
   # Swap out the NA and blank categories
   x[is.na(x)] <- NA_level
   x[x == ''] <- blank_level
-  
+
   # Going to use this table to reorder
   f_tb <- table(x, useNA = 'always')
-  
+
   # Which levels will be bucketed?
   infreq_set <- c(
     names(f_tb[f_tb < min_n]),
     names(f_tb[(f_tb/sum(f_tb)) < min_freq])
   )
-  
+
   # If NA and/or blank were infrequent levels above, this prevents bucketing
   if(!infrequent_can_include_blank_and_NA){
     infreq_set <- infreq_set[!infreq_set %in% c(NA_level, blank_level)]
   }
-  
+
   # Relabel all the infrequent choices
   x[x %in% infreq_set] <- infrequent_level
-  
+
   # Return the reordered factor
   reorder(droplevels(x), rep(1-(2*reverse_order),length(x)), FUN = sum, order = order)
 }
