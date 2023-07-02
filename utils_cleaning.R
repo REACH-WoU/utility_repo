@@ -93,6 +93,142 @@ save.trans.requests <- function(df, wb_name, blue_cols = NULL, use_template = F)
     saveWorkbook(wb, filename, overwrite=TRUE)
 }
 
+# ------------------------------------------------------------------------------------------
+# OUTLIER SECTION
+# ------------------------------------------------------------------------------------------
+save.outlier.responses <- function(df, or.submission=""){
+  for (i in country_list){
+    df1 <- df %>%
+      filter(country == i)
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+                                   valign="top", wrapText=T)
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    wb <- createWorkbook()
+    addWorksheet(wb, "Sheet1")
+    writeData(wb = wb, x = df1, sheet = "Sheet1", startRow = 1)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df1)+1), cols=7)
+    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
+    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=1)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=2)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=3)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=4)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df1)+1), cols=5)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=6)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df1)+1), cols=7)
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df1))
+    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
+    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
+    filename <- paste0("output/checking/outliers/",i,"_outliers_requests.xlsx")
+    saveWorkbook(wb, filename, overwrite=TRUE)
+    rm(df1)
+  }
+}
+
+save.outlier.responses_msna <- function(df, or.submission=""){
+    style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000",
+                                   valign="top", wrapText=T)
+    style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC", valign="top",
+                                         border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    style.col.green.first2 <- createStyle(textDecoration="bold", fgFill="#CCE5FF", valign="top",
+                                          border="TopBottomLeftRight", borderColour="#000000", wrapText=T)
+    wb <- createWorkbook()
+    addWorksheet(wb, "Sheet1")
+    writeData(wb = wb, x = df, sheet = "Sheet1", startRow = 1)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = style.col.green, rows = 1:(nrow(df)+1), cols=7)
+    setColWidths(wb, "Sheet1", cols=c(1:5), widths=35)
+    setColWidths(wb, "Sheet1", cols=c(6:7), widths=40)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=1)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=2)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=3)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=4)
+    addStyle(wb, "Sheet1", style = createStyle(valign="top"), rows = 1:(nrow(df)+1), cols=5)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=6)
+    addStyle(wb, "Sheet1", style = createStyle(wrapText=T, valign="top"), rows = 1:(nrow(df)+1), cols=7)
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration="bold"), rows = 1, cols=1:ncol(df))
+    addStyle(wb, "Sheet1", style = style.col.green.first, rows = 1, cols=6:7)
+    modifyBaseFont(wb, fontSize = 10, fontColour = "black", fontName = "Calibri")
+    filename <- paste0("output/checking/outliers/outliers_requests.xlsx")
+    saveWorkbook(wb, filename, overwrite=TRUE)
+}
+#' 
+#' save.follow.up.requests <- function(cleaning.log, data){
+#'     #' [obsolete] - replaced by `create.follow.up.requests`
+#'   use.color <- function(check.id){
+#'     return(str_starts(check.id, "0"))
+#'     # |  str_starts(check.id, "3") | str_starts(check.id, "4"))
+#'   }
+#'   # define styles
+#'   style.col.green <- createStyle(fgFill="#E5FFCC", border="TopBottomLeftRight", borderColour="#000000")
+#'   style.col.green.first <- createStyle(textDecoration="bold", fgFill="#E5FFCC",
+#'                                        border="TopBottomLeftRight", borderColour="#000000", wrapText=F)
+#'   col.style <- createStyle(textDecoration="bold", fgFill="#CECECE",halign="center",
+#'                            border="TopBottomLeftRight", borderColour="#000000")
+#'   # arrange cleaning.log so that colors are properly assigned later
+#'   cleaning.log <- cleaning.log %>%
+#'     arrange(country) %>%
+#'     group_by(country) %>%
+#'     group_modify(~ rbind(
+#'       filter(.x, !use.color(check.id)) %>% arrange(check.id, uuid),
+#'       filter(.x, use.color(check.id)) %>% arrange(check.id)))
+#'   # add missing columns
+#'   cl <- cleaning.log %>%
+#'     left_join(select(data, uuid, `_submission_time`), by="uuid") %>%
+#'     rename(submission_time="_submission_time") %>%
+#'     select(uuid, submission_time, country, Reporting_organization, enumerator.code, check.id,
+#'            variable, issue, old.value, new.value) %>%
+#'     mutate(explanation=NA)
+#'   cl <- cl %>% arrange(match(check.id, str_sort(unique(cl$check.id), numeric=T)))
+#'   for(i in country_list){
+#'     cl1 <- cl %>%
+#'       filter(country == i)
+#'     # save follow-up requests
+#'     wb <- createWorkbook()
+#'     addWorksheet(wb, "Follow-up")
+#'     writeData(wb = wb, x = cl1, sheet = "Follow-up", startRow = 1)
+#' 
+#'     addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl1)+1), cols=10)
+#'     addStyle(wb, "Follow-up", style = style.col.green, rows = 1:(nrow(cl1)+1), cols=11)
+#' 
+#'     setColWidths(wb, "Follow-up", cols=1:ncol(cl1), widths="auto")
+#'     setColWidths(wb, "Follow-up", cols=7, widths=50)
+#'     setColWidths(wb, "Follow-up", cols=8, widths=50)
+#' 
+#'     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl1)+1), cols=7)
+#'     addStyle(wb, "Follow-up", style = createStyle(wrapText=T), rows = 1:(nrow(cl1)+1), cols=8)
+#' 
+#'     addStyle(wb, "Follow-up", style = col.style, rows = 1, cols=1:ncol(cl1))
+#' 
+#'     col.id <- which(colnames(cl1)=="old.value")
+#'     if(nrow(cl1) > 0){
+#'       random.color <- ""
+#'       for (r in 2:nrow(cl1)){
+#'         if((!use.color(as.character(cl1[r, "check.id"])) &
+#'             as.character(cl1[r, "uuid"])==as.character(cl1[r-1, "uuid"]) &
+#'             as.character(cl1[r, "check.id"])==as.character(cl1[r-1, "check.id"])) |
+#'            (use.color(as.character(cl1[r, "check.id"])) &
+#'             as.character(cl1[r, "country"])==as.character(cl1[r-1, "country"]) &
+#'             as.character(cl1[r, "check.id"])==as.character(cl1[r-1, "check.id"]))){
+#'           if (random.color == "") random.color <- randomColor(1, luminosity = "light")
+#'           addStyle(wb, "Follow-up", style = createStyle(fgFill=random.color, wrapText=T),
+#'                    rows = r:(r+1), cols=col.id)
+#'         } else random.color=""
+#'       }
+#'     }
+#'     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=10)
+#'     addStyle(wb, "Follow-up", style = style.col.green.first, rows = 1, cols=11)
+#'     filename <- paste0("output/checking/requests/", str_to_lower(i) , "_follow_up_requests.xlsx")
+#'     saveWorkbook(wb, filename, overwrite = TRUE)
+#'     rm(cl1)
+#'   }
+#' }
+
+save.follow.up.requests <- function(checks.df, wb_name) create.follow.up.requests(checks.df, wb_name)
 
 create.follow.up.requests <- function(checks.df, wb_name){
     use.color <- function(check.id){
@@ -269,6 +405,36 @@ recode.set.NA.if <- function(data, variables, code, issue, ignore_case = T){
 }
 
 recode.missing <- function(data, variables, clean_data, issue){
+  #' Recode a question by setting variables to NA if they are equal to a given value (code).
+  #'
+  #' @note DO NOT use this function for select_multiple questions. Instead use `recode.multiple.set.NA`
+  #'
+  #' @param data Dataframe containing records which will be affected.
+  #' @param variables Vector of strings (or a single string) containing the names of the variables.
+  #' @param clean_data Dataframe of clean data, should contain uuid and the variables
+  #' @param issue String with explanation used for the cleaning log entry.
+  #'
+  #' @returns Dataframe containing cleaning log entries constructed from `data`.
+  #'
+  #'
+  
+  # TODO filter variables to only include those in data (and produce warnings)
+  
+  clog <- tibble()
+  for(variable in variables){
+    data1 <- data %>% filter(is.na(!!sym(variable)))
+    data1 <- data1 %>% mutate(variable = variable, old.value = !!sym(variable)) %>% select(any_of(CL_COLS))
+    data2 <- clean_data[c("uuid",variable)] %>% rename("new.value" = variable)
+    cl <- left_join(data1,data2, by = "uuid")
+    cl$issue <- issue
+    clog <- rbind(clog, cl)
+  }
+  return(clog)
+}
+
+  
+
+recode.set.NA.regex <- function(data, variables, pattern, issue){
   #' Recode a question by setting variables to NA if they are equal to a given value (code).
   #'
   #' @note DO NOT use this function for select_multiple questions. Instead use `recode.multiple.set.NA`
@@ -1278,7 +1444,12 @@ find.other.responses <- function(data, other.db, values_to = "response.uk", is.l
   return(binded.responses)
 }
 
+<<<<<<< Updated upstream
 translate.responses <- function(responses, values_from = "response.uk", source_lang = NULL, target_lang = "en"){
+=======
+
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en", threshold = 200000){
+>>>>>>> Stashed changes
 
   #' Translate a vector from a given dataframe.
   #'
