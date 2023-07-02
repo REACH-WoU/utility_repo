@@ -15,8 +15,8 @@ style.col.green.bold <- createStyle(textDecoration="bold", fgFill="#E5FFCC", val
 # ------------------------------------------------------------------------------------------
 
 save.other.requests <- function(df, wb_name, use_template = F){
-  
-  if(use_template) wb <- loadWorkbook("resources/other_requests_template.xlsx")
+
+  if(use_template) wb <- loadWorkbook("resources/other_requests_template.xlsm")
   else wb <- createWorkbook()
   addWorksheet(wb, "Sheet2", zoom = 90)
   writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1,
@@ -46,7 +46,15 @@ save.other.requests <- function(df, wb_name, use_template = F){
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1, stack = T)
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df), stack = T)
 
-  filename <- paste0(dir.requests, wb_name, ".xlsx")
+  ##Adding datavalidation
+  for (i in 1:nrow(df)){
+    validate <- paste0("\"",
+                       paste0(str_split(df$choices.label[i],";\n")[[1]],collapse = ','),
+                       "\"")
+    dataValidation(wb, "Sheet2", cols = ncol(df)-1, rows = 1 + i, type = 'list',value = validate)
+  }
+  
+  filename <- paste0(dir.requests, wb_name, ".xlsm")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
 }
