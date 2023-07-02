@@ -1444,12 +1444,8 @@ find.other.responses <- function(data, other.db, values_to = "response.uk", is.l
   return(binded.responses)
 }
 
-<<<<<<< Updated upstream
-translate.responses <- function(responses, values_from = "response.uk", source_lang = NULL, target_lang = "en"){
-=======
 
 translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en", threshold = 200000){
->>>>>>> Stashed changes
 
   #' Translate a vector from a given dataframe.
   #'
