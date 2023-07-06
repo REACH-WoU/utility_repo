@@ -79,15 +79,16 @@ save.other.requests <- function(df, wb_name, use_template = F){
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-2, stack = T)
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1, stack = T)
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df), stack = T)
-
+  addWorksheet(wb, "Sheet3", visible = F)
+  writeData(wb, "Sheet3", x = tool.choices)
   ##Adding datavalidation
   for (i in 1:nrow(df)){
-    validate <- paste0("\"",
-                       paste0(str_split(df$choices.label[i],";\n")[[1]],collapse = ','),
-                       "\"")
-    dataValidation(wb, "Sheet2", cols = ncol(df)-1, rows = 1 + i, type = 'list',value = validate)
+    list_name <- get.choice.list.from.name(df$ref.name[i])
+    range_min <- min(which(tool.choices$list_name %in% list_name)) + 1
+    range_max <- max(which(tool.choices$list_name %in% list_name)) + 1
+    validate <- paste0("'Sheet3'!$C",range_min,":$C",range_max)
+    dataValidation(wb, "Sheet2", cols = ncol(df)-1, rows = 1 + i, type = "list", value = validate)
   }
-  
   filename <- paste0(dir.requests, wb_name, ".xlsm")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
