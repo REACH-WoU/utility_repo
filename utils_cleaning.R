@@ -50,7 +50,7 @@ save.responses <- function(df, wb_name, or.submission=""){
 
 save.other.requests <- function(df, wb_name, use_template = F){
 
-  if(use_template) wb <- loadWorkbook("resources/other_requests_template.xlsm")
+  if(use_template) wb <- loadWorkbook("resources/other_requests_template.xlsx")
   else wb <- createWorkbook()
   addWorksheet(wb, "Sheet2", zoom = 90)
   writeData(wb = wb, x = df, sheet = "Sheet2", startRow = 1,
@@ -80,15 +80,7 @@ save.other.requests <- function(df, wb_name, use_template = F){
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df)-1, stack = T)
   addStyle(wb, "Sheet2", style.col.green.bold, rows = 1, cols = ncol(df), stack = T)
 
-  ##Adding datavalidation
-  for (i in 1:nrow(df)){
-    validate <- paste0("\"",
-                       paste0(str_split(df$choices.label[i],";\n")[[1]],collapse = ','),
-                       "\"")
-    dataValidation(wb, "Sheet2", cols = ncol(df)-1, rows = 1 + i, type = 'list',value = validate)
-  }
-  
-  filename <- paste0(dir.requests, wb_name, ".xlsm")
+  filename <- paste0(dir.requests, wb_name, ".xlsx")
   saveWorkbook(wb, filename, overwrite=TRUE)
 
 }
@@ -1042,7 +1034,7 @@ find.responses <- function(data, questions.db, values_to="response.uk", is.loop 
   return(responses.j)
 }
 
-translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en", threshold = 200000){
+translate.responses <- function(responses, values_from = "response.uk", language_codes = 'uk', target_lang = "en"){
 
   #' Translate a vector from a given dataframe.
   #'
@@ -1056,7 +1048,6 @@ translate.responses <- function(responses, values_from = "response.uk", language
   #' @param values_from Name of the column from `responses` which shall be translated.
   #' @param language_codes Character vector of two-letter language codes. The input vector will be translated from both of these languages.
   #' @param target_lang Input vector will be translated into this language.
-  #' @param threshold Input threshold to interrupt the user if the number of characters is exceeding 200,000 by default. 
   #' @returns The same dataframe as `responses`, but with a new column, containing the translation.
   #' The column will be named according to the given source and target languages. By default, the output will be stored in column named 'response.en.from.uk'
   info_df <- data.frame()
@@ -1075,8 +1066,8 @@ translate.responses <- function(responses, values_from = "response.uk", language
   # counts characters which will be translated
   char_counter <- sum(str_length(input_vec))
   # TODO: pause here, print the char_counter, and ask the user if the translation should go ahead
-  if (char_counter > threshold){
-    yes_no <- svDialogs::dlgInput(paste0("The number of characters exceeds ", threshold, ". Please enter [YES] if you would like to proceed or [NO] to kill:"), "YES or NO")$res
+  if (char_counter > 200000){
+    yes_no <- svDialogs::dlgInput("The number of characters exceeds 200,000. Please enter [YES] if you would like to proceed or [NO] to kill:", "YES or NO")$res
   } else{
     yes_no <- "YES"
   }
@@ -1103,7 +1094,7 @@ translate.responses <- function(responses, values_from = "response.uk", language
           # actual translation:
           result_vec <- NULL
           result_vec <- try(translateR::translate(content.vec = temp_resp_batch$input_vec,
-                              microsoft.api.key = source("resources/microsoft.api.key_ukraine.R")$value,
+                              microsoft.api.key = source("resources/microsoft.api.key_regional.R")$value,
                               microsoft.api.region = "switzerlandnorth",
                               source.lang = code, target.lang = target_lang))
           if(inherits(result_vec,"try-error")) break

@@ -143,6 +143,8 @@ load_entry <- function(daf_row){
   # comments - add two lines to them if necessary
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
 
+#  OS commented this to preserve the name of joint table 
+#  entry$join <- !is.na(entry$join)
   
   return(entry)
 }

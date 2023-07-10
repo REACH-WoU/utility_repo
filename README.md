@@ -69,3 +69,12 @@ Of course, if your previous _utils.R_ contained some functions that are not incl
  If you need to pull remote changes from __utility_repo__, the command is:
  
  - `git submodule update` if you're in your base project repo
+
+ ## JMMI changes
+For the purpose of JMMI, a couple of changes have been made to the following files:
+tabular_analysis_utils
+utils_analysis
+utils_descriptive_analysis
+
+
+

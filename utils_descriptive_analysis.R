@@ -1009,25 +1009,70 @@ load.entry <- function(analysis.plan.row){
 # load all DFs to one sheet
 save.dfs <- function(df, filename){
   wb <- createWorkbook()
-  addWorksheet(wb, "Table_of_content")
-  addWorksheet(wb, "Data")
+  # OS added this piece to create excel tabs called "Data_oblast", "Data_raion", etc.
+  daf_name <- as.character(strings['filename.daf.tabular'])
+  toc.sheet <- paste0("Table_of_content",str_sub(daf_name,14,-6))
+  data.sheet <- paste0("Data",str_sub(daf_name,14,-6))
+  
+  addWorksheet(wb, toc.sheet)
+  addWorksheet(wb, data.sheet)
   count_sh1 <- 2
   count_sh2 <- 1
-  writeData(wb, sheet = "Table_of_content", x = "Table of Content", startCol = 1, startRow = 1)
+  writeData(wb, sheet = toc.sheet, x = "Table of Content", startCol = 1, startRow = 1)
   for (i in 1:length(df)){
-    writeFormula(wb, "Table_of_content",
+    writeFormula(wb, toc.sheet,
                  startRow = count_sh1,
                  x = makeHyperlinkString(
-                   sheet = "Data", row = count_sh2, col = 1,
+                   sheet = data.sheet, row = count_sh2, col = 1,
                    text = names(df[i])
                  ))
     count_sh1 <- count_sh1 + 1
-    writeData(wb, sheet = "Data", names(df[i]), startCol = 1, startRow = count_sh2)
+    writeData(wb, sheet = data.sheet, names(df[i]), startCol = 1, startRow = count_sh2)
     count_sh2 <- count_sh2 + 1
-    writeData(wb = wb, sheet = "Data", x = df[[i]], startRow = count_sh2)
+    writeData(wb = wb, sheet = data.sheet, x = df[[i]], startRow = count_sh2)
     count_sh2 <- count_sh2 + 1 + nrow(df[[i]])
-    writeData(wb = wb, sheet= "Data", x = NULL, startRow = count_sh2)
+    writeData(wb = wb, sheet= data.sheet, x = NULL, startRow = count_sh2)
     count_sh2 <- count_sh2 + 1
   }
   saveWorkbook(wb, filename, overwrite=TRUE)
+}
+
+# Function for descriptive analysis min/max/Q1/Q3/median
+descriptive_stats <- function(data, group_var, items){
+  #' @param data dataset to get statistics of
+  #' @param group_var grouping variable: hromada, raion, oblast...
+  #' @param items columns to analyze
+  data %>% select(group_var, items) %>% 
+    group_by(!!sym(group_var)) %>% 
+    group_modify(~ {
+      .x %>%
+        purrr::map_dfc(fivenum) %>%
+        mutate(stats = c("min", "Q1", "median", "Q3", "max"), .before = items[1])
+    })# %>%
+  #   ungroup()
+  
+}
+
+
+### Define function that computes medians without imputation
+raw_medians <- function(data, cols_to_analyze, column_low, column_high=NULL) {
+  prices <- descriptive_stats(data, column_low, cols_to_analyze)
+  geo_cols <- c(column_high,column_low)
+  geo <- geography %>% 
+    select(geo_cols) %>%
+    unique()
+  prices <- prices %>%
+    left_join(geo, by = column_low) %>% 
+    select(c(column_high,column_low, "stats", cols_to_analyze)) %>%
+    ungroup()
+  return(prices)
+}
+
+# Function to calculate JMMI basket 
+basket <- function(data,cols_to_sum_food,cols_to_sum_nfi){
+  data <- data %>%
+    mutate(jmmi_basket = ifelse(stats == "median", rowSums(across(c(cols_to_sum_food,cols_to_sum_nfi), .fns = as.numeric)), NA), .after = stats) %>%
+    mutate(food_basket = ifelse(stats == "median", rowSums(across(cols_to_sum_food, .fns = as.numeric)), NA), .after = jmmi_basket) %>%
+    mutate(nfi_basket = ifelse(stats == "median", rowSums(across(cols_to_sum_nfi, .fns = as.numeric)), NA), .after = food_basket)
+  return(data)
 }
