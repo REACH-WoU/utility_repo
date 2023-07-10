@@ -136,7 +136,7 @@ make_table <- function(srvyr.design, entry, disagg.var){
   
   # select the relevant columns / variables
   srvyr.design.grouped <- switch (entry$func,
-                                  select_multiple = { srvyr.design.grouped %>% select(starts_with(entry$variable) & contains("___")) },
+                                  select_multiple = { srvyr.design.grouped %>% select(starts_with(paste0(entry$variable,"___"))) },
                                   # default - just select the relevant variable:
                                   { srvyr.design.grouped %>% select(!!sym(entry$variable)) }
   )
