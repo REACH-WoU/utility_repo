@@ -1007,13 +1007,14 @@ load.entry <- function(analysis.plan.row){
 }
 
 # load all DFs to one sheet
-save.dfs <- function(df, filename){
+if (JMMI_variable == "Customers") {
+ save.dfs <- function(df, filename){
   wb <- createWorkbook()
   # OS added this piece to create excel tabs called "Data_oblast", "Data_raion", etc.
   daf_name <- as.character(strings['filename.daf.tabular'])
   toc.sheet <- paste0("Table_of_content",str_sub(daf_name,14,-6))
   data.sheet <- paste0("Data",str_sub(daf_name,14,-6))
-  
+
   addWorksheet(wb, toc.sheet)
   addWorksheet(wb, data.sheet)
   count_sh1 <- 2
@@ -1035,6 +1036,40 @@ save.dfs <- function(df, filename){
     count_sh2 <- count_sh2 + 1
   }
   saveWorkbook(wb, filename, overwrite=TRUE)
+ }
+}
+
+if (JMMI_variable == "Retailers") {
+  
+  save.dfs <- function(df, filename,tab.subtitle){
+    wb <- createWorkbook()
+    # OS added this piece to create excel tabs called "Data_oblast", "Data_raion", etc.
+    toc.sheet <- paste0("Table_of_content",tab.subtitle)
+    data.sheet <- paste0("Data",tab.subtitle)
+    
+    addWorksheet(wb, toc.sheet)
+    addWorksheet(wb, data.sheet)
+    count_sh1 <- 2
+    count_sh2 <- 1
+    writeData(wb, sheet = toc.sheet, x = "Table of Content", startCol = 1, startRow = 1)
+    for (i in 1:length(df)){
+      writeFormula(wb, toc.sheet,
+                   startRow = count_sh1,
+                   x = makeHyperlinkString(
+                     sheet = data.sheet, row = count_sh2, col = 1,
+                     text = names(df[i])
+                   ))
+      count_sh1 <- count_sh1 + 1
+      writeData(wb, sheet = data.sheet, names(df[i]), startCol = 1, startRow = count_sh2)
+      count_sh2 <- count_sh2 + 1
+      writeData(wb = wb, sheet = data.sheet, x = df[[i]], startRow = count_sh2)
+      count_sh2 <- count_sh2 + 1 + nrow(df[[i]])
+      writeData(wb = wb, sheet= data.sheet, x = NULL, startRow = count_sh2)
+      count_sh2 <- count_sh2 + 1
+    }
+    saveWorkbook(wb, filename, overwrite=TRUE)
+  }
+  
 }
 
 # Function for descriptive analysis min/max/Q1/Q3/median
@@ -1055,6 +1090,7 @@ descriptive_stats <- function(data, group_var, items){
 
 
 ### Define function that computes medians without imputation
+if (JMMI_variable == "Customers") {
 raw_medians <- function(data, cols_to_analyze, column_low, column_high=NULL) {
   prices <- descriptive_stats(data, column_low, cols_to_analyze)
   geo_cols <- c(column_high,column_low)
@@ -1066,6 +1102,29 @@ raw_medians <- function(data, cols_to_analyze, column_low, column_high=NULL) {
     select(c(column_high,column_low, "stats", cols_to_analyze)) %>%
     ungroup()
   return(prices)
+}
+}
+
+if (JMMI_variable == "Retailers") {
+  
+  raw_medians <- function(data, cols_to_analyze, column_low, column_high=NULL,num_samples=FALSE) {
+    prices <- descriptive_stats(data, column_low, cols_to_analyze)
+    geo_cols <- c(column_high,column_low)
+    geo <- geography %>% 
+      select(geo_cols) %>%
+      unique()
+    prices <- prices %>%
+      left_join(geo, by = column_low) %>% 
+      select(c(column_high,column_low, "stats", cols_to_analyze)) %>%
+      ungroup()
+    if (num_samples) {
+      n <- data %>% filter(!is.na(!!sym(cols_to_analyze))) %>% group_by(!!sym(column_low)) %>% summarize(num_samples=n()) %>% ungroup()
+      prices <- prices %>%
+        left_join(n,column_low)
+      
+    }
+    return(prices)
+  }
 }
 
 # Function to calculate JMMI basket 
