@@ -1,5 +1,5 @@
 
-## Change variable Retailers/Customers
+
 
 ###-----------------------------------------------------------------------------
 ### CHECKS - why are they here...?
@@ -145,9 +145,9 @@ load_entry <- function(daf_row){
   # comments - add two lines to them if necessary
   entry$comments <- ifelse(is.na(entry$comments), "", paste0("\n\n", comments))
 
- #  if (JMMI_variable == "Retailers") {
- # entry$join <- !is.na(entry$join)
- #  }
+  if (JMMI_variable == "Retailers") {
+ entry$join <- !is.na(entry$join)
+  }
   
   return(entry)
 }

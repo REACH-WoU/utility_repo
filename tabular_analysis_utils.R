@@ -129,6 +129,7 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
   return(res)
 }
 
+
 make_table <- function(srvyr.design, entry, disagg.var){
   # grouping - if no disaggregations, then simply by admin
   # (the design is already grouped by admin, so another group_by will not do anything)
@@ -143,7 +144,6 @@ make_table <- function(srvyr.design, entry, disagg.var){
   )
   
   # calculate metrics
-  if (JMMI_variable == "Customers") {
   res <- switch (entry$func,
                  numeric =    { srvyr.design.grouped %>% 
                      summarise(
@@ -160,28 +160,13 @@ make_table <- function(srvyr.design, entry, disagg.var){
                      make_table.select_one(entry, add_total = entry$add_total & disagg.var != entry$admin) },
                  select_multiple = { srvyr.design.grouped %>%
                      make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin) }
-  ) 
-  }
-
-  else { res <- switch (entry$func,
-                        numeric =    { srvyr.design.grouped %>%
-                            summarise(
-                              num_samples = n(),
-                              mean  =  survey_mean(  !!sym(entry$variable), na.rm = T, vartype = "var"),
-                              median = survey_median(!!sym(entry$variable), na.rm = T, vartype = "var"),
-                              min = min(!!sym(entry$variable), na.rm = T),
-                              max = max(!!sym(entry$variable), na.rm = T)) },
-                        select_one = { srvyr.design.grouped  %>%
-                            make_table.select_one(entry, add_total = entry$add_total & disagg.var != entry$admin) },
-                        select_multiple = { srvyr.design.grouped %>%
-                            make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin) }
-  )}
+  )
   
   ##### cleaning up the res #####
   
   # remove the variance columns, filter out choices with n = 0
   
-####  !!! OS has changed this on request from JMMI assessment team  
+  ####  !!! OS has changed this on request from JMMI assessment team  
   if (entry$admin == "strata"){
     res <- strata %>%
       left_join(res, by = "strata") %>% 
@@ -190,14 +175,12 @@ make_table <- function(srvyr.design, entry, disagg.var){
     res <- res %>% 
       select(-ends_with("_var"))
   }
-
-#  if("num_samples" %in% names(res)) res <- res %>% filter(num_samples > 0)
-  if (JMMI_variable == "Retailers") {
-    print(res)
-  }
+  
+  #  if("num_samples" %in% names(res)) res <- res %>% filter(num_samples > 0)
+  
   # round & convert to percentages:
   if (entry$calculation %==% "count"){
-  res <- switch (entry$func,
+    res <- switch (entry$func,
                    numeric = res %>% mutate(across(where(is.numeric), ~round(., 4))), 
                    # default (select_one or multiple): convert everything except num_samples to percent
                    { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), ~round(.*num_samples, 0))) %>% #as_perc)) %>% #### !!! OS has commented this on request from JMMI assessment team  
@@ -206,12 +189,79 @@ make_table <- function(srvyr.design, entry, disagg.var){
     ) 
   }else{
     res <- switch (entry$func,
-                 numeric = res %>% mutate(across(where(is.numeric), ~round(., 4))), 
-                 # default (select_one or multiple): convert everything except num_samples to percent
-                 { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), ~round(., 4))) %>% #as_perc)) %>% #### !!! OS has commented this on request from JMMI assessment team  
-                     # add label for the TOTAL row
-                     mutate(!!disagg.var := replace_na(!!sym(disagg.var) %>% as.character, "<TOTAL>"))  }
-  )               
+                   numeric = res %>% mutate(across(where(is.numeric), ~round(., 4))), 
+                   # default (select_one or multiple): convert everything except num_samples to percent
+                   { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), ~round(., 4))) %>% #as_perc)) %>% #### !!! OS has commented this on request from JMMI assessment team  
+                       # add label for the TOTAL row
+                       mutate(!!disagg.var := replace_na(!!sym(disagg.var) %>% as.character, "<TOTAL>"))  }
+    )               
   }
   return(res)
 }
+
+make_table_retailers <- function(srvyr.design, entry, disagg.var){
+  # grouping - if no disaggregations, then simply by admin
+  # (the design is already grouped by admin, so another group_by will not do anything)
+  if(isna(disagg.var)) disagg.var <- entry$admin   
+  srvyr.design.grouped <- srvyr.design %>% group_by(!!sym(disagg.var), .add = T)
+  
+  # select the relevant columns / variables
+  srvyr.design.grouped <- switch (entry$func,
+                                  select_multiple = { srvyr.design.grouped %>% select(starts_with(entry$variable) & contains("___")) },
+                                  # default - just select the relevant variable:
+                                  { srvyr.design.grouped %>% select(!!sym(entry$variable)) }
+  )
+  
+  # calculate metrics
+  res <- switch (entry$func,
+                 numeric =    { srvyr.design.grouped %>% 
+                     summarise(
+                       num_samples = n(),
+                       mean  =  survey_mean(  !!sym(entry$variable), na.rm = T, vartype = "var"),
+                       median = survey_median(!!sym(entry$variable), na.rm = T, vartype = "var"),
+                       min = min(!!sym(entry$variable), na.rm = T),
+                       max = max(!!sym(entry$variable), na.rm = T)) },
+                 select_one = { srvyr.design.grouped  %>%
+                     make_table.select_one(entry, add_total = entry$add_total & disagg.var != entry$admin) },
+                 select_multiple = { srvyr.design.grouped %>%
+                     make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin) }
+  )
+  
+  ##### cleaning up the res #####
+  
+  # remove the variance columns, filter out choices with n = 0
+  
+  ####  !!! OS has changed this on request from JMMI assessment team  
+  if (entry$admin == "strata"){
+    res <- strata %>%
+      left_join(res, by = "strata") %>% 
+      select(-ends_with("_var"))}
+  else {
+    res <- res %>% 
+      select(-ends_with("_var"))
+  }
+  
+  #  if("num_samples" %in% names(res)) res <- res %>% filter(num_samples > 0)
+  print(res)
+  # round & convert to percentages:
+  if (entry$calculation %==% "count"){
+    res <- switch (entry$func,
+                   numeric = res %>% mutate(across(where(is.numeric), ~round(., 4))), 
+                   # default (select_one or multiple): convert everything except num_samples to percent
+                   { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), ~round(.*num_samples, 0))) %>% #as_perc)) %>% #### !!! OS has commented this on request from JMMI assessment team  
+                       # add label for the TOTAL row
+                       mutate(!!disagg.var := replace_na(!!sym(disagg.var) %>% as.character, "<TOTAL>"))  }
+    ) 
+  }else{
+    res <- switch (entry$func,
+                   numeric = res %>% mutate(across(where(is.numeric), ~round(., 4))), 
+                   # default (select_one or multiple): convert everything except num_samples to percent
+                   { res %>% mutate(across(where(is.numeric) & !matches("^num_samples$"), ~round(., 4))) %>% #as_perc)) %>% #### !!! OS has commented this on request from JMMI assessment team  
+                       # add label for the TOTAL row
+                       mutate(!!disagg.var := replace_na(!!sym(disagg.var) %>% as.character, "<TOTAL>"))  }
+    )               
+  }
+  return(res)
+}
+
+  
