@@ -1011,9 +1011,10 @@ if (JMMI_variable == "Customers") {
  save.dfs <- function(df, filename){
   wb <- createWorkbook()
   # OS added this piece to create excel tabs called "Data_oblast", "Data_raion", etc.
+ 
   daf_name <- as.character(strings['filename.daf.tabular'])
-  toc.sheet <- paste0("Table_of_content",str_sub(daf_name,14,-6))
-  data.sheet <- paste0("Data",str_sub(daf_name,14,-6))
+  toc.sheet <- paste0("Table_of_content",str_sub(daf_name,24,-6))
+  data.sheet <- paste0("Data",str_sub(daf_name,24,-6))
 
   addWorksheet(wb, toc.sheet)
   addWorksheet(wb, data.sheet)
@@ -1040,13 +1041,13 @@ if (JMMI_variable == "Customers") {
 }
 
 if (JMMI_variable == "Retailers") {
-  
+
   save.dfs <- function(df, filename,tab.subtitle){
     wb <- createWorkbook()
     # OS added this piece to create excel tabs called "Data_oblast", "Data_raion", etc.
     toc.sheet <- paste0("Table_of_content",tab.subtitle)
     data.sheet <- paste0("Data",tab.subtitle)
-    
+
     addWorksheet(wb, toc.sheet)
     addWorksheet(wb, data.sheet)
     count_sh1 <- 2
@@ -1069,7 +1070,7 @@ if (JMMI_variable == "Retailers") {
     }
     saveWorkbook(wb, filename, overwrite=TRUE)
   }
-  
+
 }
 
 # Function for descriptive analysis min/max/Q1/Q3/median
@@ -1106,22 +1107,22 @@ raw_medians <- function(data, cols_to_analyze, column_low, column_high=NULL) {
 }
 
 if (JMMI_variable == "Retailers") {
-  
+
   raw_medians <- function(data, cols_to_analyze, column_low, column_high=NULL,num_samples=FALSE) {
     prices <- descriptive_stats(data, column_low, cols_to_analyze)
     geo_cols <- c(column_high,column_low)
-    geo <- geography %>% 
+    geo <- geography %>%
       select(geo_cols) %>%
       unique()
     prices <- prices %>%
-      left_join(geo, by = column_low) %>% 
+      left_join(geo, by = column_low) %>%
       select(c(column_high,column_low, "stats", cols_to_analyze)) %>%
       ungroup()
     if (num_samples) {
       n <- data %>% filter(!is.na(!!sym(cols_to_analyze))) %>% group_by(!!sym(column_low)) %>% summarize(num_samples=n()) %>% ungroup()
       prices <- prices %>%
         left_join(n,column_low)
-      
+
     }
     return(prices)
   }

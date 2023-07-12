@@ -1,7 +1,7 @@
 ###--------------------------------------------------------------------------------------------------------------
 ### Styling of the tabular analysis
 ###--------------------------------------------------------------------------------------------------------------
-JMMI_variable <- "Retailers"
+
 
 # add table to HTML
 # add table to HTML
@@ -160,10 +160,11 @@ make_table <- function(srvyr.design, entry, disagg.var){
                      make_table.select_one(entry, add_total = entry$add_total & disagg.var != entry$admin) },
                  select_multiple = { srvyr.design.grouped %>%
                      make_table.select_multiple(entry, add_total = entry$add_total & disagg.var != entry$admin) }
-  ) }
-  
+  ) 
+  }
+
   else { res <- switch (entry$func,
-                        numeric =    { srvyr.design.grouped %>% 
+                        numeric =    { srvyr.design.grouped %>%
                             summarise(
                               num_samples = n(),
                               mean  =  survey_mean(  !!sym(entry$variable), na.rm = T, vartype = "var"),
