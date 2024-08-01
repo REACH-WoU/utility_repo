@@ -120,7 +120,7 @@ make_table.select_multiple <- function(srvyr.design.grouped, entry, add_total = 
     res <- res %>% bind_rows(total_samples %>% left_join(total, by = entry$admin))
   }
   # convert choice names to labels (all except the NA column)
-  res <- res %>% rename_with(~get.choice.label(sm_ccols_to_choices(.), entry$list_name, simplify = T),
+  res <- res %>% rename_with(~get.choice.label(sm_ccols_to_choices(.), entry$list_name, simplify = F),
                              ends_with("_prop") & !contains("___NA"))
   # also convert the NA column:
   if(!entry$omit_na) res <- res %>% rename("NA" = !!paste0(entry$variable, "___NA_prop"))
